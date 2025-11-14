@@ -7,6 +7,3 @@ CREATE TABLE IF NOT EXISTS videos (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
-CREATE INDEX IF NOT EXISTS idx_videos_started_at ON videos(started_at DESC);
-CREATE INDEX IF NOT EXISTS idx_videos_filename ON videos(filename);
