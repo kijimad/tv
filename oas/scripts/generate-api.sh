@@ -5,7 +5,7 @@ set -eu
 cd $(dirname $0);
 cd ../..
 
-mkdir -p ./lib/generated
+mkdir -p ./internal/gen/server.gen.go
 
 docker run --rm \
        -v $PWD:/workdir \
