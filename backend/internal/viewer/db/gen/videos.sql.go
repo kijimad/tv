@@ -14,7 +14,7 @@ const createVideo = `-- name: CreateVideo :one
 INSERT INTO videos (
     started_at, finished_at, title, filename
 ) VALUES (
-    ?, ?, ?, ?
+    $1, $2, $3, $4
 )
 RETURNING id, started_at, finished_at, title, filename, created_at, updated_at
 `
@@ -48,7 +48,7 @@ func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video
 
 const deleteVideo = `-- name: DeleteVideo :exec
 DELETE FROM videos
-WHERE id = ?
+WHERE id = $1
 `
 
 func (q *Queries) DeleteVideo(ctx context.Context, id int64) error {
@@ -58,7 +58,7 @@ func (q *Queries) DeleteVideo(ctx context.Context, id int64) error {
 
 const getVideo = `-- name: GetVideo :one
 SELECT id, started_at, finished_at, title, filename, created_at, updated_at FROM videos
-WHERE id = ? LIMIT 1
+WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetVideo(ctx context.Context, id int64) (Video, error) {
@@ -78,7 +78,7 @@ func (q *Queries) GetVideo(ctx context.Context, id int64) (Video, error) {
 
 const getVideoByFilename = `-- name: GetVideoByFilename :one
 SELECT id, started_at, finished_at, title, filename, created_at, updated_at FROM videos
-WHERE filename = ? LIMIT 1
+WHERE filename = $1 LIMIT 1
 `
 
 func (q *Queries) GetVideoByFilename(ctx context.Context, filename string) (Video, error) {
@@ -135,11 +135,11 @@ func (q *Queries) ListVideos(ctx context.Context) ([]Video, error) {
 const updateVideo = `-- name: UpdateVideo :one
 UPDATE videos
 SET
-    started_at = ?,
-    finished_at = ?,
-    title = ?,
+    started_at = $1,
+    finished_at = $2,
+    title = $3,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = ?
+WHERE id = $4
 RETURNING id, started_at, finished_at, title, filename, created_at, updated_at
 `
 

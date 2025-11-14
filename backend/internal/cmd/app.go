@@ -16,6 +16,7 @@ func NewMainApp() *cli.Command {
 		Commands: []*cli.Command{
 			CmdRecorder,
 			CmdViewer,
+			CmdMigrate,
 		},
 	}
 
