@@ -27,27 +27,31 @@ func NewMonitor(recorder Recorder) *Monitor {
 	}
 }
 
-func (m *Monitor) Run(states <-chan bool, done chan<- struct{}) {
+func (m *Monitor) Run(states <-chan bool, done <-chan struct{}) {
 	wasActive := false
 
-	for isActive := range states {
-		if isActive && !wasActive {
-			log.Println("Pomodoro started, beginning recording")
-			if err := m.recorder.Start(); err != nil {
-				log.Printf("Error starting recording: %v", err)
+	for {
+		select {
+		case <-done:
+			return
+		case isActive, ok := <-states:
+			if !ok {
+				return
 			}
-		} else if !isActive && wasActive {
-			log.Println("Pomodoro stopped, stopping recording")
-			if err := m.recorder.Stop(); err != nil {
-				log.Printf("Error stopping recording: %v", err)
+			if isActive && !wasActive {
+				log.Println("Pomodoro started, beginning recording")
+				if err := m.recorder.Start(); err != nil {
+					log.Printf("Error starting recording: %v", err)
+				}
+			} else if !isActive && wasActive {
+				log.Println("Pomodoro stopped, stopping recording")
+				if err := m.recorder.Stop(); err != nil {
+					log.Printf("Error stopping recording: %v", err)
+				}
 			}
+
+			wasActive = isActive
 		}
-
-		wasActive = isActive
-	}
-
-	if done != nil {
-		done <- struct{}{}
 	}
 }
 
@@ -103,6 +107,7 @@ func main() {
 	monitor := NewMonitor(recorder)
 
 	states := make(chan bool)
+	done := make(chan struct{})
 	go pollChecker(checker, 2*time.Second, states)
-	monitor.Run(states, nil)
+	monitor.Run(states, done)
 }
