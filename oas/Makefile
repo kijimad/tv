@@ -1,16 +1,20 @@
 .DEFAULT_GOAL := help
 
-.PHONY: install
-install: ## Install TypeSpec dependencies
+.PHONY: toolinstall
+toolinstall: ## 依存ライブラリをインストールする
 	cd typespec && npm install
 
 .PHONY: compile
-compile: ## Compile TypeSpec to OpenAPI
-	cd typespec && npx tsp compile .
+compile: ## TypeSpec を OpenAPI にコンパイルする
+	cd typespec && npx tsp compile . --emit @typespec/openapi3
 
-.PHONY: gen
-gen: ## Generate Go server code from OpenAPI
+.PHONY: genapi
+genapi: ## OpenAPIスキーマからバックエンドコードを生成する
 	./scripts/generate-api.sh
+
+.PHONY: genfront
+genfront: ## OpenAPIスキーマからフロントエンドコードを生成する
+	./scripts/generate-frontend.sh
 
 .PHONY: help
 help: ## Show help
