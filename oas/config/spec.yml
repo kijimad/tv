@@ -1,4 +1,4 @@
-package: generated
+package: gen
 generate:
   embedded-spec: true
 output: ./backend/internal/gen/spec.gen.go
