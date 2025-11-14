@@ -10,13 +10,23 @@ build: ## Build go module
 test: ## Execute test
 	go test -race -shuffle=on -v ./...
 
+.PHONY: fmt
+fmt: ## フォーマットする
+	goimports -w .
+
 .PHONY: lint
 lint: ## Run lint
 	docker run --rm -v ${PWD}/..:/app -w /app/backend golangci/golangci-lint:v2.1.6 golangci-lint run ./... -v
 	docker run --rm -v ${PWD}/..:/app -w /app/backend golang:1.24 go vet ./...
 
+.PHONY: tools-install
+tools-install: ## 開発ツールをインストールする
+	@go install golang.org/x/tools/cmd/goimports@latest
+	@which golangci-lint > /dev/null || (echo "Installing golangci-lint..." && \
+		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v2.2.2)
+
 .PHONY: check
-check: build test lint ## Check
+check: fmt build test lint ## 一気にチェックする
 
 .PHONY: migrate
 migrate: ## データベースマイグレーション実行する
@@ -28,14 +38,10 @@ build-image: ## Dockerイメージをビルドする
 	--target release -f backend/Dockerfile backend
 
 .PHONY: updatetbls
-updatetbls: migrate ## tblsドキュメントを更新する。DBスキーマを変更した場合はローカル環境で実行してコミットする
-	docker run --rm \
-	-v $(PWD):/work \
-	-w /work \
-	--user $(shell id -u):$(shell id -g) \
-	--net=host \
-	ghcr.io/k1low/tbls \
-	doc --rm-dist
+updatetbls: migrate ## tblsドキュメントを更新する。DBスキーマを変更した場合はローカル環境で実行してコミットすること!
+	./scripts/tbls.sh lint
+	./scripts/tbls.sh diff docs/db
+	./scripts/tbls.sh doc --rm-dist
 
 .PHONY: sqlc
 sqlc: ## sqlcでコード生成する

@@ -4,7 +4,6 @@
 
 | Name | Columns | Comment | Type |
 | ---- | ------- | ------- | ---- |
-| [public.schema_migrations](public.schema_migrations.md) | 2 |  | BASE TABLE |
 | [public.videos](public.videos.md) | 7 | 動画情報 | BASE TABLE |
 
 ## Relations
@@ -13,10 +12,6 @@
 erDiagram
 
 
-"public.schema_migrations" {
-  boolean dirty
-  bigint version
-}
 "public.videos" {
   timestamp_without_time_zone created_at
   text filename

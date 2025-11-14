@@ -2,64 +2,6 @@
   "name": "tv",
   "tables": [
     {
-      "name": "public.schema_migrations",
-      "type": "BASE TABLE",
-      "columns": [
-        {
-          "name": "dirty",
-          "type": "boolean",
-          "nullable": false
-        },
-        {
-          "name": "version",
-          "type": "bigint",
-          "nullable": false
-        }
-      ],
-      "indexes": [
-        {
-          "name": "schema_migrations_pkey",
-          "def": "CREATE UNIQUE INDEX schema_migrations_pkey ON public.schema_migrations USING btree (version)",
-          "table": "public.schema_migrations",
-          "columns": [
-            "version"
-          ]
-        }
-      ],
-      "constraints": [
-        {
-          "name": "schema_migrations_dirty_not_null",
-          "type": "n",
-          "def": "NOT NULL dirty",
-          "table": "public.schema_migrations",
-          "referenced_table": "",
-          "columns": [
-            "dirty"
-          ]
-        },
-        {
-          "name": "schema_migrations_pkey",
-          "type": "PRIMARY KEY",
-          "def": "PRIMARY KEY (version)",
-          "table": "public.schema_migrations",
-          "referenced_table": "",
-          "columns": [
-            "version"
-          ]
-        },
-        {
-          "name": "schema_migrations_version_not_null",
-          "type": "n",
-          "def": "NOT NULL version",
-          "table": "public.schema_migrations",
-          "referenced_table": "",
-          "columns": [
-            "version"
-          ]
-        }
-      ]
-    },
-    {
       "name": "public.videos",
       "type": "BASE TABLE",
       "comment": "動画情報",

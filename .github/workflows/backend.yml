@@ -1,10 +1,16 @@
-name: ⚗️Check
+name: Backend
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
   pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
 
 env:
   REGISTRY: ghcr.io
@@ -13,31 +19,23 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
-        with:
-          go-version: "^1.21.0"
       - name: build
         run: make build
 
-  run:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "^1.21.0"
-      - name: run
-        run: make run
-
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
-        with:
-          go-version: "^1.21.0"
       - name: test
         run: make test
 
@@ -46,30 +44,50 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
-        with:
-          go-version: "^1.21.0"
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
           args: --verbose
           version: v2.1.6
+          working-directory: ./backend
 
   fmt:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
-        with:
-          go-version: "^1.21.0"
-      - name: install goimports
-        run: go install golang.org/x/tools/cmd/goimports@${GOIMPORTS_VERSION}
-        env:
-          GOIMPORTS_VERSION: v0.9.1
-      - name: format
-        run: goimports -l -w -local .
+      - name: 実行
+        run: make fmt
       - name: check change
         run: |
           git status -s
+          test -z "$(git status -s)"
+
+  tbls:
+    name: Update Database document
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: k1low/setup-tbls@v1
+
+      - name: run auto migration
+        run: docker compose up -d
+
+      - name: start up
+        run: make migrate
+
+      - name: run
+        run: make updatetbls
+
+      # tbls diffしているから不要だけど、一応確認しておく
+      - name: Diff check
+        run: |
+          git status # ジョブが失敗したとき、どこで失敗したか人が確認する用
           test -z "$(git status -s)"
 
   image:
@@ -108,7 +126,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./backend
+          file: ./backend/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
