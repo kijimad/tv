@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -30,10 +31,11 @@ func TestMonitor_StartRecordingOnPomodoroStart(t *testing.T) {
 	recorder := NewMockRecorder()
 	monitor := NewMonitor(recorder)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	states := make(chan bool)
-	done := make(chan struct{})
-	defer close(done)
-	go monitor.Run(states, done)
+
+	go monitor.Run(ctx, states)
 
 	states <- false
 	states <- true
@@ -46,10 +48,11 @@ func TestMonitor_StopRecordingOnPomodoroStop(t *testing.T) {
 	recorder := NewMockRecorder()
 	monitor := NewMonitor(recorder)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	states := make(chan bool)
-	done := make(chan struct{})
-	defer close(done)
-	go monitor.Run(states, done)
+
+	go monitor.Run(ctx, states)
 
 	states <- false
 	states <- true

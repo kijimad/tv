@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"log"
+	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
 	"syscall"
 	"time"
@@ -27,12 +30,18 @@ func NewMonitor(recorder Recorder) *Monitor {
 	}
 }
 
-func (m *Monitor) Run(states <-chan bool, done <-chan struct{}) {
+func (m *Monitor) Run(ctx context.Context, states <-chan bool) {
+	defer func() {
+		log.Println("Cleanup: stopping recording")
+		m.recorder.Stop()
+	}()
+
 	wasActive := false
 
 	for {
 		select {
-		case <-done:
+		case <-ctx.Done():
+			log.Println("Monitor stopped by context")
 			return
 		case isActive, ok := <-states:
 			if !ok {
@@ -55,18 +64,27 @@ func (m *Monitor) Run(states <-chan bool, done <-chan struct{}) {
 	}
 }
 
-func pollChecker(checker Checker, interval time.Duration, states chan<- bool) {
+func pollChecker(ctx context.Context, checker Checker, interval time.Duration, states chan<- bool) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		isActive, err := checker.IsActive()
-		if err != nil {
-			log.Printf("Error checking pomodoro status: %v", err)
-			continue
-		}
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			isActive, err := checker.IsActive()
+			if err != nil {
+				log.Printf("Error checking pomodoro status: %v", err)
+				continue
+			}
 
-		states <- isActive
+			select {
+			case states <- isActive:
+			case <-ctx.Done():
+				return
+			}
+		}
 	}
 }
 
@@ -102,12 +120,25 @@ func (f *FFmpegRecorder) Stop() error {
 }
 
 func main() {
-	checker := &EmacsChecker{}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		sig := <-sigChan
+		log.Printf("Received signal: %v, shutting down...", sig)
+		cancel()
+	}()
+
 	recorder := &FFmpegRecorder{}
 	monitor := NewMonitor(recorder)
 
 	states := make(chan bool)
-	done := make(chan struct{})
-	go pollChecker(checker, 2*time.Second, states)
-	monitor.Run(states, done)
+	checker := &EmacsChecker{}
+	go pollChecker(ctx, checker, 2*time.Second, states)
+
+	monitor.Run(ctx, states)
+	log.Println("Shutdown complete")
 }
