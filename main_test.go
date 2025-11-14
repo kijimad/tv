@@ -2,17 +2,60 @@ package main
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
-func TestMain(t *testing.T) {
-	t.Parallel()
+type MockRecorder struct {
+	startChan chan struct{}
+	stopChan  chan struct{}
+}
 
-	main()
+func NewMockRecorder() *MockRecorder {
+	return &MockRecorder{
+		startChan: make(chan struct{}, 1),
+		stopChan:  make(chan struct{}, 1),
+	}
+}
 
-	expect := 1
-	got := 1
+func (m *MockRecorder) Start() error {
+	m.startChan <- struct{}{}
+	return nil
+}
 
-	assert.Equal(t, expect, got)
+func (m *MockRecorder) Stop() error {
+	m.stopChan <- struct{}{}
+	return nil
+}
+
+// TODO: assertする
+func TestMonitor_StartRecordingOnPomodoroStart(t *testing.T) {
+	recorder := NewMockRecorder()
+	monitor := NewMonitor(recorder)
+
+	states := make(chan bool)
+	done := make(chan struct{})
+	go monitor.Run(states, done)
+
+	states <- false
+	states <- true
+
+	<-recorder.startChan
+	close(states)
+	<-done
+}
+
+// TODO: assertする
+func TestMonitor_StopRecordingOnPomodoroStop(t *testing.T) {
+	recorder := NewMockRecorder()
+	monitor := NewMonitor(recorder)
+
+	states := make(chan bool)
+	done := make(chan struct{})
+	go monitor.Run(states, done)
+
+	states <- true
+	states <- false
+
+	<-recorder.stopChan
+	close(states)
+	<-done
 }
