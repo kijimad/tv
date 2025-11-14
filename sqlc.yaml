@@ -1,0 +1,13 @@
+version: "2"
+sql:
+  - engine: "sqlite"
+    queries: "internal/viewer/db/queries"
+    schema: "internal/viewer/db/schema.sql"
+    gen:
+      go:
+        package: "gen"
+        out: "internal/viewer/db/gen"
+        sql_package: "database/sql"
+        emit_json_tags: true
+        emit_interface: true
+        emit_empty_slices: true
