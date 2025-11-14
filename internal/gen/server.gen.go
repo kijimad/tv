@@ -4,11 +4,14 @@
 package generated
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/oapi-codegen/runtime"
+	strictgin "github.com/oapi-codegen/runtime/strictmiddleware/gin"
 )
 
 // ServerInterface represents all server handlers.
@@ -190,4 +193,329 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.DELETE(options.BaseURL+"/api/v1/videos/:id", wrapper.VideosDelete)
 	router.GET(options.BaseURL+"/api/v1/videos/:id", wrapper.VideosGet)
 	router.PATCH(options.BaseURL+"/api/v1/videos/:id", wrapper.VideosUpdate)
+}
+
+type VideosListRequestObject struct {
+	Params VideosListParams
+}
+
+type VideosListResponseObject interface {
+	VisitVideosListResponse(w http.ResponseWriter) error
+}
+
+type VideosList200JSONResponse VideoList
+
+func (response VideosList200JSONResponse) VisitVideosListResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VideosListdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response VideosListdefaultJSONResponse) VisitVideosListResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type VideosCreateRequestObject struct {
+	Body *VideosCreateJSONRequestBody
+}
+
+type VideosCreateResponseObject interface {
+	VisitVideosCreateResponse(w http.ResponseWriter) error
+}
+
+type VideosCreate200JSONResponse Video
+
+func (response VideosCreate200JSONResponse) VisitVideosCreateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VideosCreatedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response VideosCreatedefaultJSONResponse) VisitVideosCreateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type VideosDeleteRequestObject struct {
+	Id int64 `json:"id"`
+}
+
+type VideosDeleteResponseObject interface {
+	VisitVideosDeleteResponse(w http.ResponseWriter) error
+}
+
+type VideosDelete204Response struct {
+}
+
+func (response VideosDelete204Response) VisitVideosDeleteResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type VideosDeletedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response VideosDeletedefaultJSONResponse) VisitVideosDeleteResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type VideosGetRequestObject struct {
+	Id int64 `json:"id"`
+}
+
+type VideosGetResponseObject interface {
+	VisitVideosGetResponse(w http.ResponseWriter) error
+}
+
+type VideosGet200JSONResponse Video
+
+func (response VideosGet200JSONResponse) VisitVideosGetResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VideosGetdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response VideosGetdefaultJSONResponse) VisitVideosGetResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type VideosUpdateRequestObject struct {
+	Id   int64 `json:"id"`
+	Body *VideosUpdateJSONRequestBody
+}
+
+type VideosUpdateResponseObject interface {
+	VisitVideosUpdateResponse(w http.ResponseWriter) error
+}
+
+type VideosUpdate200JSONResponse Video
+
+func (response VideosUpdate200JSONResponse) VisitVideosUpdateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VideosUpdatedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response VideosUpdatedefaultJSONResponse) VisitVideosUpdateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+// StrictServerInterface represents all server handlers.
+type StrictServerInterface interface {
+
+	// (GET /api/v1/videos)
+	VideosList(ctx context.Context, request VideosListRequestObject) (VideosListResponseObject, error)
+
+	// (POST /api/v1/videos)
+	VideosCreate(ctx context.Context, request VideosCreateRequestObject) (VideosCreateResponseObject, error)
+
+	// (DELETE /api/v1/videos/{id})
+	VideosDelete(ctx context.Context, request VideosDeleteRequestObject) (VideosDeleteResponseObject, error)
+
+	// (GET /api/v1/videos/{id})
+	VideosGet(ctx context.Context, request VideosGetRequestObject) (VideosGetResponseObject, error)
+
+	// (PATCH /api/v1/videos/{id})
+	VideosUpdate(ctx context.Context, request VideosUpdateRequestObject) (VideosUpdateResponseObject, error)
+}
+
+type StrictHandlerFunc = strictgin.StrictGinHandlerFunc
+type StrictMiddlewareFunc = strictgin.StrictGinMiddlewareFunc
+
+func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareFunc) ServerInterface {
+	return &strictHandler{ssi: ssi, middlewares: middlewares}
+}
+
+type strictHandler struct {
+	ssi         StrictServerInterface
+	middlewares []StrictMiddlewareFunc
+}
+
+// VideosList operation middleware
+func (sh *strictHandler) VideosList(ctx *gin.Context, params VideosListParams) {
+	var request VideosListRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.VideosList(ctx, request.(VideosListRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VideosList")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(VideosListResponseObject); ok {
+		if err := validResponse.VisitVideosListResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// VideosCreate operation middleware
+func (sh *strictHandler) VideosCreate(ctx *gin.Context) {
+	var request VideosCreateRequestObject
+
+	var body VideosCreateJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.Status(http.StatusBadRequest)
+		ctx.Error(err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.VideosCreate(ctx, request.(VideosCreateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VideosCreate")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(VideosCreateResponseObject); ok {
+		if err := validResponse.VisitVideosCreateResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// VideosDelete operation middleware
+func (sh *strictHandler) VideosDelete(ctx *gin.Context, id int64) {
+	var request VideosDeleteRequestObject
+
+	request.Id = id
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.VideosDelete(ctx, request.(VideosDeleteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VideosDelete")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(VideosDeleteResponseObject); ok {
+		if err := validResponse.VisitVideosDeleteResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// VideosGet operation middleware
+func (sh *strictHandler) VideosGet(ctx *gin.Context, id int64) {
+	var request VideosGetRequestObject
+
+	request.Id = id
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.VideosGet(ctx, request.(VideosGetRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VideosGet")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(VideosGetResponseObject); ok {
+		if err := validResponse.VisitVideosGetResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// VideosUpdate operation middleware
+func (sh *strictHandler) VideosUpdate(ctx *gin.Context, id int64) {
+	var request VideosUpdateRequestObject
+
+	request.Id = id
+
+	var body VideosUpdateJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.Status(http.StatusBadRequest)
+		ctx.Error(err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.VideosUpdate(ctx, request.(VideosUpdateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VideosUpdate")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(VideosUpdateResponseObject); ok {
+		if err := validResponse.VisitVideosUpdateResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
 }
