@@ -1,0 +1,33 @@
+name: tv
+
+dsn: postgres://root:root@127.0.0.1:5432/tv?sslmode=disable
+
+docPath: docs/db
+
+format:
+  sort: true
+
+er:
+  format: mermaid
+
+lint:
+  requiredTableComment:
+    enabled: true
+  requireColumnComment:
+    enabled: true
+    exclude:
+      - id
+      - created_at
+      - updated_at
+      - deleted_at
+  requireIndexComment:
+    enabled: false
+
+comments:
+  - table: videos
+    tableComment: 動画情報
+    columnComments:
+      started_at: 録画開始日時
+      finished_at: 録画終了日時
+      title: 動画タイトル
+      filename: ファイル名

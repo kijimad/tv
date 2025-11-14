@@ -1,0 +1,236 @@
+{
+  "name": "tv",
+  "tables": [
+    {
+      "name": "public.schema_migrations",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "dirty",
+          "type": "boolean",
+          "nullable": false
+        },
+        {
+          "name": "version",
+          "type": "bigint",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "schema_migrations_pkey",
+          "def": "CREATE UNIQUE INDEX schema_migrations_pkey ON public.schema_migrations USING btree (version)",
+          "table": "public.schema_migrations",
+          "columns": [
+            "version"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "schema_migrations_dirty_not_null",
+          "type": "n",
+          "def": "NOT NULL dirty",
+          "table": "public.schema_migrations",
+          "referenced_table": "",
+          "columns": [
+            "dirty"
+          ]
+        },
+        {
+          "name": "schema_migrations_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (version)",
+          "table": "public.schema_migrations",
+          "referenced_table": "",
+          "columns": [
+            "version"
+          ]
+        },
+        {
+          "name": "schema_migrations_version_not_null",
+          "type": "n",
+          "def": "NOT NULL version",
+          "table": "public.schema_migrations",
+          "referenced_table": "",
+          "columns": [
+            "version"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "public.videos",
+      "type": "BASE TABLE",
+      "comment": "動画情報",
+      "columns": [
+        {
+          "name": "created_at",
+          "type": "timestamp without time zone",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        {
+          "name": "filename",
+          "type": "text",
+          "nullable": false,
+          "comment": "ファイル名"
+        },
+        {
+          "name": "finished_at",
+          "type": "timestamp without time zone",
+          "nullable": false,
+          "comment": "録画終了日時"
+        },
+        {
+          "name": "id",
+          "type": "bigint",
+          "nullable": false,
+          "default": "nextval('videos_id_seq'::regclass)"
+        },
+        {
+          "name": "started_at",
+          "type": "timestamp without time zone",
+          "nullable": false,
+          "comment": "録画開始日時"
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "nullable": false,
+          "comment": "動画タイトル"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp without time zone",
+          "nullable": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "videos_filename_key",
+          "def": "CREATE UNIQUE INDEX videos_filename_key ON public.videos USING btree (filename)",
+          "table": "public.videos",
+          "columns": [
+            "filename"
+          ]
+        },
+        {
+          "name": "videos_pkey",
+          "def": "CREATE UNIQUE INDEX videos_pkey ON public.videos USING btree (id)",
+          "table": "public.videos",
+          "columns": [
+            "id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "videos_created_at_not_null",
+          "type": "n",
+          "def": "NOT NULL created_at",
+          "table": "public.videos",
+          "referenced_table": "",
+          "columns": [
+            "created_at"
+          ]
+        },
+        {
+          "name": "videos_filename_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (filename)",
+          "table": "public.videos",
+          "referenced_table": "",
+          "columns": [
+            "filename"
+          ]
+        },
+        {
+          "name": "videos_filename_not_null",
+          "type": "n",
+          "def": "NOT NULL filename",
+          "table": "public.videos",
+          "referenced_table": "",
+          "columns": [
+            "filename"
+          ]
+        },
+        {
+          "name": "videos_finished_at_not_null",
+          "type": "n",
+          "def": "NOT NULL finished_at",
+          "table": "public.videos",
+          "referenced_table": "",
+          "columns": [
+            "finished_at"
+          ]
+        },
+        {
+          "name": "videos_id_not_null",
+          "type": "n",
+          "def": "NOT NULL id",
+          "table": "public.videos",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "videos_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.videos",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "videos_started_at_not_null",
+          "type": "n",
+          "def": "NOT NULL started_at",
+          "table": "public.videos",
+          "referenced_table": "",
+          "columns": [
+            "started_at"
+          ]
+        },
+        {
+          "name": "videos_title_not_null",
+          "type": "n",
+          "def": "NOT NULL title",
+          "table": "public.videos",
+          "referenced_table": "",
+          "columns": [
+            "title"
+          ]
+        },
+        {
+          "name": "videos_updated_at_not_null",
+          "type": "n",
+          "def": "NOT NULL updated_at",
+          "table": "public.videos",
+          "referenced_table": "",
+          "columns": [
+            "updated_at"
+          ]
+        }
+      ]
+    }
+  ],
+  "driver": {
+    "name": "postgres",
+    "database_version": "PostgreSQL 18.1 (Debian 18.1-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+    "meta": {
+      "current_schema": "public",
+      "search_paths": [
+        "root",
+        "public"
+      ],
+      "dict": {
+        "Functions": "Stored procedures and functions"
+      }
+    }
+  }
+}
