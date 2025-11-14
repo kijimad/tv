@@ -12,7 +12,7 @@ import (
 var Config struct {
 	Host            string `env:"HOST" envDefault:"0.0.0.0"`
 	Port            int    `env:"PORT" envDefault:"8080"`
-	Address         string `env:"ADDRESS" envDefault:"0.0.0.0:8080"`
+	Address         string `env:"ADDRESS,expand" envDefault:"$HOST:$PORT"`
 	AppEnv          string `env:"APP_ENV" envDefault:"development"`
 	DBDriver        string `env:"DB_DRIVER" envDefault:"postgres"`
 	DBConnectionStr string `env:"DATABASE_URL" envDefault:"postgres://root:root@localhost:5432/tv?sslmode=disable"`
