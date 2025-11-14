@@ -2,6 +2,6 @@ package: generated
 generate:
   gin-server: true
   strict-server: true
-output: ./internal/gen/server.gen.go
+output: ./backend/internal/gen/server.gen.go
 output-options:
   skip-prune: true
