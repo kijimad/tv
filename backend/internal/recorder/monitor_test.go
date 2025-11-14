@@ -28,6 +28,7 @@ func (m *MockRecorder) Stop() error {
 }
 
 func TestMonitor_StartRecordingOnPomodoroStart(t *testing.T) {
+	t.Parallel()
 	recorder := NewMockRecorder()
 	monitor := NewMonitor(recorder)
 
@@ -45,6 +46,7 @@ func TestMonitor_StartRecordingOnPomodoroStart(t *testing.T) {
 }
 
 func TestMonitor_StopRecordingOnPomodoroStop(t *testing.T) {
+	t.Parallel()
 	recorder := NewMockRecorder()
 	monitor := NewMonitor(recorder)
 

@@ -1,3 +1,4 @@
+// Package recorder はポモドーロタイマーと連動した画面録画機能を提供する
 package recorder
 
 import (

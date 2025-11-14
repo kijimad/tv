@@ -1,3 +1,4 @@
+// Package db はデータベース接続とマイグレーションを管理する
 package db
 
 import (
@@ -9,7 +10,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/kijimaD/tv/internal/viewer/db/gen"
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq" // PostgreSQLドライバを登録
 )
 
 //go:embed migrations/*.sql
@@ -24,13 +25,13 @@ func InitDB(connStr string) (*gen.Queries, *sql.DB, error) {
 	}
 
 	if err := sqlDB.Ping(); err != nil {
-		sqlDB.Close()
+		_ = sqlDB.Close()
 		return nil, nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	// マイグレーション実行
 	if err := runMigrations(sqlDB); err != nil {
-		sqlDB.Close()
+		_ = sqlDB.Close()
 		return nil, nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 

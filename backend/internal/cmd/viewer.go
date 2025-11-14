@@ -10,7 +10,7 @@ import (
 var CmdViewer = &cli.Command{
 	Name:  "viewer",
 	Usage: "Start the video viewer backend server",
-	Action: func(ctx context.Context, cmd *cli.Command) error {
+	Action: func(_ context.Context, _ *cli.Command) error {
 		return nil
 	},
 }

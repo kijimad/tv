@@ -13,7 +13,7 @@ import (
 var CmdMigrate = &cli.Command{
 	Name:  "migrate",
 	Usage: "Run database migrations",
-	Action: func(ctx context.Context, cmd *cli.Command) error {
+	Action: func(_ context.Context, _ *cli.Command) error {
 		return runMigrate()
 	},
 }
@@ -23,7 +23,9 @@ func runMigrate() error {
 	if err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
-	defer sqlDB.Close()
+	defer func() {
+		_ = sqlDB.Close()
+	}()
 
 	return nil
 }

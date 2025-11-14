@@ -22,7 +22,7 @@ func NewMonitor(recorder Recorder) *Monitor {
 func (m *Monitor) Run(ctx context.Context, states <-chan bool) {
 	defer func() {
 		log.Println("Cleanup: stopping recording")
-		m.recorder.Stop()
+		_ = m.recorder.Stop()
 	}()
 
 	wasActive := false

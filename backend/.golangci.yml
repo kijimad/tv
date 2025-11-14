@@ -1,4 +1,9 @@
 version: "2"
+
+run:
+  skip-dirs:
+    - internal/gen
+
 linters:
   # standard: [errcheck govet ineffassign staticcheck unused]
   default: standard

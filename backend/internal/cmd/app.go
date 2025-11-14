@@ -1,3 +1,4 @@
+// Package cmd はCLIアプリケーションのコマンドを提供する
 package cmd
 
 import (
