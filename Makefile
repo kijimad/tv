@@ -48,6 +48,14 @@ test: ## Execute test
 gen: ## Execute go generate
 	go generate ./...
 
+.PHONY: spec-install
+spec-install: ## Install TypeSpec dependencies
+	cd typespec && npm install
+
+.PHONY: spec-compile
+spec-compile: ## Compile TypeSpec to OpenAPI
+	cd typespec && npx tsp compile .
+
 .PHONY: help
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \

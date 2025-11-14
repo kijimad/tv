@@ -1,0 +1,244 @@
+openapi: 3.0.0
+info:
+  title: TV API
+  version: 0.0.0
+tags: []
+paths:
+  /api/v1/videos:
+    get:
+      operationId: Videos_list
+      description: ビデオ一覧取得
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 20
+          explode: false
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 0
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoList'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      operationId: Videos_create
+      description: ビデオ作成
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Video'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VideoCreate'
+  /api/v1/videos/{id}:
+    get:
+      operationId: Videos_get
+      description: ビデオ詳細取得
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Video'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    patch:
+      operationId: Videos_update
+      description: ビデオ更新
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Video'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VideoUpdate'
+    delete:
+      operationId: Videos_delete
+      description: ビデオ削除
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: 'There is no content to send for this request, but the headers may be useful. '
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      description: エラーレスポンス
+    Video:
+      type: object
+      required:
+        - id
+        - startedAt
+        - finishedAt
+        - title
+        - filename
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: ビデオID
+          readOnly: true
+        startedAt:
+          type: string
+          format: date-time
+          description: 録画開始時刻
+        finishedAt:
+          type: string
+          format: date-time
+          description: 録画終了時刻
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: タイトル
+        filename:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: ファイル名
+        createdAt:
+          type: string
+          format: date-time
+          description: 作成日時
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: 更新日時
+          readOnly: true
+      description: 録画ビデオ
+    VideoCreate:
+      type: object
+      required:
+        - startedAt
+        - finishedAt
+        - title
+        - filename
+      properties:
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        title:
+          type: string
+        filename:
+          type: string
+      description: ビデオ作成リクエスト
+    VideoList:
+      type: object
+      required:
+        - videos
+        - total
+      properties:
+        videos:
+          type: array
+          items:
+            $ref: '#/components/schemas/Video'
+        total:
+          type: integer
+          format: int32
+      description: ビデオ一覧レスポンス
+    VideoUpdate:
+      type: object
+      properties:
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        title:
+          type: string
+        filename:
+          type: string
+      description: ビデオ更新リクエスト
+servers:
+  - url: http://localhost:8080
+    description: Development server
+    variables: {}
