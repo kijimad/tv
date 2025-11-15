@@ -8,7 +8,7 @@ RUN apt-get update \
     upx-ucl
 
 WORKDIR /build
-COPY . .
+COPY ./backend .
 
 RUN GO111MODULE=on CGO_ENABLED=0 go build -o ./bin/tv \
     -ldflags='-w -s -extldflags "-static"' \
