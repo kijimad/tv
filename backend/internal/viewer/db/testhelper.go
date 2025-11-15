@@ -47,7 +47,9 @@ func SetupTestDB(t *testing.T) (*dbgen.Queries, func()) {
 		AND table_type = 'BASE TABLE'
 	`, templateSchema)
 		require.NoError(t, err, "テーブル一覧の取得に失敗しました")
-		defer rows.Close()
+		defer func() {
+			_ = rows.Close()
+		}()
 
 		var tables []string
 		for rows.Next() {
@@ -118,7 +120,9 @@ func initTemplateSchema(t *testing.T) {
 				WHERE schema_name LIKE 'test_%'
 			`)
 			if err == nil {
-				defer rows.Close()
+				defer func() {
+					_ = rows.Close()
+				}()
 				var schemas []string
 				for rows.Next() {
 					var schemaName string

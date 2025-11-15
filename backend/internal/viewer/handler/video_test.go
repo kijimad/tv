@@ -57,6 +57,7 @@ func (m *MockVideoService) DeleteVideo(ctx context.Context, id int64) error {
 }
 
 func TestVideoHandler_VideosList(t *testing.T) {
+	t.Parallel()
 	gin.SetMode(gin.TestMode)
 
 	now := time.Now()
@@ -73,6 +74,7 @@ func TestVideoHandler_VideosList(t *testing.T) {
 	}
 
 	t.Run("ビデオ一覧取得成功", func(t *testing.T) {
+		t.Parallel()
 		mockService := new(MockVideoService)
 		handler := NewVideoHandler(mockService)
 
@@ -95,6 +97,7 @@ func TestVideoHandler_VideosList(t *testing.T) {
 	})
 
 	t.Run("limitとoffsetパラメータ指定", func(t *testing.T) {
+		t.Parallel()
 		mockService := new(MockVideoService)
 		handler := NewVideoHandler(mockService)
 
@@ -116,6 +119,7 @@ func TestVideoHandler_VideosList(t *testing.T) {
 	})
 
 	t.Run("データベースエラー時は400エラーを返す", func(t *testing.T) {
+		t.Parallel()
 		mockService := new(MockVideoService)
 		handler := NewVideoHandler(mockService)
 
@@ -138,6 +142,7 @@ func TestVideoHandler_VideosList(t *testing.T) {
 }
 
 func TestVideoHandler_VideosGet(t *testing.T) {
+	t.Parallel()
 	gin.SetMode(gin.TestMode)
 
 	now := time.Now()
@@ -152,6 +157,7 @@ func TestVideoHandler_VideosGet(t *testing.T) {
 	}
 
 	t.Run("ビデオ詳細取得成功", func(t *testing.T) {
+		t.Parallel()
 		mockService := new(MockVideoService)
 		handler := NewVideoHandler(mockService)
 
@@ -174,6 +180,7 @@ func TestVideoHandler_VideosGet(t *testing.T) {
 	})
 
 	t.Run("存在しないIDを指定した場合は404エラーを返す", func(t *testing.T) {
+		t.Parallel()
 		mockService := new(MockVideoService)
 		handler := NewVideoHandler(mockService)
 
@@ -196,12 +203,14 @@ func TestVideoHandler_VideosGet(t *testing.T) {
 }
 
 func TestVideoHandler_VideosCreate(t *testing.T) {
+	t.Parallel()
 	gin.SetMode(gin.TestMode)
 
 	now := time.Now()
 	finishedAt := now.Add(time.Hour)
 
 	t.Run("ビデオ作成成功", func(t *testing.T) {
+		t.Parallel()
 		mockService := new(MockVideoService)
 		handler := NewVideoHandler(mockService)
 
@@ -247,6 +256,7 @@ func TestVideoHandler_VideosCreate(t *testing.T) {
 	})
 
 	t.Run("不正なJSON形式の場合は400エラーを返す", func(t *testing.T) {
+		t.Parallel()
 		mockService := new(MockVideoService)
 		handler := NewVideoHandler(mockService)
 
@@ -266,6 +276,7 @@ func TestVideoHandler_VideosCreate(t *testing.T) {
 	})
 
 	t.Run("作成処理に失敗した場合は400エラーを返す", func(t *testing.T) {
+		t.Parallel()
 		mockService := new(MockVideoService)
 		handler := NewVideoHandler(mockService)
 
@@ -302,12 +313,14 @@ func TestVideoHandler_VideosCreate(t *testing.T) {
 }
 
 func TestVideoHandler_VideosUpdate(t *testing.T) {
+	t.Parallel()
 	gin.SetMode(gin.TestMode)
 
 	now := time.Now()
 	finishedAt := now.Add(time.Hour)
 
 	t.Run("ビデオ更新成功", func(t *testing.T) {
+		t.Parallel()
 		mockService := new(MockVideoService)
 		handler := NewVideoHandler(mockService)
 
@@ -356,6 +369,7 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 	})
 
 	t.Run("部分更新できる", func(t *testing.T) {
+		t.Parallel()
 		mockService := new(MockVideoService)
 		handler := NewVideoHandler(mockService)
 
@@ -391,6 +405,7 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 	})
 
 	t.Run("更新処理に失敗した場合は400エラーを返す", func(t *testing.T) {
+		t.Parallel()
 		mockService := new(MockVideoService)
 		handler := NewVideoHandler(mockService)
 
@@ -422,9 +437,11 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 }
 
 func TestVideoHandler_VideosDelete(t *testing.T) {
+	t.Parallel()
 	gin.SetMode(gin.TestMode)
 
 	t.Run("ビデオ削除できる", func(t *testing.T) {
+		t.Parallel()
 		mockService := new(MockVideoService)
 		handler := NewVideoHandler(mockService)
 
@@ -444,6 +461,7 @@ func TestVideoHandler_VideosDelete(t *testing.T) {
 	})
 
 	t.Run("削除処理に失敗した場合は500エラーを返す", func(t *testing.T) {
+		t.Parallel()
 		mockService := new(MockVideoService)
 		handler := NewVideoHandler(mockService)
 

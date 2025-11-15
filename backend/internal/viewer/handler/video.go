@@ -25,10 +25,10 @@ func (h *VideoHandler) VideosList(c *gin.Context, params gen.VideosListParams) {
 	limit := int32(10)
 	offset := int32(0)
 	if params.Limit != nil {
-		limit = int32(*params.Limit)
+		limit = *params.Limit
 	}
 	if params.Offset != nil {
-		offset = int32(*params.Offset)
+		offset = *params.Offset
 	}
 
 	videos, total, err := h.service.ListVideos(c.Request.Context(), limit, offset)

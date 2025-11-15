@@ -11,7 +11,9 @@ import (
 )
 
 func TestSetupTestDB(t *testing.T) {
+	t.Parallel()
 	t.Run("異なるインスタンスを得られる", func(t *testing.T) {
+		t.Parallel()
 		queries1, cleanup1 := SetupTestDB(t)
 		defer cleanup1()
 
@@ -27,6 +29,7 @@ func TestSetupTestDB(t *testing.T) {
 	})
 
 	t.Run("テーブル構造が正しくコピーされる", func(t *testing.T) {
+		t.Parallel()
 		queries, cleanup := SetupTestDB(t)
 		defer cleanup()
 
@@ -86,6 +89,7 @@ func TestSetupTestDB(t *testing.T) {
 	})
 
 	t.Run("cleanup実行後はDB接続がクローズされる", func(t *testing.T) {
+		t.Parallel()
 		queries, cleanup := SetupTestDB(t)
 
 		// クローズ前はクエリが正常に実行できる

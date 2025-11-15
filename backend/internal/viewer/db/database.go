@@ -13,6 +13,8 @@ import (
 	_ "github.com/lib/pq" // PostgreSQLドライバを登録
 )
 
+// MigrationsFS はマイグレーションSQLファイルを埋め込んだファイルシステム
+//
 //go:embed migrations/*.sql
 var MigrationsFS embed.FS
 
