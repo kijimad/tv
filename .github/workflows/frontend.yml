@@ -24,6 +24,7 @@ jobs:
         with:
           node-version: '24'
           cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
       - name: install
         run: npm ci
       - name: build
@@ -40,6 +41,7 @@ jobs:
         with:
           node-version: '24'
           cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
       - name: install
         run: npm ci
       - name: test
@@ -56,6 +58,7 @@ jobs:
         with:
           node-version: '24'
           cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
       - name: install
         run: npm ci
       - name: lint
@@ -72,6 +75,7 @@ jobs:
         with:
           node-version: '24'
           cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
       - name: install
         run: npm ci
       - name: fmt
