@@ -13,9 +13,70 @@ on:
       - '.github/workflows/frontend.yml'
 
 jobs:
-  placeholder:
+  build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
     steps:
       - uses: actions/checkout@v5
-      - name: Placeholder
-        run: echo "Frontend workflow placeholder"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - name: install
+        run: npm ci
+      - name: build
+        run: npm run build
+
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - name: install
+        run: npm ci
+      - name: test
+        run: npm run test
+
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - name: install
+        run: npm ci
+      - name: lint
+        run: npm run lint
+
+  fmt:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - name: install
+        run: npm ci
+      - name: fmt
+        run: npm run fmt
+      - name: check change
+        run: |
+          git status -s
+          test -z "$(git status -s)"
