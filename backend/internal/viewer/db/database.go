@@ -14,7 +14,7 @@ import (
 )
 
 //go:embed migrations/*.sql
-var migrationsFS embed.FS
+var MigrationsFS embed.FS
 
 // InitDB はPostgreSQL接続文字列を受け取る
 // 例: "postgres://user:password@host:port/dbname?sslmode=disable"
@@ -30,7 +30,7 @@ func InitDB(connStr string) (*gen.Queries, *sql.DB, error) {
 	}
 
 	// マイグレーション実行
-	if err := runMigrations(sqlDB); err != nil {
+	if err := RunMigrations(sqlDB, ""); err != nil {
 		_ = sqlDB.Close()
 		return nil, nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
@@ -39,13 +39,17 @@ func InitDB(connStr string) (*gen.Queries, *sql.DB, error) {
 	return queries, sqlDB, nil
 }
 
-func runMigrations(db *sql.DB) error {
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
+// RunMigrations はマイグレーションを実行する
+// schemaName が空文字列の場合はデフォルトスキーマpublicを使用する
+func RunMigrations(db *sql.DB, schemaName string) error {
+	driver, err := postgres.WithInstance(db, &postgres.Config{
+		SchemaName: schemaName,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to create postgres driver: %w", err)
 	}
 
-	source, err := iofs.New(migrationsFS, "migrations")
+	source, err := iofs.New(MigrationsFS, "migrations")
 	if err != nil {
 		return fmt.Errorf("failed to create migration source: %w", err)
 	}
