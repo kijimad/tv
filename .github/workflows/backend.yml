@@ -36,6 +36,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
+      - name: startup
+        run: docker compose up -d
       - name: test
         run: make test
 
@@ -75,10 +77,10 @@ jobs:
 
       - uses: k1low/setup-tbls@v1
 
-      - name: run auto migration
+      - name: start up
         run: docker compose up -d
 
-      - name: start up
+      - name: run auto migration
         run: make migrate
 
       - name: run
