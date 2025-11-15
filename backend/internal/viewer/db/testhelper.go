@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -23,7 +22,6 @@ var (
 const templateSchema = "test_template"
 
 // SetupTestDB はテンプレートスキーマをコピーして独立したテストDBをセットアップする
-// TODO: これ自体をテストしたい
 func SetupTestDB(t *testing.T) (*dbgen.Queries, func()) {
 	t.Helper()
 
@@ -33,10 +31,9 @@ func SetupTestDB(t *testing.T) (*dbgen.Queries, func()) {
 	require.NotNil(t, templateDBConn, "PostgreSQL接続が初期化されていません")
 
 	// テスト用の一意なスキーマ名を生成する
-	// テスト名 + タイムスタンプで衝突を防ぐ
-	testName := strings.ReplaceAll(t.Name(), "/", "_")
+	// タイムスタンプを使用して一意性を確保
 	timestamp := time.Now().UnixNano()
-	testSchema := fmt.Sprintf("test_%s_%d", testName, timestamp)
+	testSchema := fmt.Sprintf("test_%d", timestamp)
 
 	_, err := templateDBConn.Exec("CREATE SCHEMA " + testSchema)
 	require.NoError(t, err, "テストスキーマの作成に失敗しました")
