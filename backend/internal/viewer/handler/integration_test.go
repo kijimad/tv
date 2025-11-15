@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kijimaD/tv/internal/gen"
+	"github.com/kijimaD/tv/internal/viewer/db"
 	dbgen "github.com/kijimaD/tv/internal/viewer/db/gen"
 	"github.com/kijimaD/tv/internal/viewer/service"
 	"github.com/stretchr/testify/assert"
@@ -23,7 +24,7 @@ import (
 func setupTestServer(t *testing.T) (*gin.Engine, *dbgen.Queries, func()) {
 	t.Helper()
 
-	queries, cleanup := setupTestDB(t)
+	queries, cleanup := db.SetupTestDB(t)
 
 	videoService := service.NewVideoService(queries)
 	videoHandler := NewVideoHandler(videoService)
