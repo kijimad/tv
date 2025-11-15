@@ -1,13 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-const repositoryName = "planetizer";
-
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => ({
-  base: mode === "production" ? `/${repositoryName}/` : "/",
+export default defineConfig(() => ({
   plugins: [react()],
   server: {
-    port: 8007,
+    port: 3000,
+  },
+  test: {
+    globals: true,
+    environment: "jsdom",
   },
 }));
