@@ -19,7 +19,12 @@ var (
 	templateDBConn *sql.DB
 )
 
-const templateSchema = "test_template"
+const (
+	// テンプレートスキーマ名
+	templateSchema = "test_template"
+	// テスト用データベースのDSN
+	testDBDSN = "postgres://root:root@localhost:5432/test?sslmode=disable"
+)
 
 // SetupTestDB はテンプレートスキーマをコピーして独立したテストDBをセットアップする
 func SetupTestDB(t *testing.T) (*sqlc.Queries, func()) {
@@ -73,7 +78,7 @@ func SetupTestDB(t *testing.T) (*sqlc.Queries, func()) {
 	var queries *sqlc.Queries
 	var cleanup func()
 	{
-		testDB, err := sql.Open("postgres", getTestConnStr())
+		testDB, err := sql.Open("postgres", testDBDSN)
 		require.NoError(t, err, "テスト用DB接続の作成に失敗しました")
 
 		// 検索パスを作成したスキーマに設定する
@@ -94,23 +99,17 @@ func SetupTestDB(t *testing.T) (*sqlc.Queries, func()) {
 	return queries, cleanup
 }
 
-// getTestConnStr はテスト用のPostgreSQL接続文字列を返す
-// テスト用のデータベース名 tv_test を使用
-func getTestConnStr() string {
-	return "postgres://root:root@localhost:5432/tv_test?sslmode=disable"
-}
-
 // initTemplateSchema はマイグレーション済みのテンプレートスキーマを作成する
 // 全テストで1回だけ実行される
 func initTemplateSchema(t *testing.T) {
 	templateOnce.Do(func() {
-		connStr := getTestConnStr()
+		// テスト用データベースに接続（コンテナ初期化スクリプトで作成済み）
 		var err error
-		templateDBConn, err = sql.Open("postgres", connStr)
-		require.NoError(t, err, "PostgreSQL接続に失敗しました")
+		templateDBConn, err = sql.Open("postgres", testDBDSN)
+		require.NoError(t, err, "テスト用DB接続に失敗しました")
 
 		err = templateDBConn.Ping()
-		require.NoError(t, err, "PostgreSQLへのPingに失敗しました")
+		require.NoError(t, err, "テスト用DBへのPingに失敗しました")
 
 		// 既存の全てのテストスキーマを削除する
 		{
