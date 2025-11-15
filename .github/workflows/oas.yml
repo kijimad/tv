@@ -15,7 +15,6 @@ on:
 jobs:
   generate:
     runs-on: ubuntu-latest
-    needs: compile
     defaults:
       run:
         working-directory: ./oas
