@@ -7,6 +7,7 @@
     "types": ["vitest/globals", "@testing-library/jest-dom"]
   },
   "include": ["src"],
+  "exclude": ["src/oapi"],
   "extends": [
     "@tsconfig/vite-react/tsconfig.json",
     "@tsconfig/strictest/tsconfig.json"
