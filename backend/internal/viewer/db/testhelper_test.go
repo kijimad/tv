@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/kijimaD/tv/internal/viewer/db/factory"
-	dbgen "github.com/kijimaD/tv/internal/viewer/db/gen"
+	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,7 +35,7 @@ func TestSetupTestDB(t *testing.T) {
 
 		// テーブルが存在することを確認するため、簡単なクエリを実行
 		ctx := context.Background()
-		videos, err := queries.ListVideos(ctx, dbgen.ListVideosParams{
+		videos, err := queries.ListVideos(ctx, sqlc.ListVideosParams{
 			Limit:  10,
 			Offset: 0,
 		})
@@ -56,7 +56,7 @@ func TestSetupTestDB(t *testing.T) {
 			require.NoError(t, err)
 
 			// 1件のみ取得できるはず
-			videos, err := queries.ListVideos(ctx, dbgen.ListVideosParams{
+			videos, err := queries.ListVideos(ctx, sqlc.ListVideosParams{
 				Limit:  10,
 				Offset: 0,
 			})
@@ -79,7 +79,7 @@ func TestSetupTestDB(t *testing.T) {
 			require.NoError(t, err)
 
 			// 2件取得できるはず
-			videos, err := queries.ListVideos(ctx, dbgen.ListVideosParams{
+			videos, err := queries.ListVideos(ctx, sqlc.ListVideosParams{
 				Limit:  10,
 				Offset: 0,
 			})
@@ -94,7 +94,7 @@ func TestSetupTestDB(t *testing.T) {
 
 		// クローズ前はクエリが正常に実行できる
 		ctx := context.Background()
-		videos, err := queries.ListVideos(ctx, dbgen.ListVideosParams{
+		videos, err := queries.ListVideos(ctx, sqlc.ListVideosParams{
 			Limit:  10,
 			Offset: 0,
 		})
@@ -105,7 +105,7 @@ func TestSetupTestDB(t *testing.T) {
 		cleanup()
 
 		// cleanup後はDB接続がクローズされているため、クエリは失敗するはず
-		_, err = queries.ListVideos(ctx, dbgen.ListVideosParams{
+		_, err = queries.ListVideos(ctx, sqlc.ListVideosParams{
 			Limit:  10,
 			Offset: 0,
 		})

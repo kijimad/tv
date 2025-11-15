@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kijimaD/tv/internal/gen"
-	dbgen "github.com/kijimaD/tv/internal/viewer/db/gen"
+	"github.com/kijimaD/tv/internal/oapi"
+	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 	"github.com/kijimaD/tv/internal/viewer/service"
 )
 
@@ -21,7 +21,7 @@ func NewVideoHandler(service service.VideoService) *VideoHandler {
 }
 
 // VideosList はビデオ一覧を取得する
-func (h *VideoHandler) VideosList(c *gin.Context, params gen.VideosListParams) {
+func (h *VideoHandler) VideosList(c *gin.Context, params oapi.VideosListParams) {
 	limit := int32(10)
 	offset := int32(0)
 	if params.Limit != nil {
@@ -33,14 +33,14 @@ func (h *VideoHandler) VideosList(c *gin.Context, params gen.VideosListParams) {
 
 	videos, total, err := h.service.ListVideos(c.Request.Context(), limit, offset)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gen.Error{
+		c.JSON(http.StatusBadRequest, oapi.Error{
 			Code:    "list_failed",
 			Message: err.Error(),
 		})
 		return
 	}
 
-	response := gen.VideoList{
+	response := oapi.VideoList{
 		Total:  int32(total),
 		Videos: toAPIVideos(videos),
 	}
@@ -49,23 +49,23 @@ func (h *VideoHandler) VideosList(c *gin.Context, params gen.VideosListParams) {
 
 // VideosCreate はビデオを作成する
 func (h *VideoHandler) VideosCreate(c *gin.Context) {
-	var req gen.VideoCreate
+	var req oapi.VideoCreate
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gen.Error{
+		c.JSON(http.StatusBadRequest, oapi.Error{
 			Code:    "invalid_request",
 			Message: err.Error(),
 		})
 		return
 	}
 
-	video, err := h.service.CreateVideo(c.Request.Context(), dbgen.CreateVideoParams{
+	video, err := h.service.CreateVideo(c.Request.Context(), sqlc.CreateVideoParams{
 		Title:      req.Title,
 		Filename:   req.Filename,
 		StartedAt:  req.StartedAt,
 		FinishedAt: req.FinishedAt,
 	})
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gen.Error{
+		c.JSON(http.StatusBadRequest, oapi.Error{
 			Code:    "create_failed",
 			Message: err.Error(),
 		})
@@ -79,7 +79,7 @@ func (h *VideoHandler) VideosCreate(c *gin.Context) {
 func (h *VideoHandler) VideosGet(c *gin.Context, id int64) {
 	video, err := h.service.GetVideo(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gen.Error{
+		c.JSON(http.StatusNotFound, oapi.Error{
 			Code:    "not_found",
 			Message: err.Error(),
 		})
@@ -91,16 +91,16 @@ func (h *VideoHandler) VideosGet(c *gin.Context, id int64) {
 
 // VideosUpdate はビデオを更新する
 func (h *VideoHandler) VideosUpdate(c *gin.Context, id int64) {
-	var req gen.VideoUpdate
+	var req oapi.VideoUpdate
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gen.Error{
+		c.JSON(http.StatusBadRequest, oapi.Error{
 			Code:    "invalid_request",
 			Message: err.Error(),
 		})
 		return
 	}
 
-	params := dbgen.UpdateVideoParams{
+	params := sqlc.UpdateVideoParams{
 		ID: id,
 	}
 	if req.Title != nil {
@@ -118,7 +118,7 @@ func (h *VideoHandler) VideosUpdate(c *gin.Context, id int64) {
 
 	video, err := h.service.UpdateVideo(c.Request.Context(), id, params)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gen.Error{
+		c.JSON(http.StatusBadRequest, oapi.Error{
 			Code:    "update_failed",
 			Message: err.Error(),
 		})
@@ -131,7 +131,7 @@ func (h *VideoHandler) VideosUpdate(c *gin.Context, id int64) {
 // VideosDelete はビデオを削除する
 func (h *VideoHandler) VideosDelete(c *gin.Context, id int64) {
 	if err := h.service.DeleteVideo(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gen.Error{
+		c.JSON(http.StatusInternalServerError, oapi.Error{
 			Code:    "delete_failed",
 			Message: err.Error(),
 		})
@@ -141,10 +141,10 @@ func (h *VideoHandler) VideosDelete(c *gin.Context, id int64) {
 	c.Status(http.StatusNoContent)
 }
 
-// toAPIVideo はdbgen.Videoをgen.Videoに変換する
-func toAPIVideo(v dbgen.Video) gen.Video {
+// toAPIVideo はsqlc.Videoをoapi.Videoに変換する
+func toAPIVideo(v sqlc.Video) oapi.Video {
 	id := v.ID
-	return gen.Video{
+	return oapi.Video{
 		Id:         &id,
 		Title:      v.Title,
 		Filename:   v.Filename,
@@ -155,8 +155,8 @@ func toAPIVideo(v dbgen.Video) gen.Video {
 	}
 }
 
-func toAPIVideos(videos []dbgen.Video) []gen.Video {
-	result := make([]gen.Video, len(videos))
+func toAPIVideos(videos []sqlc.Video) []oapi.Video {
+	result := make([]oapi.Video, len(videos))
 	for i, v := range videos {
 		result[i] = toAPIVideo(v)
 	}

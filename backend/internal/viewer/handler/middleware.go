@@ -10,13 +10,13 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/gin-gonic/gin"
-	"github.com/kijimaD/tv/internal/gen"
+	"github.com/kijimaD/tv/internal/oapi"
 	oapiMiddleware "github.com/oapi-codegen/gin-middleware"
 )
 
 // MakeValidateMiddleware はOpenAPIバリデーションミドルウェアを作成する
 func MakeValidateMiddleware() (gin.HandlerFunc, error) {
-	swagger, err := gen.GetSwagger()
+	swagger, err := oapi.GetSwagger()
 	if err != nil {
 		return nil, err
 	}

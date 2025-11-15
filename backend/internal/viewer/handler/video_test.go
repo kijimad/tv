@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kijimaD/tv/internal/gen"
-	dbgen "github.com/kijimaD/tv/internal/viewer/db/gen"
+	"github.com/kijimaD/tv/internal/oapi"
+	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -22,33 +22,33 @@ type MockVideoService struct {
 	mock.Mock
 }
 
-func (m *MockVideoService) ListVideos(ctx context.Context, limit, offset int32) ([]dbgen.Video, int64, error) {
+func (m *MockVideoService) ListVideos(ctx context.Context, limit, offset int32) ([]sqlc.Video, int64, error) {
 	args := m.Called(ctx, limit, offset)
-	return args.Get(0).([]dbgen.Video), int64(args.Int(1)), args.Error(2)
+	return args.Get(0).([]sqlc.Video), int64(args.Int(1)), args.Error(2)
 }
 
-func (m *MockVideoService) GetVideo(ctx context.Context, id int64) (*dbgen.Video, error) {
+func (m *MockVideoService) GetVideo(ctx context.Context, id int64) (*sqlc.Video, error) {
 	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*dbgen.Video), args.Error(1)
+	return args.Get(0).(*sqlc.Video), args.Error(1)
 }
 
-func (m *MockVideoService) CreateVideo(ctx context.Context, params dbgen.CreateVideoParams) (*dbgen.Video, error) {
+func (m *MockVideoService) CreateVideo(ctx context.Context, params sqlc.CreateVideoParams) (*sqlc.Video, error) {
 	args := m.Called(ctx, params)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*dbgen.Video), args.Error(1)
+	return args.Get(0).(*sqlc.Video), args.Error(1)
 }
 
-func (m *MockVideoService) UpdateVideo(ctx context.Context, id int64, params dbgen.UpdateVideoParams) (*dbgen.Video, error) {
+func (m *MockVideoService) UpdateVideo(ctx context.Context, id int64, params sqlc.UpdateVideoParams) (*sqlc.Video, error) {
 	args := m.Called(ctx, id, params)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*dbgen.Video), args.Error(1)
+	return args.Get(0).(*sqlc.Video), args.Error(1)
 }
 
 func (m *MockVideoService) DeleteVideo(ctx context.Context, id int64) error {
@@ -61,7 +61,7 @@ func TestVideoHandler_VideosList(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	now := time.Now()
-	testVideos := []dbgen.Video{
+	testVideos := []sqlc.Video{
 		{
 			ID:         1,
 			Title:      "テストビデオ1",
@@ -84,11 +84,11 @@ func TestVideoHandler_VideosList(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/videos", nil)
 
-		handler.VideosList(c, gen.VideosListParams{})
+		handler.VideosList(c, oapi.VideosListParams{})
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response gen.VideoList
+		var response oapi.VideoList
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, int32(1), response.Total)
@@ -109,7 +109,7 @@ func TestVideoHandler_VideosList(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/videos?limit=20&offset=10", nil)
 
-		handler.VideosList(c, gen.VideosListParams{
+		handler.VideosList(c, oapi.VideosListParams{
 			Limit:  &limit,
 			Offset: &offset,
 		})
@@ -123,17 +123,17 @@ func TestVideoHandler_VideosList(t *testing.T) {
 		mockService := new(MockVideoService)
 		handler := NewVideoHandler(mockService)
 
-		mockService.On("ListVideos", mock.Anything, int32(10), int32(0)).Return([]dbgen.Video{}, 0, errors.New("database error"))
+		mockService.On("ListVideos", mock.Anything, int32(10), int32(0)).Return([]sqlc.Video{}, 0, errors.New("database error"))
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/videos", nil)
 
-		handler.VideosList(c, gen.VideosListParams{})
+		handler.VideosList(c, oapi.VideosListParams{})
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		var response gen.Error
+		var response oapi.Error
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, "list_failed", response.Code)
@@ -146,7 +146,7 @@ func TestVideoHandler_VideosGet(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	now := time.Now()
-	testVideo := &dbgen.Video{
+	testVideo := &sqlc.Video{
 		ID:         1,
 		Title:      "テストビデオ",
 		Filename:   "test.mp4",
@@ -171,7 +171,7 @@ func TestVideoHandler_VideosGet(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response gen.Video
+		var response oapi.Video
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, int64(1), *response.Id)
@@ -194,7 +194,7 @@ func TestVideoHandler_VideosGet(t *testing.T) {
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
 
-		var response gen.Error
+		var response oapi.Error
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, "not_found", response.Code)
@@ -214,7 +214,7 @@ func TestVideoHandler_VideosCreate(t *testing.T) {
 		mockService := new(MockVideoService)
 		handler := NewVideoHandler(mockService)
 
-		createdVideo := &dbgen.Video{
+		createdVideo := &sqlc.Video{
 			ID:         1,
 			Title:      "新しいビデオ",
 			Filename:   "new.mp4",
@@ -224,14 +224,14 @@ func TestVideoHandler_VideosCreate(t *testing.T) {
 			UpdatedAt:  now,
 		}
 
-		mockService.On("CreateVideo", mock.Anything, mock.MatchedBy(func(params dbgen.CreateVideoParams) bool {
+		mockService.On("CreateVideo", mock.Anything, mock.MatchedBy(func(params sqlc.CreateVideoParams) bool {
 			return params.Title == "新しいビデオ" &&
 				params.Filename == "new.mp4" &&
 				params.StartedAt.Equal(now) &&
 				params.FinishedAt.Equal(finishedAt)
 		})).Return(createdVideo, nil)
 
-		reqBody := gen.VideoCreate{
+		reqBody := oapi.VideoCreate{
 			Title:      "新しいビデオ",
 			Filename:   "new.mp4",
 			StartedAt:  now,
@@ -248,7 +248,7 @@ func TestVideoHandler_VideosCreate(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 
-		var response gen.Video
+		var response oapi.Video
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, "新しいビデオ", response.Title)
@@ -269,7 +269,7 @@ func TestVideoHandler_VideosCreate(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		var response gen.Error
+		var response oapi.Error
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, "invalid_request", response.Code)
@@ -280,14 +280,14 @@ func TestVideoHandler_VideosCreate(t *testing.T) {
 		mockService := new(MockVideoService)
 		handler := NewVideoHandler(mockService)
 
-		mockService.On("CreateVideo", mock.Anything, mock.MatchedBy(func(params dbgen.CreateVideoParams) bool {
+		mockService.On("CreateVideo", mock.Anything, mock.MatchedBy(func(params sqlc.CreateVideoParams) bool {
 			return params.Title == "新しいビデオ" &&
 				params.Filename == "new.mp4" &&
 				params.StartedAt.Equal(now) &&
 				params.FinishedAt.Equal(finishedAt)
 		})).Return(nil, errors.New("database error"))
 
-		reqBody := gen.VideoCreate{
+		reqBody := oapi.VideoCreate{
 			Title:      "新しいビデオ",
 			Filename:   "new.mp4",
 			StartedAt:  now,
@@ -304,7 +304,7 @@ func TestVideoHandler_VideosCreate(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		var response gen.Error
+		var response oapi.Error
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, "create_failed", response.Code)
@@ -325,7 +325,7 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 		handler := NewVideoHandler(mockService)
 
 		newTitle := "更新されたタイトル"
-		updatedVideo := &dbgen.Video{
+		updatedVideo := &sqlc.Video{
 			ID:         1,
 			Title:      newTitle,
 			Filename:   "test.mp4",
@@ -335,7 +335,7 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 			UpdatedAt:  now,
 		}
 
-		mockService.On("UpdateVideo", mock.Anything, int64(1), mock.MatchedBy(func(params dbgen.UpdateVideoParams) bool {
+		mockService.On("UpdateVideo", mock.Anything, int64(1), mock.MatchedBy(func(params sqlc.UpdateVideoParams) bool {
 			return params.ID == 1 &&
 				params.Title == newTitle &&
 				params.Filename == "test.mp4" &&
@@ -344,7 +344,7 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 		})).Return(updatedVideo, nil)
 
 		filename := "test.mp4"
-		reqBody := gen.VideoUpdate{
+		reqBody := oapi.VideoUpdate{
 			Title:      &newTitle,
 			Filename:   &filename,
 			StartedAt:  &now,
@@ -361,7 +361,7 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response gen.Video
+		var response oapi.Video
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, newTitle, response.Title)
@@ -374,7 +374,7 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 		handler := NewVideoHandler(mockService)
 
 		newTitle := "部分更新タイトル"
-		updatedVideo := &dbgen.Video{
+		updatedVideo := &sqlc.Video{
 			ID:         1,
 			Title:      newTitle,
 			Filename:   "original.mp4",
@@ -384,11 +384,11 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 			UpdatedAt:  now,
 		}
 
-		mockService.On("UpdateVideo", mock.Anything, int64(1), mock.MatchedBy(func(params dbgen.UpdateVideoParams) bool {
+		mockService.On("UpdateVideo", mock.Anything, int64(1), mock.MatchedBy(func(params sqlc.UpdateVideoParams) bool {
 			return params.ID == 1 && params.Title == newTitle
 		})).Return(updatedVideo, nil)
 
-		reqBody := gen.VideoUpdate{
+		reqBody := oapi.VideoUpdate{
 			Title: &newTitle,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -410,11 +410,11 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 		handler := NewVideoHandler(mockService)
 
 		newTitle := "更新されたタイトル"
-		mockService.On("UpdateVideo", mock.Anything, int64(1), mock.MatchedBy(func(params dbgen.UpdateVideoParams) bool {
+		mockService.On("UpdateVideo", mock.Anything, int64(1), mock.MatchedBy(func(params sqlc.UpdateVideoParams) bool {
 			return params.ID == 1 && params.Title == newTitle
 		})).Return(nil, errors.New("update failed"))
 
-		reqBody := gen.VideoUpdate{
+		reqBody := oapi.VideoUpdate{
 			Title: &newTitle,
 		}
 		body, _ := json.Marshal(reqBody)
@@ -428,7 +428,7 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		var response gen.Error
+		var response oapi.Error
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, "update_failed", response.Code)
@@ -478,7 +478,7 @@ func TestVideoHandler_VideosDelete(t *testing.T) {
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 
-		var response gen.Error
+		var response oapi.Error
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, "delete_failed", response.Code)

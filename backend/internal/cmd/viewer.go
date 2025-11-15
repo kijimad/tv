@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kijimaD/tv/internal/gen"
+	"github.com/kijimaD/tv/internal/oapi"
 	"github.com/kijimaD/tv/internal/viewer/config"
 	"github.com/kijimaD/tv/internal/viewer/db"
 	"github.com/kijimaD/tv/internal/viewer/handler"
@@ -44,7 +44,7 @@ func runViewer() error {
 	}
 	r.Use(validateMiddleware)
 
-	gen.RegisterHandlers(r, videoHandler)
+	oapi.RegisterHandlers(r, videoHandler)
 
 	return r.Run(config.Config.Address)
 }

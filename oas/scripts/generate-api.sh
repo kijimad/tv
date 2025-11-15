@@ -5,7 +5,7 @@ set -eu
 cd $(dirname $0);
 cd ../..
 
-mkdir -p ./backend/internal/gen
+mkdir -p ./backend/internal/oapi
 
 docker run --rm \
        -v $PWD:/workdir \

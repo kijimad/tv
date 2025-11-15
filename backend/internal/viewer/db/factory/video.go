@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/go-faker/faker/v4"
-	"github.com/kijimaD/tv/internal/viewer/db/gen"
+	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 )
 
 // VideoFactory はVideoのテストデータを作成するファクトリ
@@ -34,8 +34,8 @@ func NewVideo(overrides ...func(*VideoFactory)) *VideoFactory {
 }
 
 // Build はCreateVideoParamsを生成する
-func (f *VideoFactory) Build() gen.CreateVideoParams {
-	return gen.CreateVideoParams{
+func (f *VideoFactory) Build() sqlc.CreateVideoParams {
+	return sqlc.CreateVideoParams{
 		Title:      f.Title,
 		Filename:   f.Filename,
 		StartedAt:  f.StartedAt,
@@ -44,6 +44,6 @@ func (f *VideoFactory) Build() gen.CreateVideoParams {
 }
 
 // Create はDBにVideoレコードを作成する
-func (f *VideoFactory) Create(ctx context.Context, q *gen.Queries) (gen.Video, error) {
+func (f *VideoFactory) Create(ctx context.Context, q *sqlc.Queries) (sqlc.Video, error) {
 	return q.CreateVideo(ctx, f.Build())
 }

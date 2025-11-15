@@ -3,7 +3,7 @@
 //   sqlc v1.30.0
 // source: videos.sql
 
-package gen
+package sqlc
 
 import (
 	"context"

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	dbgen "github.com/kijimaD/tv/internal/viewer/db/gen"
+	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 	_ "github.com/lib/pq" // PostgreSQLドライバを登録
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +22,7 @@ var (
 const templateSchema = "test_template"
 
 // SetupTestDB はテンプレートスキーマをコピーして独立したテストDBをセットアップする
-func SetupTestDB(t *testing.T) (*dbgen.Queries, func()) {
+func SetupTestDB(t *testing.T) (*sqlc.Queries, func()) {
 	t.Helper()
 
 	// テンプレートスキーマの初期化（1回だけ）
@@ -70,7 +70,7 @@ func SetupTestDB(t *testing.T) (*dbgen.Queries, func()) {
 
 	// 並列テスト用に専用のDB接続を作成する
 	// search_pathを設定するとセッション全体に影響するため、専用接続が必要である
-	var queries *dbgen.Queries
+	var queries *sqlc.Queries
 	var cleanup func()
 	{
 		testDB, err := sql.Open("postgres", getTestConnStr())
@@ -80,7 +80,7 @@ func SetupTestDB(t *testing.T) (*dbgen.Queries, func()) {
 		_, err = testDB.Exec("SET search_path TO " + testSchema)
 		require.NoError(t, err, "検索パスの設定に失敗しました")
 
-		queries = dbgen.New(testDB)
+		queries = sqlc.New(testDB)
 		cleanup = func() {
 			// DB接続をクローズ
 			_ = testDB.Close()

@@ -12,16 +12,16 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kijimaD/tv/internal/gen"
+	"github.com/kijimaD/tv/internal/oapi"
 	"github.com/kijimaD/tv/internal/viewer/db"
-	dbgen "github.com/kijimaD/tv/internal/viewer/db/gen"
+	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 	"github.com/kijimaD/tv/internal/viewer/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // setupTestServer はテスト用のHTTPサーバーをセットアップする
-func setupTestServer(t *testing.T) (*gin.Engine, *dbgen.Queries, func()) {
+func setupTestServer(t *testing.T) (*gin.Engine, *sqlc.Queries, func()) {
 	t.Helper()
 
 	queries, cleanup := db.SetupTestDB(t)
@@ -36,7 +36,7 @@ func setupTestServer(t *testing.T) (*gin.Engine, *dbgen.Queries, func()) {
 	require.NoError(t, err, "バリデーションミドルウェアの作成に失敗しました")
 	r.Use(validateMiddleware)
 
-	gen.RegisterHandlers(r, videoHandler)
+	oapi.RegisterHandlers(r, videoHandler)
 
 	return r, queries, cleanup
 }
@@ -52,7 +52,7 @@ func TestIntegration_VideosCRUD(t *testing.T) {
 		now := time.Now()
 		finishedAt := now.Add(time.Hour)
 
-		reqBody := gen.VideoCreate{
+		reqBody := oapi.VideoCreate{
 			Title:      "統合テストビデオ",
 			Filename:   "integration-test-create.mp4",
 			StartedAt:  now,
@@ -69,7 +69,7 @@ func TestIntegration_VideosCRUD(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 
-		var response gen.Video
+		var response oapi.Video
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
 		assert.NotNil(t, response.Id)
@@ -87,7 +87,7 @@ func TestIntegration_VideosCRUD(t *testing.T) {
 		finishedAt := now.Add(time.Hour)
 
 		// このテスト用のビデオを作成
-		video, err := queries.CreateVideo(ctx, dbgen.CreateVideoParams{
+		video, err := queries.CreateVideo(ctx, sqlc.CreateVideoParams{
 			Title:      "取得テスト用ビデオ",
 			Filename:   "integration-test-get.mp4",
 			StartedAt:  now,
@@ -102,7 +102,7 @@ func TestIntegration_VideosCRUD(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response gen.Video
+		var response oapi.Video
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
 		assert.Equal(t, video.ID, *response.Id)
@@ -119,7 +119,7 @@ func TestIntegration_VideosCRUD(t *testing.T) {
 		finishedAt := now.Add(time.Hour)
 
 		// このテスト用のビデオを作成
-		_, err := queries.CreateVideo(ctx, dbgen.CreateVideoParams{
+		_, err := queries.CreateVideo(ctx, sqlc.CreateVideoParams{
 			Title:      "一覧テスト用ビデオ",
 			Filename:   "integration-test-list.mp4",
 			StartedAt:  now,
@@ -134,7 +134,7 @@ func TestIntegration_VideosCRUD(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response gen.VideoList
+		var response oapi.VideoList
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
 		assert.Equal(t, int32(1), response.Total)
@@ -151,7 +151,7 @@ func TestIntegration_VideosCRUD(t *testing.T) {
 		finishedAt := now.Add(time.Hour)
 
 		// このテスト用のビデオを作成
-		video, err := queries.CreateVideo(ctx, dbgen.CreateVideoParams{
+		video, err := queries.CreateVideo(ctx, sqlc.CreateVideoParams{
 			Title:      "更新テスト用ビデオ",
 			Filename:   "integration-test-update.mp4",
 			StartedAt:  now,
@@ -160,7 +160,7 @@ func TestIntegration_VideosCRUD(t *testing.T) {
 		require.NoError(t, err)
 
 		newTitle := "更新された統合テストビデオ"
-		reqBody := gen.VideoUpdate{
+		reqBody := oapi.VideoUpdate{
 			Title: &newTitle,
 		}
 		body, err := json.Marshal(reqBody)
@@ -174,7 +174,7 @@ func TestIntegration_VideosCRUD(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response gen.Video
+		var response oapi.Video
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
 		assert.Equal(t, newTitle, response.Title)
@@ -190,7 +190,7 @@ func TestIntegration_VideosCRUD(t *testing.T) {
 		finishedAt := now.Add(time.Hour)
 
 		// このテスト用のビデオを作成
-		video, err := queries.CreateVideo(ctx, dbgen.CreateVideoParams{
+		video, err := queries.CreateVideo(ctx, sqlc.CreateVideoParams{
 			Title:      "削除テスト用ビデオ",
 			Filename:   "integration-test-delete.mp4",
 			StartedAt:  now,
@@ -258,7 +258,7 @@ func TestIntegration_BusinessLogicValidation(t *testing.T) {
 	t.Run("started_atがfinished_atより後の場合エラー", func(t *testing.T) {
 		t.Parallel()
 		now := time.Now()
-		reqBody := gen.VideoCreate{
+		reqBody := oapi.VideoCreate{
 			Title:      "不正な時刻",
 			Filename:   "invalid.mp4",
 			StartedAt:  now,
@@ -291,7 +291,7 @@ func TestIntegration_Pagination(t *testing.T) {
 
 		// テストデータを複数作成
 		for i := 0; i < 10; i++ {
-			_, err := queries.CreateVideo(ctx, dbgen.CreateVideoParams{
+			_, err := queries.CreateVideo(ctx, sqlc.CreateVideoParams{
 				Title:      fmt.Sprintf("テストビデオ %d", i),
 				Filename:   fmt.Sprintf("test-limit-%d.mp4", i),
 				StartedAt:  now.Add(time.Duration(i) * time.Minute),
@@ -307,7 +307,7 @@ func TestIntegration_Pagination(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response gen.VideoList
+		var response oapi.VideoList
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
 		assert.Len(t, response.Videos, 5)
@@ -323,7 +323,7 @@ func TestIntegration_Pagination(t *testing.T) {
 
 		// テストデータを複数作成
 		for i := 0; i < 10; i++ {
-			_, err := queries.CreateVideo(ctx, dbgen.CreateVideoParams{
+			_, err := queries.CreateVideo(ctx, sqlc.CreateVideoParams{
 				Title:      fmt.Sprintf("テストビデオ %d", i),
 				Filename:   fmt.Sprintf("test-offset-%d.mp4", i),
 				StartedAt:  now.Add(time.Duration(i) * time.Minute),
@@ -339,7 +339,7 @@ func TestIntegration_Pagination(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response gen.VideoList
+		var response oapi.VideoList
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
 		assert.Len(t, response.Videos, 3) // 10件中、7件スキップして残り3件
@@ -373,7 +373,7 @@ func TestIntegration_Parallel(t *testing.T) {
 			t.Cleanup(cleanup)
 
 			now := time.Now()
-			reqBody := gen.VideoCreate{
+			reqBody := oapi.VideoCreate{
 				Title:      tt.title,
 				Filename:   tt.filename,
 				StartedAt:  now,

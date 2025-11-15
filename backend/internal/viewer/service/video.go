@@ -6,29 +6,29 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kijimaD/tv/internal/viewer/db/gen"
+	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 )
 
 // VideoService は動画ビジネスロジックのインターフェース
 type VideoService interface {
-	ListVideos(ctx context.Context, limit, offset int32) ([]gen.Video, int64, error)
-	GetVideo(ctx context.Context, id int64) (*gen.Video, error)
-	CreateVideo(ctx context.Context, params gen.CreateVideoParams) (*gen.Video, error)
-	UpdateVideo(ctx context.Context, id int64, params gen.UpdateVideoParams) (*gen.Video, error)
+	ListVideos(ctx context.Context, limit, offset int32) ([]sqlc.Video, int64, error)
+	GetVideo(ctx context.Context, id int64) (*sqlc.Video, error)
+	CreateVideo(ctx context.Context, params sqlc.CreateVideoParams) (*sqlc.Video, error)
+	UpdateVideo(ctx context.Context, id int64, params sqlc.UpdateVideoParams) (*sqlc.Video, error)
 	DeleteVideo(ctx context.Context, id int64) error
 }
 
 type videoService struct {
-	queries *gen.Queries
+	queries *sqlc.Queries
 }
 
 // NewVideoService はVideoServiceを作成する
-func NewVideoService(queries *gen.Queries) VideoService {
+func NewVideoService(queries *sqlc.Queries) VideoService {
 	return &videoService{queries: queries}
 }
 
-func (s *videoService) ListVideos(ctx context.Context, limit, offset int32) ([]gen.Video, int64, error) {
-	videos, err := s.queries.ListVideos(ctx, gen.ListVideosParams{
+func (s *videoService) ListVideos(ctx context.Context, limit, offset int32) ([]sqlc.Video, int64, error) {
+	videos, err := s.queries.ListVideos(ctx, sqlc.ListVideosParams{
 		Limit:  limit,
 		Offset: offset,
 	})
@@ -39,7 +39,7 @@ func (s *videoService) ListVideos(ctx context.Context, limit, offset int32) ([]g
 	return videos, int64(len(videos)), nil
 }
 
-func (s *videoService) GetVideo(ctx context.Context, id int64) (*gen.Video, error) {
+func (s *videoService) GetVideo(ctx context.Context, id int64) (*sqlc.Video, error) {
 	video, err := s.queries.GetVideo(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get video: %w", err)
@@ -47,7 +47,7 @@ func (s *videoService) GetVideo(ctx context.Context, id int64) (*gen.Video, erro
 	return &video, nil
 }
 
-func (s *videoService) CreateVideo(ctx context.Context, params gen.CreateVideoParams) (*gen.Video, error) {
+func (s *videoService) CreateVideo(ctx context.Context, params sqlc.CreateVideoParams) (*sqlc.Video, error) {
 	// 時系列の整合性チェック
 	if params.StartedAt.After(params.FinishedAt) {
 		return nil, fmt.Errorf("started_at must be before finished_at")
@@ -60,7 +60,7 @@ func (s *videoService) CreateVideo(ctx context.Context, params gen.CreateVideoPa
 	return &video, nil
 }
 
-func (s *videoService) UpdateVideo(ctx context.Context, id int64, params gen.UpdateVideoParams) (*gen.Video, error) {
+func (s *videoService) UpdateVideo(ctx context.Context, id int64, params sqlc.UpdateVideoParams) (*sqlc.Video, error) {
 	// 時系列の整合性チェック
 	if params.StartedAt.After(params.FinishedAt) {
 		return nil, fmt.Errorf("started_at must be before finished_at")

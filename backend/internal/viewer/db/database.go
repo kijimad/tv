@@ -9,7 +9,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
-	"github.com/kijimaD/tv/internal/viewer/db/gen"
+	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 	_ "github.com/lib/pq" // PostgreSQLドライバを登録
 )
 
@@ -20,7 +20,7 @@ var MigrationsFS embed.FS
 
 // InitDB はPostgreSQL接続文字列を受け取る
 // 例: "postgres://user:password@host:port/dbname?sslmode=disable"
-func InitDB(connStr string) (*gen.Queries, *sql.DB, error) {
+func InitDB(connStr string) (*sqlc.Queries, *sql.DB, error) {
 	sqlDB, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open database: %w", err)
@@ -37,7 +37,7 @@ func InitDB(connStr string) (*gen.Queries, *sql.DB, error) {
 		return nil, nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
 
-	queries := gen.New(sqlDB)
+	queries := sqlc.New(sqlDB)
 	return queries, sqlDB, nil
 }
 
