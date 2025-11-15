@@ -17,6 +17,6 @@ docker run --rm \
          -g typescript-axios \
          -o oas/ts-axios
 
-mkdir -p frontend/src/gen
-mv oas/ts-axios/*.ts frontend/src/gen/
+mkdir -p frontend/src/oapi
+mv oas/ts-axios/*.ts frontend/src/oapi/
 rm -rf oas/ts-axios
