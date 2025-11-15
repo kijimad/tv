@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 
+	"log/slog"
+
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/gin-gonic/gin"
@@ -16,7 +18,6 @@ import (
 	"github.com/kijimaD/tv/internal/viewer/db"
 	oapiMiddleware "github.com/oapi-codegen/gin-middleware"
 	"github.com/urfave/cli/v3"
-	"log/slog"
 )
 
 // CmdViewer is the viewer subcommand

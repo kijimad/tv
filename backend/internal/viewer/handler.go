@@ -23,7 +23,8 @@ func NewHandler(queries *dbgen.Queries) *Handler {
 }
 
 // VideosList はビデオ一覧を取得する
-func (h *Handler) VideosList(c *gin.Context, params gen.VideosListParams) {
+func (h *Handler) VideosList(c *gin.Context, _ gen.VideosListParams) {
+	// TODO: paramsを使ってlimit/offsetでページネーション
 	response := gen.VideoList{
 		Total:  0,
 		Videos: []gen.Video{},
@@ -95,7 +96,7 @@ func (h *Handler) VideosUpdate(c *gin.Context, id int64) {
 }
 
 // VideosDelete はビデオを削除する
-func (h *Handler) VideosDelete(c *gin.Context, id int64) {
-	// TODO: データベースから削除
+func (h *Handler) VideosDelete(c *gin.Context, _ int64) {
+	// TODO: idを使ってデータベースから削除
 	c.Status(http.StatusNoContent)
 }

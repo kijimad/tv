@@ -16,8 +16,8 @@ fmt: ## フォーマットする
 
 .PHONY: lint
 lint: ## Run lint
-	docker run --rm -v ${PWD}/..:/app -w /app/backend golangci/golangci-lint:v2.1.6 golangci-lint run ./... -v
-	docker run --rm -v ${PWD}/..:/app -w /app/backend golang:1.24 go vet ./...
+	@go build -o /dev/null . # buildが通らない状態でlinter実行するとミスリードなエラーが出るので先に試す
+	golangci-lint run -v ./...
 
 .PHONY: toolsinstall
 toolsinstall: ## 開発ツールをインストールする
