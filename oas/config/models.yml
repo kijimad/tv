@@ -1,6 +1,6 @@
-package: gen
+package: oapi
 generate:
   models: true
-output: ./backend/internal/gen/models.gen.go
+output: ./backend/internal/oapi/models.gen.go
 output-options:
   skip-prune: true

@@ -1,7 +1,7 @@
-package: gen
+package: oapi
 generate:
   gin-server: true
   strict-server: true
-output: ./backend/internal/gen/server.gen.go
+output: ./backend/internal/oapi/server.gen.go
 output-options:
   skip-prune: true

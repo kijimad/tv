@@ -3,7 +3,7 @@
 //   sqlc v1.30.0
 // source: videos.sql
 
-package gen
+package sqlc
 
 import (
 	"context"
@@ -99,10 +99,16 @@ func (q *Queries) GetVideoByFilename(ctx context.Context, filename string) (Vide
 const listVideos = `-- name: ListVideos :many
 SELECT id, started_at, finished_at, title, filename, created_at, updated_at FROM videos
 ORDER BY started_at DESC
+LIMIT $1 OFFSET $2
 `
 
-func (q *Queries) ListVideos(ctx context.Context) ([]Video, error) {
-	rows, err := q.db.QueryContext(ctx, listVideos)
+type ListVideosParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListVideos(ctx context.Context, arg ListVideosParams) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, listVideos, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -135,26 +141,29 @@ func (q *Queries) ListVideos(ctx context.Context) ([]Video, error) {
 const updateVideo = `-- name: UpdateVideo :one
 UPDATE videos
 SET
-    started_at = $1,
-    finished_at = $2,
-    title = $3,
+    title = $1,
+    filename = $2,
+    started_at = $3,
+    finished_at = $4,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $4
+WHERE id = $5
 RETURNING id, started_at, finished_at, title, filename, created_at, updated_at
 `
 
 type UpdateVideoParams struct {
+	Title      string    `json:"title"`
+	Filename   string    `json:"filename"`
 	StartedAt  time.Time `json:"started_at"`
 	FinishedAt time.Time `json:"finished_at"`
-	Title      string    `json:"title"`
 	ID         int64     `json:"id"`
 }
 
 func (q *Queries) UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error) {
 	row := q.db.QueryRowContext(ctx, updateVideo,
+		arg.Title,
+		arg.Filename,
 		arg.StartedAt,
 		arg.FinishedAt,
-		arg.Title,
 		arg.ID,
 	)
 	var i Video
