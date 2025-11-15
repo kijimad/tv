@@ -7,11 +7,14 @@ cd ../..
 
 mkdir -p ./backend/internal/oapi
 
-docker run --rm \
-       -v $PWD:/workdir \
-       -w /workdir \
+docker run \
+       --rm \
        -u "$(id -u):$(id -g)" \
-       -e XDG_CACHE_HOME=/tmp/.cache \
+       -w /work \
+       -v $PWD:/work \
+       -v $HOME/go/pkg:/go/pkg \
+       -v $HOME/.cache/go-build:/tmp/go-build \
+       --env GOCACHE=/tmp/go-build \
        golang:1.24-bookworm \
        bash -c "go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1 && \
          oapi-codegen --config oas/config/models.yml oas/openapi.yml && \
