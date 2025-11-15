@@ -7,6 +7,10 @@ cd ../..
 
 mkdir -p ./backend/internal/oapi
 
+# キャッシュディレクトリをマウントするので先に存在する必要がある
+mkdir -p $HOME/go/pkg
+mkdir -p $HOME/.cache/go-build
+
 docker run \
        --rm \
        -u "$(id -u):$(id -g)" \
