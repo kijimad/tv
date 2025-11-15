@@ -15,6 +15,8 @@ paths:
           schema:
             type: integer
             format: int32
+            minimum: 1
+            maximum: 100
             default: 20
           explode: false
         - name: offset
@@ -23,6 +25,7 @@ paths:
           schema:
             type: integer
             format: int32
+            minimum: 0
             default: 0
           explode: false
       responses:
@@ -207,8 +210,12 @@ components:
           format: date-time
         title:
           type: string
+          minLength: 1
+          maxLength: 255
         filename:
           type: string
+          minLength: 1
+          maxLength: 255
       description: ビデオ作成リクエスト
     VideoList:
       type: object
@@ -235,8 +242,12 @@ components:
           format: date-time
         title:
           type: string
+          minLength: 1
+          maxLength: 255
         filename:
           type: string
+          minLength: 1
+          maxLength: 255
       description: ビデオ更新リクエスト
 servers:
   - url: http://localhost:8080

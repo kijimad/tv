@@ -13,9 +13,10 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/gin-gonic/gin"
 	"github.com/kijimaD/tv/internal/gen"
-	"github.com/kijimaD/tv/internal/viewer"
 	"github.com/kijimaD/tv/internal/viewer/config"
 	"github.com/kijimaD/tv/internal/viewer/db"
+	"github.com/kijimaD/tv/internal/viewer/handler"
+	"github.com/kijimaD/tv/internal/viewer/service"
 	oapiMiddleware "github.com/oapi-codegen/gin-middleware"
 	"github.com/urfave/cli/v3"
 )
@@ -38,7 +39,9 @@ func runViewer() error {
 		_ = sqlDB.Close()
 	}()
 
-	handler := viewer.NewHandler(queries)
+	// 依存関係を注入
+	videoService := service.NewVideoService(queries)
+	videoHandler := handler.NewVideoHandler(videoService)
 
 	r := gin.Default()
 
@@ -49,7 +52,7 @@ func runViewer() error {
 	}
 	r.Use(validateMiddleware)
 
-	gen.RegisterHandlers(r, handler)
+	gen.RegisterHandlers(r, videoHandler)
 
 	return r.Run(config.Config.Address)
 }

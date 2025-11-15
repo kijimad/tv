@@ -13,7 +13,7 @@ type Querier interface {
 	DeleteVideo(ctx context.Context, id int64) error
 	GetVideo(ctx context.Context, id int64) (Video, error)
 	GetVideoByFilename(ctx context.Context, filename string) (Video, error)
-	ListVideos(ctx context.Context) ([]Video, error)
+	ListVideos(ctx context.Context, arg ListVideosParams) ([]Video, error)
 	UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error)
 }
 

@@ -46,7 +46,13 @@ model Video {
 model VideoCreate {
   startedAt: utcDateTime;
   finishedAt: utcDateTime;
+
+  @minLength(1)
+  @maxLength(255)
   title: string;
+
+  @minLength(1)
+  @maxLength(255)
   filename: string;
 }
 
@@ -54,7 +60,13 @@ model VideoCreate {
 model VideoUpdate {
   startedAt?: utcDateTime;
   finishedAt?: utcDateTime;
+
+  @minLength(1)
+  @maxLength(255)
   title?: string;
+
+  @minLength(1)
+  @maxLength(255)
   filename?: string;
 }
 
@@ -76,8 +88,8 @@ interface Videos {
   /** ビデオ一覧取得 */
   @get
   list(
-    @query limit?: int32 = 20,
-    @query offset?: int32 = 0,
+    @query @minValue(1) @maxValue(100) limit?: int32 = 20,
+    @query @minValue(0) offset?: int32 = 0,
   ): VideoList | Error;
 
   /** ビデオ詳細取得 */

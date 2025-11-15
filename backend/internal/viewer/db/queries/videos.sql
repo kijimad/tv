@@ -8,7 +8,8 @@ WHERE filename = $1 LIMIT 1;
 
 -- name: ListVideos :many
 SELECT * FROM videos
-ORDER BY started_at DESC;
+ORDER BY started_at DESC
+LIMIT $1 OFFSET $2;
 
 -- name: CreateVideo :one
 INSERT INTO videos (
@@ -21,11 +22,12 @@ RETURNING *;
 -- name: UpdateVideo :one
 UPDATE videos
 SET
-    started_at = $1,
-    finished_at = $2,
-    title = $3,
+    title = $1,
+    filename = $2,
+    started_at = $3,
+    finished_at = $4,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $4
+WHERE id = $5
 RETURNING *;
 
 -- name: DeleteVideo :exec
