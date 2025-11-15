@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'oas/**'
-      - '.github/workflows/oas.yml'
   pull_request:
     paths:
       - 'oas/**'
