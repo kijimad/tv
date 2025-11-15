@@ -1,0 +1,26 @@
+#root {
+  padding: 1rem 2rem;
+}
+.feedcontent {
+  max-width: 500px;
+  overflow-x: auto;
+}
+.feedcontent pre,
+.feedcontent code {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.feedcontent h1,
+.feedcontent h2,
+.feedcontent h3,
+.feedcontent h4,
+.feedcontent h5 {
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+.feedcontent a:link {
+  color: #00e;
+}
+.feedcontent li {
+  list-style: inside;
+}
