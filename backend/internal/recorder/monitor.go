@@ -9,14 +9,12 @@ import (
 // Monitor はポモドーロの状態を監視して録画を制御する
 type Monitor struct {
 	session *RecordingSession
-	sender  VideoSender
 }
 
 // NewMonitor は新しいMonitorを作成する
-func NewMonitor(recorder Recorder, statusProvider StatusProvider, sender VideoSender) *Monitor {
+func NewMonitor(recorder Recorder, statusProvider StatusProvider, client SessionClient) *Monitor {
 	return &Monitor{
-		session: NewRecordingSession(recorder, statusProvider),
-		sender:  sender,
+		session: NewRecordingSession(recorder, statusProvider, client),
 	}
 }
 
@@ -47,10 +45,6 @@ func (m *Monitor) Run(ctx context.Context, states <-chan bool) {
 				log.Println("Pomodoro stopped, stopping recording")
 				if err := m.session.Stop(); err != nil {
 					log.Printf("Error stopping recording: %v", err)
-				}
-				// 動画情報を送信
-				if err := m.sender.Send(m.session.GetVideoInfo()); err != nil {
-					log.Printf("Error sending video info: %v", err)
 				}
 			}
 

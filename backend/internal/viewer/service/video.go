@@ -18,12 +18,21 @@ type VideoService interface {
 	DeleteVideo(ctx context.Context, id int64) error
 }
 
+// VideoQuerier はビデオ操作に必要なクエリメソッドのインターフェース
+type VideoQuerier interface {
+	CreateVideo(ctx context.Context, params sqlc.CreateVideoParams) (sqlc.Video, error)
+	GetVideo(ctx context.Context, id int64) (sqlc.Video, error)
+	ListVideos(ctx context.Context, params sqlc.ListVideosParams) ([]sqlc.Video, error)
+	UpdateVideo(ctx context.Context, params sqlc.UpdateVideoParams) (sqlc.Video, error)
+	DeleteVideo(ctx context.Context, id int64) error
+}
+
 type videoService struct {
-	queries *sqlc.Queries
+	queries VideoQuerier
 }
 
 // NewVideoService はVideoServiceを作成する
-func NewVideoService(queries *sqlc.Queries) VideoService {
+func NewVideoService(queries VideoQuerier) VideoService {
 	return &videoService{queries: queries}
 }
 
@@ -62,8 +71,10 @@ func (s *videoService) CreateVideo(ctx context.Context, params sqlc.CreateVideoP
 
 func (s *videoService) UpdateVideo(ctx context.Context, id int64, params sqlc.UpdateVideoParams) (*sqlc.Video, error) {
 	// 時系列の整合性チェック
-	if params.StartedAt.After(params.FinishedAt) {
-		return nil, fmt.Errorf("started_at must be before finished_at")
+	if params.StartedAt.Valid && params.FinishedAt.Valid {
+		if params.StartedAt.Time.After(params.FinishedAt.Time) {
+			return nil, fmt.Errorf("started_at must be before finished_at")
+		}
 	}
 
 	params.ID = id

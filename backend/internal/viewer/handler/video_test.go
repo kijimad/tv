@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kijimaD/tv/internal/oapi"
 	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
+	"github.com/kijimaD/tv/internal/viewer/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -41,6 +42,35 @@ func (m *MockVideoService) CreateVideo(ctx context.Context, params sqlc.CreateVi
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*sqlc.Video), args.Error(1)
+}
+
+// MockSessionService はSessionServiceのモック
+type MockSessionService struct {
+	mock.Mock
+}
+
+func (m *MockSessionService) CreateSession(ctx context.Context, params sqlc.CreateSessionParams) (*sqlc.Session, error) {
+	args := m.Called(ctx, params)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*sqlc.Session), args.Error(1)
+}
+
+func (m *MockSessionService) UpdateSessionStatus(ctx context.Context, id int64, status string) (*service.SessionWithVideoID, error) {
+	args := m.Called(ctx, id, status)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*service.SessionWithVideoID), args.Error(1)
+}
+
+func (m *MockSessionService) GetCurrentRecordingSession(ctx context.Context) (*sqlc.Session, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*sqlc.Session), args.Error(1)
 }
 
 func (m *MockVideoService) UpdateVideo(ctx context.Context, id int64, params sqlc.UpdateVideoParams) (*sqlc.Video, error) {
@@ -76,7 +106,8 @@ func TestVideoHandler_VideosList(t *testing.T) {
 	t.Run("ビデオ一覧取得成功", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
-		handler := NewVideoHandler(mockService)
+		mockSessionService := new(MockSessionService)
+		handler := NewVideoHandler(mockService, mockSessionService)
 
 		mockService.On("ListVideos", mock.Anything, int32(10), int32(0)).Return(testVideos, 1, nil)
 
@@ -99,7 +130,8 @@ func TestVideoHandler_VideosList(t *testing.T) {
 	t.Run("limitとoffsetパラメータ指定", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
-		handler := NewVideoHandler(mockService)
+		mockSessionService := new(MockSessionService)
+		handler := NewVideoHandler(mockService, mockSessionService)
 
 		limit := int32(20)
 		offset := int32(10)
@@ -121,7 +153,8 @@ func TestVideoHandler_VideosList(t *testing.T) {
 	t.Run("データベースエラー時は400エラーを返す", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
-		handler := NewVideoHandler(mockService)
+		mockSessionService := new(MockSessionService)
+		handler := NewVideoHandler(mockService, mockSessionService)
 
 		mockService.On("ListVideos", mock.Anything, int32(10), int32(0)).Return([]sqlc.Video{}, 0, errors.New("database error"))
 
@@ -159,7 +192,8 @@ func TestVideoHandler_VideosGet(t *testing.T) {
 	t.Run("ビデオ詳細取得成功", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
-		handler := NewVideoHandler(mockService)
+		mockSessionService := new(MockSessionService)
+		handler := NewVideoHandler(mockService, mockSessionService)
 
 		mockService.On("GetVideo", mock.Anything, int64(1)).Return(testVideo, nil)
 
@@ -182,7 +216,8 @@ func TestVideoHandler_VideosGet(t *testing.T) {
 	t.Run("存在しないIDを指定した場合は404エラーを返す", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
-		handler := NewVideoHandler(mockService)
+		mockSessionService := new(MockSessionService)
+		handler := NewVideoHandler(mockService, mockSessionService)
 
 		mockService.On("GetVideo", mock.Anything, int64(999)).Return(nil, errors.New("video not found"))
 
@@ -212,7 +247,8 @@ func TestVideoHandler_VideosCreate(t *testing.T) {
 	t.Run("ビデオ作成成功", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
-		handler := NewVideoHandler(mockService)
+		mockSessionService := new(MockSessionService)
+		handler := NewVideoHandler(mockService, mockSessionService)
 
 		createdVideo := &sqlc.Video{
 			ID:         1,
@@ -258,7 +294,8 @@ func TestVideoHandler_VideosCreate(t *testing.T) {
 	t.Run("不正なJSON形式の場合は400エラーを返す", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
-		handler := NewVideoHandler(mockService)
+		mockSessionService := new(MockSessionService)
+		handler := NewVideoHandler(mockService, mockSessionService)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
@@ -278,7 +315,8 @@ func TestVideoHandler_VideosCreate(t *testing.T) {
 	t.Run("作成処理に失敗した場合は400エラーを返す", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
-		handler := NewVideoHandler(mockService)
+		mockSessionService := new(MockSessionService)
+		handler := NewVideoHandler(mockService, mockSessionService)
 
 		mockService.On("CreateVideo", mock.Anything, mock.MatchedBy(func(params sqlc.CreateVideoParams) bool {
 			return params.Title == "新しいビデオ" &&
@@ -322,7 +360,8 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 	t.Run("ビデオ更新成功", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
-		handler := NewVideoHandler(mockService)
+		mockSessionService := new(MockSessionService)
+		handler := NewVideoHandler(mockService, mockSessionService)
 
 		newTitle := "更新されたタイトル"
 		updatedVideo := &sqlc.Video{
@@ -337,10 +376,10 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 
 		mockService.On("UpdateVideo", mock.Anything, int64(1), mock.MatchedBy(func(params sqlc.UpdateVideoParams) bool {
 			return params.ID == 1 &&
-				params.Title == newTitle &&
-				params.Filename == "test.mp4" &&
-				params.StartedAt.Equal(now) &&
-				params.FinishedAt.Equal(finishedAt)
+				params.Title.Valid && params.Title.String == newTitle &&
+				params.Filename.Valid && params.Filename.String == "test.mp4" &&
+				params.StartedAt.Valid && params.StartedAt.Time.Equal(now) &&
+				params.FinishedAt.Valid && params.FinishedAt.Time.Equal(finishedAt)
 		})).Return(updatedVideo, nil)
 
 		filename := "test.mp4"
@@ -371,7 +410,8 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 	t.Run("部分更新できる", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
-		handler := NewVideoHandler(mockService)
+		mockSessionService := new(MockSessionService)
+		handler := NewVideoHandler(mockService, mockSessionService)
 
 		newTitle := "部分更新タイトル"
 		updatedVideo := &sqlc.Video{
@@ -385,7 +425,7 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 		}
 
 		mockService.On("UpdateVideo", mock.Anything, int64(1), mock.MatchedBy(func(params sqlc.UpdateVideoParams) bool {
-			return params.ID == 1 && params.Title == newTitle
+			return params.ID == 1 && params.Title.Valid && params.Title.String == newTitle
 		})).Return(updatedVideo, nil)
 
 		reqBody := oapi.VideoUpdate{
@@ -407,11 +447,12 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 	t.Run("更新処理に失敗した場合は400エラーを返す", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
-		handler := NewVideoHandler(mockService)
+		mockSessionService := new(MockSessionService)
+		handler := NewVideoHandler(mockService, mockSessionService)
 
 		newTitle := "更新されたタイトル"
 		mockService.On("UpdateVideo", mock.Anything, int64(1), mock.MatchedBy(func(params sqlc.UpdateVideoParams) bool {
-			return params.ID == 1 && params.Title == newTitle
+			return params.ID == 1 && params.Title.Valid && params.Title.String == newTitle
 		})).Return(nil, errors.New("update failed"))
 
 		reqBody := oapi.VideoUpdate{
@@ -443,7 +484,8 @@ func TestVideoHandler_VideosDelete(t *testing.T) {
 	t.Run("ビデオ削除できる", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
-		handler := NewVideoHandler(mockService)
+		mockSessionService := new(MockSessionService)
+		handler := NewVideoHandler(mockService, mockSessionService)
 
 		mockService.On("DeleteVideo", mock.Anything, int64(1)).Return(nil)
 
@@ -463,7 +505,8 @@ func TestVideoHandler_VideosDelete(t *testing.T) {
 	t.Run("削除処理に失敗した場合は500エラーを返す", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
-		handler := NewVideoHandler(mockService)
+		mockSessionService := new(MockSessionService)
+		handler := NewVideoHandler(mockService, mockSessionService)
 
 		mockService.On("DeleteVideo", mock.Anything, int64(1)).Return(errors.New("delete failed"))
 

@@ -37,8 +37,8 @@ func runRecorder(ctx context.Context) error {
 
 	emacsChecker := recorder.NewEmacsChecker()
 	ffmpegRecorder := recorder.NewFFmpegRecorder()
-	videoSender := recorder.NewHTTPVideoSender()
-	monitor := recorder.NewMonitor(ffmpegRecorder, emacsChecker, videoSender)
+	viewerClient := recorder.NewViewerClient(recorderConfig.Config.APIEndpoint)
+	monitor := recorder.NewMonitor(ffmpegRecorder, emacsChecker, viewerClient)
 
 	states := make(chan bool)
 	pollInterval := time.Duration(recorderConfig.Config.PollInterval) * time.Second
