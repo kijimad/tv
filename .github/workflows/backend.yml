@@ -39,6 +39,8 @@ jobs:
         run: docker compose up -d
       - name: test
         run: make test
+      - name: stress test
+        run: make stresstest
 
   lint:
     runs-on: ubuntu-latest
