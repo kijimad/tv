@@ -7,8 +7,6 @@ package sqlc
 
 import (
 	"context"
-	"database/sql"
-	"time"
 )
 
 const createSession = `-- name: CreateSession :one
@@ -59,121 +57,6 @@ func (q *Queries) GetCurrentRecordingSession(ctx context.Context) (Session, erro
 		&i.UpdatedAt,
 	)
 	return i, err
-}
-
-const getSession = `-- name: GetSession :one
-SELECT s.id, s.filename, s.title, s.status, s.started_at, s.finished_at, s.created_at, s.updated_at, vs.video_id
-FROM sessions s
-LEFT JOIN video_sessions vs ON vs.session_id = s.id
-WHERE s.id = $1
-`
-
-type GetSessionRow struct {
-	ID         int64         `json:"id"`
-	Filename   string        `json:"filename"`
-	Title      string        `json:"title"`
-	Status     string        `json:"status"`
-	StartedAt  time.Time     `json:"started_at"`
-	FinishedAt sql.NullTime  `json:"finished_at"`
-	CreatedAt  time.Time     `json:"created_at"`
-	UpdatedAt  time.Time     `json:"updated_at"`
-	VideoID    sql.NullInt64 `json:"video_id"`
-}
-
-func (q *Queries) GetSession(ctx context.Context, id int64) (GetSessionRow, error) {
-	row := q.db.QueryRowContext(ctx, getSession, id)
-	var i GetSessionRow
-	err := row.Scan(
-		&i.ID,
-		&i.Filename,
-		&i.Title,
-		&i.Status,
-		&i.StartedAt,
-		&i.FinishedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.VideoID,
-	)
-	return i, err
-}
-
-const getSessionByFilename = `-- name: GetSessionByFilename :one
-SELECT id, filename, title, status, started_at, finished_at, created_at, updated_at FROM sessions
-WHERE filename = $1
-`
-
-func (q *Queries) GetSessionByFilename(ctx context.Context, filename string) (Session, error) {
-	row := q.db.QueryRowContext(ctx, getSessionByFilename, filename)
-	var i Session
-	err := row.Scan(
-		&i.ID,
-		&i.Filename,
-		&i.Title,
-		&i.Status,
-		&i.StartedAt,
-		&i.FinishedAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const listSessions = `-- name: ListSessions :many
-SELECT s.id, s.filename, s.title, s.status, s.started_at, s.finished_at, s.created_at, s.updated_at, vs.video_id
-FROM sessions s
-LEFT JOIN video_sessions vs ON vs.session_id = s.id
-ORDER BY s.started_at DESC
-LIMIT $1 OFFSET $2
-`
-
-type ListSessionsParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
-}
-
-type ListSessionsRow struct {
-	ID         int64         `json:"id"`
-	Filename   string        `json:"filename"`
-	Title      string        `json:"title"`
-	Status     string        `json:"status"`
-	StartedAt  time.Time     `json:"started_at"`
-	FinishedAt sql.NullTime  `json:"finished_at"`
-	CreatedAt  time.Time     `json:"created_at"`
-	UpdatedAt  time.Time     `json:"updated_at"`
-	VideoID    sql.NullInt64 `json:"video_id"`
-}
-
-func (q *Queries) ListSessions(ctx context.Context, arg ListSessionsParams) ([]ListSessionsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listSessions, arg.Limit, arg.Offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ListSessionsRow{}
-	for rows.Next() {
-		var i ListSessionsRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Filename,
-			&i.Title,
-			&i.Status,
-			&i.StartedAt,
-			&i.FinishedAt,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.VideoID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const updateSessionStatus = `-- name: UpdateSessionStatus :one

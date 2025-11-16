@@ -101,26 +101,6 @@ func (q *Queries) GetVideo(ctx context.Context, id int64) (Video, error) {
 	return i, err
 }
 
-const getVideoByFilename = `-- name: GetVideoByFilename :one
-SELECT id, started_at, finished_at, title, filename, created_at, updated_at FROM videos
-WHERE filename = $1 LIMIT 1
-`
-
-func (q *Queries) GetVideoByFilename(ctx context.Context, filename string) (Video, error) {
-	row := q.db.QueryRowContext(ctx, getVideoByFilename, filename)
-	var i Video
-	err := row.Scan(
-		&i.ID,
-		&i.StartedAt,
-		&i.FinishedAt,
-		&i.Title,
-		&i.Filename,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const listVideos = `-- name: ListVideos :many
 SELECT id, started_at, finished_at, title, filename, created_at, updated_at FROM videos
 ORDER BY started_at DESC

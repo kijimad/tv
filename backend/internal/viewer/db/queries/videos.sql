@@ -2,10 +2,6 @@
 SELECT * FROM videos
 WHERE id = $1 LIMIT 1;
 
--- name: GetVideoByFilename :one
-SELECT * FROM videos
-WHERE filename = $1 LIMIT 1;
-
 -- name: ListVideos :many
 SELECT * FROM videos
 ORDER BY started_at DESC

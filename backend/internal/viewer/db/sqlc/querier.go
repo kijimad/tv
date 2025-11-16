@@ -14,15 +14,8 @@ type Querier interface {
 	CreateVideoFromSession(ctx context.Context, id int64) (Video, error)
 	CreateVideoSession(ctx context.Context, arg CreateVideoSessionParams) (VideoSession, error)
 	DeleteVideo(ctx context.Context, id int64) error
-	DeleteVideoSession(ctx context.Context, id int64) error
 	GetCurrentRecordingSession(ctx context.Context) (Session, error)
-	GetSession(ctx context.Context, id int64) (GetSessionRow, error)
-	GetSessionByFilename(ctx context.Context, filename string) (Session, error)
 	GetVideo(ctx context.Context, id int64) (Video, error)
-	GetVideoByFilename(ctx context.Context, filename string) (Video, error)
-	GetVideoSessionBySessionID(ctx context.Context, sessionID int64) (VideoSession, error)
-	GetVideoSessionByVideoID(ctx context.Context, videoID int64) (VideoSession, error)
-	ListSessions(ctx context.Context, arg ListSessionsParams) ([]ListSessionsRow, error)
 	ListVideos(ctx context.Context, arg ListVideosParams) ([]Video, error)
 	UpdateSessionStatus(ctx context.Context, arg UpdateSessionStatusParams) (Session, error)
 	UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error)
