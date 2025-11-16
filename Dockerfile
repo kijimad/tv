@@ -13,7 +13,7 @@ COPY ./backend .
 RUN GO111MODULE=on CGO_ENABLED=0 go build -o ./bin/tv \
     -ldflags='-w -s -extldflags "-static"' \
     . \
- && upx-ucl --best --ultra-brute ./bin/tv
+ && upx-ucl -1 ./bin/tv
 
 ###########
 # release #
