@@ -43,6 +43,135 @@ export interface ModelError {
     'message': string;
 }
 /**
+ * 録画ステータスレスポンス
+ * @export
+ * @interface RecordingStatus
+ */
+export interface RecordingStatus {
+    /**
+     * 録画中かどうか
+     * @type {boolean}
+     * @memberof RecordingStatus
+     */
+    'recording': boolean;
+    /**
+     * 現在のセッション
+     * @type {Session}
+     * @memberof RecordingStatus
+     */
+    'currentSession'?: Session;
+}
+/**
+ * 録画セッション
+ * @export
+ * @interface Session
+ */
+export interface Session {
+    /**
+     * セッションID
+     * @type {number}
+     * @memberof Session
+     */
+    'id': number;
+    /**
+     * ファイル名
+     * @type {string}
+     * @memberof Session
+     */
+    'filename': string;
+    /**
+     * タイトル
+     * @type {string}
+     * @memberof Session
+     */
+    'title'?: string;
+    /**
+     * ステータス
+     * @type {string}
+     * @memberof Session
+     */
+    'status': SessionStatusEnum;
+    /**
+     * 録画開始時刻
+     * @type {string}
+     * @memberof Session
+     */
+    'startedAt': string;
+    /**
+     * 録画終了時刻
+     * @type {string}
+     * @memberof Session
+     */
+    'finishedAt'?: string;
+    /**
+     * 関連ビデオID
+     * @type {number}
+     * @memberof Session
+     */
+    'videoId'?: number;
+    /**
+     * 作成日時
+     * @type {string}
+     * @memberof Session
+     */
+    'createdAt': string;
+    /**
+     * 更新日時
+     * @type {string}
+     * @memberof Session
+     */
+    'updatedAt': string;
+}
+
+export const SessionStatusEnum = {
+    Recording: 'recording',
+    Completed: 'completed',
+    Failed: 'failed'
+} as const;
+
+export type SessionStatusEnum = typeof SessionStatusEnum[keyof typeof SessionStatusEnum];
+
+/**
+ * セッション作成リクエスト
+ * @export
+ * @interface SessionCreate
+ */
+export interface SessionCreate {
+    /**
+     * 
+     * @type {string}
+     * @memberof SessionCreate
+     */
+    'filename': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof SessionCreate
+     */
+    'title'?: string;
+}
+/**
+ * セッション更新リクエスト
+ * @export
+ * @interface SessionUpdate
+ */
+export interface SessionUpdate {
+    /**
+     * 
+     * @type {string}
+     * @memberof SessionUpdate
+     */
+    'status'?: SessionUpdateStatusEnum;
+}
+
+export const SessionUpdateStatusEnum = {
+    Completed: 'completed',
+    Failed: 'failed'
+} as const;
+
+export type SessionUpdateStatusEnum = typeof SessionUpdateStatusEnum[keyof typeof SessionUpdateStatusEnum];
+
+/**
  * 録画ビデオ
  * @export
  * @interface Video
@@ -79,6 +208,12 @@ export interface Video {
      */
     'filename': string;
     /**
+     * セッションID
+     * @type {number}
+     * @memberof Video
+     */
+    'sessionId'?: number;
+    /**
      * 作成日時
      * @type {string}
      * @memberof Video
@@ -102,18 +237,6 @@ export interface VideoCreate {
      * @type {string}
      * @memberof VideoCreate
      */
-    'startedAt': string;
-    /**
-     * 
-     * @type {string}
-     * @memberof VideoCreate
-     */
-    'finishedAt': string;
-    /**
-     * 
-     * @type {string}
-     * @memberof VideoCreate
-     */
     'title': string;
     /**
      * 
@@ -121,6 +244,24 @@ export interface VideoCreate {
      * @memberof VideoCreate
      */
     'filename': string;
+    /**
+     * 
+     * @type {string}
+     * @memberof VideoCreate
+     */
+    'startedAt'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof VideoCreate
+     */
+    'finishedAt'?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof VideoCreate
+     */
+    'sessionId'?: number;
 }
 /**
  * ビデオ一覧レスポンス
@@ -179,6 +320,109 @@ export interface VideoUpdate {
  */
 export const DefaultApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
+        /**
+         * セッション作成
+         * @param {SessionCreate} sessionCreate 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        sessionsCreate: async (sessionCreate: SessionCreate, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'sessionCreate' is not null or undefined
+            assertParamExists('sessionsCreate', 'sessionCreate', sessionCreate)
+            const localVarPath = `/api/v1/sessions`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(sessionCreate, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * セッション更新
+         * @param {number} id 
+         * @param {SessionUpdate} sessionUpdate 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        sessionsUpdate: async (id: number, sessionUpdate: SessionUpdate, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('sessionsUpdate', 'id', id)
+            // verify required parameter 'sessionUpdate' is not null or undefined
+            assertParamExists('sessionsUpdate', 'sessionUpdate', sessionUpdate)
+            const localVarPath = `/api/v1/sessions/{id}`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PATCH', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(sessionUpdate, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 現在の録画状態取得
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        statusGet: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/api/v1/status`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
         /**
          * ビデオ作成
          * @param {VideoCreate} videoCreate 
@@ -369,6 +613,42 @@ export const DefaultApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = DefaultApiAxiosParamCreator(configuration)
     return {
         /**
+         * セッション作成
+         * @param {SessionCreate} sessionCreate 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async sessionsCreate(sessionCreate: SessionCreate, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Session>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.sessionsCreate(sessionCreate, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.sessionsCreate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * セッション更新
+         * @param {number} id 
+         * @param {SessionUpdate} sessionUpdate 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async sessionsUpdate(id: number, sessionUpdate: SessionUpdate, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Session>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.sessionsUpdate(id, sessionUpdate, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.sessionsUpdate']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * 現在の録画状態取得
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async statusGet(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RecordingStatus>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.statusGet(options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.statusGet']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * ビデオ作成
          * @param {VideoCreate} videoCreate 
          * @param {*} [options] Override http request option.
@@ -441,6 +721,33 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
     const localVarFp = DefaultApiFp(configuration)
     return {
         /**
+         * セッション作成
+         * @param {SessionCreate} sessionCreate 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        sessionsCreate(sessionCreate: SessionCreate, options?: RawAxiosRequestConfig): AxiosPromise<Session> {
+            return localVarFp.sessionsCreate(sessionCreate, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * セッション更新
+         * @param {number} id 
+         * @param {SessionUpdate} sessionUpdate 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        sessionsUpdate(id: number, sessionUpdate: SessionUpdate, options?: RawAxiosRequestConfig): AxiosPromise<Session> {
+            return localVarFp.sessionsUpdate(id, sessionUpdate, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * 現在の録画状態取得
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        statusGet(options?: RawAxiosRequestConfig): AxiosPromise<RecordingStatus> {
+            return localVarFp.statusGet(options).then((request) => request(axios, basePath));
+        },
+        /**
          * ビデオ作成
          * @param {VideoCreate} videoCreate 
          * @param {*} [options] Override http request option.
@@ -497,6 +804,39 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
  * @extends {BaseAPI}
  */
 export class DefaultApi extends BaseAPI {
+    /**
+     * セッション作成
+     * @param {SessionCreate} sessionCreate 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public sessionsCreate(sessionCreate: SessionCreate, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).sessionsCreate(sessionCreate, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * セッション更新
+     * @param {number} id 
+     * @param {SessionUpdate} sessionUpdate 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public sessionsUpdate(id: number, sessionUpdate: SessionUpdate, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).sessionsUpdate(id, sessionUpdate, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 現在の録画状態取得
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public statusGet(options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).statusGet(options).then((request) => request(this.axios, this.basePath));
+    }
+
     /**
      * ビデオ作成
      * @param {VideoCreate} videoCreate 
