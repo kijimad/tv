@@ -5,8 +5,20 @@
 package sqlc
 
 import (
+	"database/sql"
 	"time"
 )
+
+type Session struct {
+	ID         int64        `json:"id"`
+	Filename   string       `json:"filename"`
+	Title      string       `json:"title"`
+	Status     string       `json:"status"`
+	StartedAt  time.Time    `json:"started_at"`
+	FinishedAt sql.NullTime `json:"finished_at"`
+	CreatedAt  time.Time    `json:"created_at"`
+	UpdatedAt  time.Time    `json:"updated_at"`
+}
 
 type Video struct {
 	ID         int64     `json:"id"`
@@ -16,4 +28,11 @@ type Video struct {
 	Filename   string    `json:"filename"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+type Videosession struct {
+	ID        int64     `json:"id"`
+	VideoID   int64     `json:"video_id"`
+	SessionID int64     `json:"session_id"`
+	CreatedAt time.Time `json:"created_at"`
 }
