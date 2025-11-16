@@ -16,12 +16,10 @@ import (
 )
 
 var (
-	// 管理用DB接続の初期化
-	adminOnce sync.Once
-	// 管理用DB接続はテスト全体で使い回す
-	adminDBConn *sql.DB
 	// テンプレートDB初期化（プロセス内で1回だけ）
 	templateOnce sync.Once
+	// 管理用DB接続はテスト全体で使い回す
+	adminDBConn *sql.DB
 	// プロセスごとにユニークなテンプレートDB名
 	templateDBName = fmt.Sprintf("test_template_%d_%d", time.Now().UnixNano(), rand.Int64())
 	// ダンプしたSQL
@@ -47,20 +45,18 @@ const (
 func SetupTestDB(t *testing.T) (*sqlc.Queries, func()) {
 	t.Helper()
 
-	// 管理用DB接続の初期化（プロセス内で1回だけ）
-	adminOnce.Do(func() {
+	// テンプレートDB作成とスキーマダンプ（プロセス内で1回だけ）
+	templateOnce.Do(func() {
+		// 管理用DB接続を初期化
 		var err error
 		adminDBConn, err = sql.Open("postgres", adminDSN)
 		require.NoError(t, err, "管理用DB接続に失敗しました")
 
 		err = adminDBConn.Ping()
 		require.NoError(t, err, "管理用DBへのPingに失敗しました")
-	})
 
-	// テンプレートDB作成とスキーマダンプ（プロセス内で1回だけ）
-	templateOnce.Do(func() {
 		// プロセスごとにユニークなテンプレートデータベースを作成
-		_, err := adminDBConn.Exec("CREATE DATABASE " + templateDBName)
+		_, err = adminDBConn.Exec("CREATE DATABASE " + templateDBName)
 		require.NoError(t, err, "テンプレートデータベースの作成に失敗しました")
 
 		// テンプレートデータベースに接続してマイグレーション実行
