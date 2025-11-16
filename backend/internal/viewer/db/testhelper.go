@@ -64,7 +64,7 @@ func SetupTestDB(t *testing.T) (*sqlc.Queries, func()) {
 		tempConn, err := sql.Open("postgres", templateDSN)
 		require.NoError(t, err, "テンプレートDB接続に失敗しました")
 
-		err = RunMigrations(tempConn, "public")
+		err = RunMigrations(tempConn)
 		require.NoError(t, err, "マイグレーションの実行に失敗しました")
 
 		_ = tempConn.Close()
