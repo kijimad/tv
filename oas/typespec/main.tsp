@@ -33,6 +33,48 @@ model Video {
   @maxLength(255)
   filename: string;
 
+  /** セッションID */
+  sessionId?: int64;
+
+  /** 作成日時 */
+  @visibility("read")
+  createdAt: utcDateTime;
+
+  /** 更新日時 */
+  @visibility("read")
+  updatedAt: utcDateTime;
+}
+
+/** 録画セッション */
+model Session {
+  /** セッションID */
+  @visibility("read")
+  id: int64;
+
+  /** ファイル名 */
+  @minLength(1)
+  @maxLength(255)
+  filename: string;
+
+  /** タイトル */
+  @minLength(1)
+  @maxLength(255)
+  title?: string;
+
+  /** ステータス */
+  status: "recording" | "completed" | "failed";
+
+  /** 録画開始時刻 */
+  @visibility("read")
+  startedAt: utcDateTime;
+
+  /** 録画終了時刻 */
+  finishedAt?: utcDateTime;
+
+  /** 関連ビデオID */
+  @visibility("read")
+  videoId?: int64;
+
   /** 作成日時 */
   @visibility("read")
   createdAt: utcDateTime;
@@ -44,9 +86,6 @@ model Video {
 
 /** ビデオ作成リクエスト */
 model VideoCreate {
-  startedAt: utcDateTime;
-  finishedAt: utcDateTime;
-
   @minLength(1)
   @maxLength(255)
   title: string;
@@ -54,6 +93,26 @@ model VideoCreate {
   @minLength(1)
   @maxLength(255)
   filename: string;
+
+  startedAt?: utcDateTime;
+  finishedAt?: utcDateTime;
+  sessionId?: int64;
+}
+
+/** セッション作成リクエスト */
+model SessionCreate {
+  @minLength(1)
+  @maxLength(255)
+  filename: string;
+
+  @minLength(1)
+  @maxLength(255)
+  title?: string;
+}
+
+/** セッション更新リクエスト */
+model SessionUpdate {
+  status?: "completed" | "failed";
 }
 
 /** ビデオ更新リクエスト */
@@ -74,6 +133,15 @@ model VideoUpdate {
 model VideoList {
   videos: Video[];
   total: int32;
+}
+
+/** 録画ステータスレスポンス */
+model RecordingStatus {
+  /** 録画中かどうか */
+  recording: boolean;
+
+  /** 現在のセッション */
+  currentSession?: Session;
 }
 
 /** エラーレスポンス */
@@ -110,4 +178,23 @@ interface Videos {
   @delete
   @route("/{id}")
   delete(@path id: int64): void | Error;
+}
+
+@route("/api/v1/sessions")
+interface Sessions {
+  /** セッション作成 */
+  @post
+  create(@body session: SessionCreate): Session | Error;
+
+  /** セッション更新 */
+  @patch
+  @route("/{id}")
+  update(@path id: int64, @body session: SessionUpdate): Session | Error;
+}
+
+@route("/api/v1/status")
+interface Status {
+  /** 現在の録画状態取得 */
+  @get
+  get(): RecordingStatus | Error;
 }
