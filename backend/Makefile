@@ -45,8 +45,8 @@ build-image: ## Dockerイメージをビルドする
 .PHONY: updatetbls
 updatetbls: migrate ## tblsドキュメントを更新する。DBスキーマを変更した場合はローカル環境で実行してコミットすること!
 	./scripts/tbls.sh lint
-	./scripts/tbls.sh diff docs/db
 	./scripts/tbls.sh doc --rm-dist
+	./scripts/tbls.sh diff docs/db
 
 .PHONY: sqlc
 sqlc: ## sqlcでコード生成する
