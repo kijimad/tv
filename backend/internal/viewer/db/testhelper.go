@@ -4,12 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"math/rand/v2"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -23,25 +20,30 @@ var (
 	adminOnce sync.Once
 	// 管理用DB接続はテスト全体で使い回す
 	adminDBConn *sql.DB
-	// テンプレートDB初期化（プロセス間で1回だけ）
+	// テンプレートDB初期化（プロセス内で1回だけ）
 	templateOnce sync.Once
+	// プロセスごとにユニークなテンプレートDB名
+	templateDBName = fmt.Sprintf("test_template_%d_%d", time.Now().UnixNano(), rand.Int64())
 	// ダンプしたSQL
 	schemaDumpSQL string
 )
 
 const (
-	// テンプレートデータベース名
-	templateDB = "test_template"
 	// 管理用データベースのDSN
 	adminDSN = "postgres://root:root@localhost:5432/postgres?sslmode=disable"
 )
 
 // SetupTestDB はpg_dumpでダンプしたスキーマを使って独立したテストDBをセットアップする
-// 2つのレイヤーで重複実行を防いでいる:
-// - ロックファイル: 全プロセスで1回だけ
-// - sync.Once: 1プロセスで1回だけ ... 必要な情報をメモして以降の実行で再利用する
-// go test はパッケージごとに別プロセスで実行される。つまり変数が違うのでsync.Onceだけだと複数回実行されてしまう
-// TODO: スキーマは再生成されない
+// プロセスごとにユニークなテンプレートDBを作成するため、プロセス間の競合は発生しない
+// sync.Onceでプロセス内での重複実行を防いでいる
+//
+// - test
+//   - packageA (test_template_123_456) ^once
+//     a                                |
+//     b                                v
+//   - packageB (test_template_789_012) ^once
+//     c                                |
+//     d                                v
 func SetupTestDB(t *testing.T) (*sqlc.Queries, func()) {
 	t.Helper()
 
@@ -55,44 +57,35 @@ func SetupTestDB(t *testing.T) (*sqlc.Queries, func()) {
 		require.NoError(t, err, "管理用DBへのPingに失敗しました")
 	})
 
-	// テンプレートDB作成とスキーマダンプ
+	// テンプレートDB作成とスキーマダンプ（プロセス内で1回だけ）
 	templateOnce.Do(func() {
-		// ファイルロックを取得してプロセス間で排他制御を行う
-		// 複数のテストパッケージが並列実行される場合に備えてファイルロックでプロセス間同期を取る
-		lockPath := filepath.Join(os.TempDir(), "tv_test_template.lock")
-		lockFile, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0666)
-		require.NoError(t, err, "ロックファイルの作成に失敗しました")
-		defer func() { _ = lockFile.Close() }()
+		// プロセスごとにユニークなテンプレートデータベースを作成
+		_, err := adminDBConn.Exec("CREATE DATABASE " + templateDBName)
+		require.NoError(t, err, "テンプレートデータベースの作成に失敗しました")
 
-		// 排他ロックを取得（他のテストプロセスが初期化中の場合は待機）
-		err = syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX)
-		require.NoError(t, err, "ロックの取得に失敗しました")
-		defer func() { _ = syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN) }()
+		// テンプレートデータベースに接続してマイグレーション実行
+		templateDSN := fmt.Sprintf("postgres://root:root@localhost:5432/%s?sslmode=disable", templateDBName)
+		tempConn, err := sql.Open("postgres", templateDSN)
+		require.NoError(t, err, "テンプレートDB接続に失敗しました")
 
-		// test_template が既に存在するかチェック
-		var exists bool
-		err = adminDBConn.QueryRow("SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1)", templateDB).Scan(&exists)
-		require.NoError(t, err, "テンプレートDB存在チェックに失敗しました")
+		err = RunMigrations(tempConn, "public")
+		require.NoError(t, err, "マイグレーションの実行に失敗しました")
 
-		if !exists {
-			// テンプレートデータベースを作成
-			_, err = adminDBConn.Exec("CREATE DATABASE " + templateDB)
-			require.NoError(t, err, "テンプレートデータベースの作成に失敗しました")
-
-			// テンプレートデータベースに接続してマイグレーション実行
-			templateDSN := fmt.Sprintf("postgres://root:root@localhost:5432/%s?sslmode=disable", templateDB)
-			tempConn, err := sql.Open("postgres", templateDSN)
-			require.NoError(t, err, "テンプレートDB接続に失敗しました")
-
-			err = RunMigrations(tempConn, "public")
-			require.NoError(t, err, "マイグレーションの実行に失敗しました")
-
-			_ = tempConn.Close()
-		}
+		_ = tempConn.Close()
 
 		// pg_dumpでスキーマをダンプ
-		schemaDumpSQL, err = dumpSchemaWithPgDump(templateDB)
+		schemaDumpSQL, err = dumpSchemaWithPgDump(templateDBName)
 		require.NoError(t, err, "スキーマダンプに失敗しました")
+
+		// ダンプしたのでテンプレートDBは削除する
+		// pg_dumpの接続が残っているのか、先に強制切断しないと削除が失敗する...
+		_, _ = adminDBConn.Exec(`
+			SELECT pg_terminate_backend(pid)
+			FROM pg_stat_activity
+			WHERE datname = $1 AND pid <> pg_backend_pid()
+		`, templateDBName)
+		_, err = adminDBConn.Exec("DROP DATABASE IF EXISTS " + templateDBName)
+		require.NoError(t, err)
 	})
 
 	// テスト用データベース名を生成
