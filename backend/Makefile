@@ -3,12 +3,16 @@
 DOCKER_TAG := latest
 
 .PHONY: build
-build: ## Build go module
+build: ## ビルドする
 	go build -o ../bin/tv .
 
 .PHONY: test
-test: ## Execute test
+test: ## テストを実行する
 	go test -race -shuffle=on -v ./...
+
+.PHONY: stresstest
+stresstest: ## テストを繰り返し実行して競合を検知する
+	go test -race -shuffle=on -count=100 ./...
 
 .PHONY: fmt
 fmt: ## フォーマットする
