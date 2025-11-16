@@ -102,23 +102,15 @@ func SetupTestDB(t *testing.T) (*sqlc.Queries, func()) {
 	err = testDB.Ping()
 	require.NoError(t, err, "テスト用DBへのPingに失敗しました")
 
-	// ダンプしたスキーマを実行（トランザクション内で一括実行）
-	tx, err := testDB.Begin()
-	require.NoError(t, err, "トランザクション開始に失敗しました")
-
-	_, err = tx.Exec(schemaDumpSQL)
-	if err != nil {
-		_ = tx.Rollback()
-		require.NoError(t, err, "スキーマの作成に失敗しました")
-	}
-	err = tx.Commit()
-	require.NoError(t, err, "トランザクションコミットに失敗しました")
+	// ダンプしたスキーマを実行
+	_, err = testDB.Exec(schemaDumpSQL)
+	require.NoError(t, err, "スキーマの作成に失敗しました")
 
 	queries := sqlc.New(testDB)
 	cleanup := func() {
 		_ = testDB.Close()
 
-		// 別のデータベースから削除する
+		// 選択中のデータベースは削除できないので、別のデータベースから削除する
 		_, _ = adminDBConn.Exec("DROP DATABASE IF EXISTS " + testDBName)
 	}
 
