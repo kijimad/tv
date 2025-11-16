@@ -32,7 +32,7 @@ func InitDB(connStr string) (*sqlc.Queries, *sql.DB, error) {
 	}
 
 	// マイグレーション実行
-	if err := RunMigrations(sqlDB, ""); err != nil {
+	if err := RunMigrations(sqlDB); err != nil {
 		_ = sqlDB.Close()
 		return nil, nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
@@ -42,11 +42,8 @@ func InitDB(connStr string) (*sqlc.Queries, *sql.DB, error) {
 }
 
 // RunMigrations はマイグレーションを実行する
-// schemaName が空文字列の場合はデフォルトスキーマpublicを使用する
-func RunMigrations(db *sql.DB, schemaName string) error {
-	driver, err := postgres.WithInstance(db, &postgres.Config{
-		SchemaName: schemaName,
-	})
+func RunMigrations(db *sql.DB) error {
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
 		return fmt.Errorf("failed to create postgres driver: %w", err)
 	}

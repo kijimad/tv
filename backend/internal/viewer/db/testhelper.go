@@ -3,6 +3,9 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"math/rand/v2"
+	"os/exec"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -13,139 +16,136 @@ import (
 )
 
 var (
-	// テンプレートスキーマの初期化は1回だけ実行する
+	// テンプレートDB初期化（プロセス内で1回だけ）
 	templateOnce sync.Once
-	// テンプレートDB用の接続はテスト全体で使い回す。search_pathはずっと同じ
-	templateDBConn *sql.DB
+	// 管理用DB接続はテスト全体で使い回す
+	adminDBConn *sql.DB
+	// プロセスごとにユニークなテンプレートDB名
+	templateDBName = fmt.Sprintf("test_template_%d_%d", time.Now().UnixNano(), rand.Int64())
+	// ダンプしたSQL
+	schemaDumpSQL string
 )
 
 const (
-	// テンプレートスキーマ名
-	templateSchema = "test_template"
-	// テスト用データベースのDSN
-	testDBDSN = "postgres://root:root@localhost:5432/test?sslmode=disable"
+	// 管理用データベースのDSN
+	adminDSN = "postgres://root:root@localhost:5432/postgres?sslmode=disable"
 )
 
-// SetupTestDB はテンプレートスキーマをコピーして独立したテストDBをセットアップする
+// SetupTestDB はpg_dumpでダンプしたスキーマを使って独立したテストDBをセットアップする
+// プロセスごとにユニークなテンプレートDBを作成するため、プロセス間の競合は発生しない
+// sync.Onceでプロセス内での重複実行を防いでいる
+//
+// - test
+//   - packageA (test_template_123_456) ^once
+//     a                                |
+//     b                                v
+//   - packageB (test_template_789_012) ^once
+//     c                                |
+//     d                                v
 func SetupTestDB(t *testing.T) (*sqlc.Queries, func()) {
 	t.Helper()
 
-	// テンプレートスキーマの初期化（1回だけ）
-	initTemplateSchema(t)
+	// テンプレートDB作成とスキーマダンプ（プロセス内で1回だけ）
+	templateOnce.Do(func() {
+		// 管理用DB接続を初期化
+		var err error
+		adminDBConn, err = sql.Open("postgres", adminDSN)
+		require.NoError(t, err, "管理用DB接続に失敗しました")
 
-	require.NotNil(t, templateDBConn, "PostgreSQL接続が初期化されていません")
+		err = adminDBConn.Ping()
+		require.NoError(t, err, "管理用DBへのPingに失敗しました")
 
-	// テスト用の一意なスキーマ名を生成する
-	// タイムスタンプを使用して一意性を確保
+		// プロセスごとにユニークなテンプレートデータベースを作成
+		_, err = adminDBConn.Exec("CREATE DATABASE " + templateDBName)
+		require.NoError(t, err, "テンプレートデータベースの作成に失敗しました")
+
+		// テンプレートデータベースに接続してマイグレーション実行
+		templateDSN := fmt.Sprintf("postgres://root:root@localhost:5432/%s?sslmode=disable", templateDBName)
+		tempConn, err := sql.Open("postgres", templateDSN)
+		require.NoError(t, err, "テンプレートDB接続に失敗しました")
+
+		err = RunMigrations(tempConn)
+		require.NoError(t, err, "マイグレーションの実行に失敗しました")
+
+		_ = tempConn.Close()
+
+		// pg_dumpでスキーマをダンプ
+		schemaDumpSQL, err = dumpSchemaWithPgDump(templateDBName)
+		require.NoError(t, err, "スキーマダンプに失敗しました")
+
+		// ダンプしたのでテンプレートDBは削除する
+		// pg_dumpの接続が残っているのか、先に強制切断しないと削除が失敗する...
+		_, _ = adminDBConn.Exec(`
+			SELECT pg_terminate_backend(pid)
+			FROM pg_stat_activity
+			WHERE datname = $1 AND pid <> pg_backend_pid()
+		`, templateDBName)
+		_, err = adminDBConn.Exec("DROP DATABASE IF EXISTS " + templateDBName)
+		require.NoError(t, err)
+	})
+
+	// テスト用データベース名を生成
 	timestamp := time.Now().UnixNano()
-	testSchema := fmt.Sprintf("test_%d", timestamp)
+	random := rand.Int64()
+	testDBName := fmt.Sprintf("test_%d_%d", timestamp, random)
 
-	_, err := templateDBConn.Exec("CREATE SCHEMA " + testSchema)
-	require.NoError(t, err, "テストスキーマの作成に失敗しました")
+	// テスト用データベースを作成
+	_, err := adminDBConn.Exec("CREATE DATABASE " + testDBName)
+	require.NoError(t, err, "テストデータベースの作成に失敗しました")
 
-	// テンプレートスキーマ内の全テーブルを取得してコピー
-	{
-		rows, err := templateDBConn.Query(`
-		SELECT table_name
-		FROM information_schema.tables
-		WHERE table_schema = $1
-		AND table_type = 'BASE TABLE'
-	`, templateSchema)
-		require.NoError(t, err, "テーブル一覧の取得に失敗しました")
-		defer func() {
-			_ = rows.Close()
-		}()
+	// テスト用データベースに接続
+	testDSN := fmt.Sprintf("postgres://root:root@localhost:5432/%s?sslmode=disable", testDBName)
+	testDB, err := sql.Open("postgres", testDSN)
+	require.NoError(t, err, "テスト用DB接続に失敗しました")
 
-		var tables []string
-		for rows.Next() {
-			var tableName string
-			if err := rows.Scan(&tableName); err == nil {
-				tables = append(tables, tableName)
-			}
-		}
+	// 接続を確認
+	err = testDB.Ping()
+	require.NoError(t, err, "テスト用DBへのPingに失敗しました")
 
-		// 各テーブルをコピー
-		for _, table := range tables {
-			_, err = templateDBConn.Exec(fmt.Sprintf(`
-			CREATE TABLE %s.%s (LIKE %s.%s INCLUDING ALL)
-		`, testSchema, table, templateSchema, table))
-			require.NoError(t, err, fmt.Sprintf("テーブル %s のコピーに失敗しました", table))
-		}
-	}
+	// ダンプしたスキーマを実行
+	_, err = testDB.Exec(schemaDumpSQL)
+	require.NoError(t, err, "スキーマの作成に失敗しました")
 
-	// 並列テスト用に専用のDB接続を作成する
-	// search_pathを設定するとセッション全体に影響するため、専用接続が必要である
-	var queries *sqlc.Queries
-	var cleanup func()
-	{
-		testDB, err := sql.Open("postgres", testDBDSN)
-		require.NoError(t, err, "テスト用DB接続の作成に失敗しました")
+	queries := sqlc.New(testDB)
+	cleanup := func() {
+		_ = testDB.Close()
 
-		// 検索パスを作成したスキーマに設定する
-		_, err = testDB.Exec("SET search_path TO " + testSchema)
-		require.NoError(t, err, "検索パスの設定に失敗しました")
-
-		queries = sqlc.New(testDB)
-		cleanup = func() {
-			// DB接続をクローズ
-			_ = testDB.Close()
-			// 非同期でスキーマを削除（テスト終了を待たない）
-			go func() {
-				_, _ = templateDBConn.Exec("DROP SCHEMA IF EXISTS " + testSchema + " CASCADE")
-			}()
-		}
+		// 選択中のデータベースは削除できないので、別のデータベースから削除する
+		_, _ = adminDBConn.Exec("DROP DATABASE IF EXISTS " + testDBName)
 	}
 
 	return queries, cleanup
 }
 
-// initTemplateSchema はマイグレーション済みのテンプレートスキーマを作成する
-// 全テストで1回だけ実行される
-func initTemplateSchema(t *testing.T) {
-	templateOnce.Do(func() {
-		// テスト用データベースに接続（コンテナ初期化スクリプトで作成済み）
-		var err error
-		templateDBConn, err = sql.Open("postgres", testDBDSN)
-		require.NoError(t, err, "テスト用DB接続に失敗しました")
+// dumpSchemaWithPgDump はDockerコンテナ内のpg_dumpコマンドを使ってスキーマをダンプする
+func dumpSchemaWithPgDump(dbName string) (string, error) {
+	cmd := exec.Command("docker", "exec", "tv-postgres",
+		"pg_dump",
+		"-U", "root",
+		"-d", dbName,
+		"--schema-only",
+		"--no-owner",
+		"--no-privileges",
+		"--no-tablespaces",
+		"--no-security-labels",
+		"--no-comments",
+	)
 
-		err = templateDBConn.Ping()
-		require.NoError(t, err, "テスト用DBへのPingに失敗しました")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("pg_dump failed: %w, output: %s", err, string(output))
+	}
 
-		// 既存の全てのテストスキーマを削除する
-		{
-			rows, err := templateDBConn.Query(`
-				SELECT schema_name
-				FROM information_schema.schemata
-				WHERE schema_name LIKE 'test_%'
-			`)
-			if err == nil {
-				defer func() {
-					_ = rows.Close()
-				}()
-				var schemas []string
-				for rows.Next() {
-					var schemaName string
-					if err := rows.Scan(&schemaName); err == nil {
-						schemas = append(schemas, schemaName)
-					}
-				}
-				// 全てのテストスキーマを削除する
-				for _, schema := range schemas {
-					_, _ = templateDBConn.Exec("DROP SCHEMA IF EXISTS " + schema + " CASCADE")
-				}
-				t.Logf("既存のテストスキーマ %d 個を削除しました", len(schemas))
-			}
+	// \restrict、\unrestrict、およびsearch_pathを空にする行を削除
+	lines := strings.Split(string(output), "\n")
+	var filtered []string
+	for _, line := range lines {
+		if !strings.HasPrefix(line, "\\restrict") &&
+			!strings.HasPrefix(line, "\\unrestrict") &&
+			!strings.Contains(line, "set_config('search_path', '', false)") {
+			filtered = append(filtered, line)
 		}
+	}
 
-		// テンプレートスキーマを作成する
-		_, err = templateDBConn.Exec("CREATE SCHEMA " + templateSchema)
-		require.NoError(t, err)
-
-		// テンプレートスキーマでマイグレーション実行する
-		_, err = templateDBConn.Exec("SET search_path TO " + templateSchema)
-		require.NoError(t, err)
-		err = RunMigrations(templateDBConn, templateSchema)
-		require.NoError(t, err, "マイグレーションの実行に失敗しました")
-		t.Logf("テンプレートスキーマ %s を初期化しました", templateSchema)
-	})
+	return strings.Join(filtered, "\n"), nil
 }
