@@ -6,23 +6,25 @@ import (
 	"time"
 )
 
-// Monitor monitors pomodoro status and controls recording
+// Monitor はポモドーロの状態を監視して録画を制御する
 type Monitor struct {
-	recorder Recorder
+	session *RecordingSession
+	sender  VideoSender
 }
 
-// NewMonitor creates a new Monitor
-func NewMonitor(recorder Recorder) *Monitor {
+// NewMonitor は新しいMonitorを作成する
+func NewMonitor(recorder Recorder, statusProvider StatusProvider, sender VideoSender) *Monitor {
 	return &Monitor{
-		recorder: recorder,
+		session: NewRecordingSession(recorder, statusProvider),
+		sender:  sender,
 	}
 }
 
-// Run starts monitoring pomodoro status and recording
+// Run はポモドーロの状態監視と録画を開始する
 func (m *Monitor) Run(ctx context.Context, states <-chan bool) {
 	defer func() {
 		log.Println("Cleanup: stopping recording")
-		_ = m.recorder.Stop()
+		_ = m.session.Stop()
 	}()
 
 	wasActive := false
@@ -38,13 +40,17 @@ func (m *Monitor) Run(ctx context.Context, states <-chan bool) {
 			}
 			if isActive && !wasActive {
 				log.Println("Pomodoro started, beginning recording")
-				if err := m.recorder.Start(); err != nil {
+				if err := m.session.Start(); err != nil {
 					log.Printf("Error starting recording: %v", err)
 				}
 			} else if !isActive && wasActive {
 				log.Println("Pomodoro stopped, stopping recording")
-				if err := m.recorder.Stop(); err != nil {
+				if err := m.session.Stop(); err != nil {
 					log.Printf("Error stopping recording: %v", err)
+				}
+				// 動画情報を送信
+				if err := m.sender.Send(m.session.GetVideoInfo()); err != nil {
+					log.Printf("Error sending video info: %v", err)
 				}
 			}
 
@@ -53,8 +59,8 @@ func (m *Monitor) Run(ctx context.Context, states <-chan bool) {
 	}
 }
 
-// PollChecker polls the checker at regular intervals and sends results to states channel
-func PollChecker(ctx context.Context, checker Checker, interval time.Duration, states chan<- bool) {
+// PollChecker は定期的にStatusProviderをポーリングし、結果をstatesチャネルに送信する
+func PollChecker(ctx context.Context, checker StatusProvider, interval time.Duration, states chan<- bool) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 

@@ -2,7 +2,12 @@
 
 # X11画面をメインに、右下にカメラをキャプチャする動画録画スクリプト
 
-OUTPUT_FILE="./outputs/recording_$(date +%Y%m%d_%H%M%S).webm"
+if [ -z "$1" ]; then
+    echo "Usage: $0 <output_file>"
+    exit 1
+fi
+
+OUTPUT_FILE="$1"
 
 ffmpeg \
     -f x11grab -framerate 30 -i :0.0 \
