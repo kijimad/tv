@@ -22,7 +22,7 @@ func NewFFmpegRecorder() *FFmpegRecorder {
 func (f *FFmpegRecorder) Start(filename string) error {
 	outputPath := filepath.Join(config.Config.OutputDir, filename)
 
-	scriptPath := filepath.Join(config.Config.RecordScriptDir, "record_screen.sh")
+	scriptPath := "./record_screen.sh"
 	// 相対パスの場合は絶対パスに変換
 	if !filepath.IsAbs(scriptPath) {
 		if absPath, err := filepath.Abs(scriptPath); err == nil {

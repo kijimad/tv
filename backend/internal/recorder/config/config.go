@@ -10,10 +10,9 @@ import (
 
 // Config はアプリケーションの設定を保持する
 var Config struct {
-	APIEndpoint     string `env:"API_ENDPOINT" envDefault:"http://localhost:8080"`
-	PollInterval    int    `env:"POLL_INTERVAL" envDefault:"2"`
-	OutputDir       string `env:"OUTPUT_DIR" envDefault:"./outputs"`
-	RecordScriptDir string `env:"RECORD_SCRIPT_DIR" envDefault:"./"`
+	APIEndpoint  string `env:"TV_API_ENDPOINT" envDefault:"http://localhost:8080"`
+	PollInterval int    `env:"TV_POLL_INTERVAL" envDefault:"2"`
+	OutputDir    string `env:"TV_OUTPUT_DIR" envDefault:"./outputs"`
 }
 
 func init() {
