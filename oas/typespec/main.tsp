@@ -94,8 +94,8 @@ model VideoCreate {
   @maxLength(255)
   filename: string;
 
-  startedAt?: utcDateTime;
-  finishedAt?: utcDateTime;
+  startedAt: utcDateTime;
+  finishedAt: utcDateTime;
   sessionId?: int64;
 }
 

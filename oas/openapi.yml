@@ -368,6 +368,8 @@ components:
       required:
         - title
         - filename
+        - startedAt
+        - finishedAt
       properties:
         title:
           type: string

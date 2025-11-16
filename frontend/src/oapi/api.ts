@@ -249,13 +249,13 @@ export interface VideoCreate {
      * @type {string}
      * @memberof VideoCreate
      */
-    'startedAt'?: string;
+    'startedAt': string;
     /**
      * 
      * @type {string}
      * @memberof VideoCreate
      */
-    'finishedAt'?: string;
+    'finishedAt': string;
     /**
      * 
      * @type {number}

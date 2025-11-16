@@ -111,11 +111,11 @@ type Video struct {
 
 // VideoCreate ビデオ作成リクエスト
 type VideoCreate struct {
-	Filename   string     `json:"filename"`
-	FinishedAt *time.Time `json:"finishedAt,omitempty"`
-	SessionId  *int64     `json:"sessionId,omitempty"`
-	StartedAt  *time.Time `json:"startedAt,omitempty"`
-	Title      string     `json:"title"`
+	Filename   string    `json:"filename"`
+	FinishedAt time.Time `json:"finishedAt"`
+	SessionId  *int64    `json:"sessionId,omitempty"`
+	StartedAt  time.Time `json:"startedAt"`
+	Title      string    `json:"title"`
 }
 
 // VideoList ビデオ一覧レスポンス
