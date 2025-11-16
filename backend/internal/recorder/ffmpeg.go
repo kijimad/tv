@@ -1,6 +1,8 @@
 package recorder
 
 import (
+	"log"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"syscall"
@@ -31,6 +33,12 @@ func (f *FFmpegRecorder) Start(filename string) error {
 	}
 	f.cmd = exec.Command(scriptPath, outputPath)
 	f.cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+
+	// 標準出力と標準エラー出力をログに出力する
+	f.cmd.Stdout = os.Stdout
+	f.cmd.Stderr = os.Stderr
+
+	log.Printf("Starting recording script: %s %s", scriptPath, outputPath)
 	return f.cmd.Start()
 }
 

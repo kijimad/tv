@@ -30,6 +30,7 @@ services:
       TV_PORT: "8080"
       TV_DATABASE_URL: "postgres://root:root@postgres:5432/tv?sslmode=disable"
       TV_APP_ENV: "production"
+      TZ: Asia/Tokyo
     ports:
       - "8080:8080"
     depends_on:
@@ -41,19 +42,30 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: release
+      target: recorder
     container_name: tv-recorder
     command: ["recorder"]
     environment:
       TV_API_ENDPOINT: "http://viewer:8080"
       TV_POLL_INTERVAL: "2"
       TV_OUTPUT_DIR: "/outputs"
+      EMACS_SOCKET_NAME: /run/user/1000/emacs/server
+      DISPLAY: ${DISPLAY}
+      PULSE_SERVER: unix:/run/user/1000/pulse/native
+      TZ: Asia/Tokyo
     volumes:
-      - ./outputs:/outputs
+      - ./backend/outputs:/outputs
       - ./backend/record_screen.sh:/workdir/record_screen.sh:ro
       # ホストマシンによって変わるだろう
       # (print server-socket-dir) で確認する
       - /run/user/1000/emacs:/run/user/1000/emacs:ro
+      # X11ソケット
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      # PulseAudioソケット
+      - /run/user/1000/pulse:/run/user/1000/pulse:ro
+      # デバイス全体をマウント
+      - /dev:/dev
+    privileged: true
     depends_on:
       - viewer
     restart: unless-stopped
