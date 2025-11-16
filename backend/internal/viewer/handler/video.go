@@ -162,3 +162,27 @@ func toAPIVideos(videos []sqlc.Video) []oapi.Video {
 	}
 	return result
 }
+
+// SessionsCreate はセッションを作成する（仮実装）
+func (h *VideoHandler) SessionsCreate(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, oapi.Error{
+		Code:    "not_implemented",
+		Message: "SessionsCreate is not implemented yet",
+	})
+}
+
+// SessionsUpdate はセッションを更新する（仮実装）
+func (h *VideoHandler) SessionsUpdate(c *gin.Context, id int64) {
+	c.JSON(http.StatusNotImplemented, oapi.Error{
+		Code:    "not_implemented",
+		Message: "SessionsUpdate is not implemented yet",
+	})
+}
+
+// StatusGet は現在の録画状態を取得する（仮実装）
+func (h *VideoHandler) StatusGet(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, oapi.Error{
+		Code:    "not_implemented",
+		Message: "StatusGet is not implemented yet",
+	})
+}
