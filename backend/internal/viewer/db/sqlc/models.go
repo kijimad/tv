@@ -30,9 +30,10 @@ type Video struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
-type Videosession struct {
+type VideoSession struct {
 	ID        int64     `json:"id"`
 	VideoID   int64     `json:"video_id"`
 	SessionID int64     `json:"session_id"`
 	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }

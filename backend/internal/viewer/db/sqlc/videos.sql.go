@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
 
@@ -33,6 +34,30 @@ func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video
 		arg.Title,
 		arg.Filename,
 	)
+	var i Video
+	err := row.Scan(
+		&i.ID,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.Title,
+		&i.Filename,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const createVideoFromSession = `-- name: CreateVideoFromSession :one
+INSERT INTO videos (filename, title, started_at, finished_at)
+SELECT filename, title, started_at, COALESCE(finished_at, NOW())
+FROM sessions
+WHERE sessions.id = $1
+  AND finished_at IS NOT NULL
+RETURNING id, started_at, finished_at, title, filename, created_at, updated_at
+`
+
+func (q *Queries) CreateVideoFromSession(ctx context.Context, id int64) (Video, error) {
+	row := q.db.QueryRowContext(ctx, createVideoFromSession, id)
 	var i Video
 	err := row.Scan(
 		&i.ID,
@@ -141,21 +166,21 @@ func (q *Queries) ListVideos(ctx context.Context, arg ListVideosParams) ([]Video
 const updateVideo = `-- name: UpdateVideo :one
 UPDATE videos
 SET
-    title = $1,
-    filename = $2,
-    started_at = $3,
-    finished_at = $4,
+    title = COALESCE($1, title),
+    filename = COALESCE($2, filename),
+    started_at = COALESCE($3, started_at),
+    finished_at = COALESCE($4, finished_at),
     updated_at = CURRENT_TIMESTAMP
 WHERE id = $5
 RETURNING id, started_at, finished_at, title, filename, created_at, updated_at
 `
 
 type UpdateVideoParams struct {
-	Title      string    `json:"title"`
-	Filename   string    `json:"filename"`
-	StartedAt  time.Time `json:"started_at"`
-	FinishedAt time.Time `json:"finished_at"`
-	ID         int64     `json:"id"`
+	Title      sql.NullString `json:"title"`
+	Filename   sql.NullString `json:"filename"`
+	StartedAt  sql.NullTime   `json:"started_at"`
+	FinishedAt sql.NullTime   `json:"finished_at"`
+	ID         int64          `json:"id"`
 }
 
 func (q *Queries) UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error) {

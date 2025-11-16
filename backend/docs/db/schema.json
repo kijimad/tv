@@ -169,6 +169,177 @@
       ]
     },
     {
+      "name": "public.video_sessions",
+      "type": "BASE TABLE",
+      "comment": "動画とセッションの関連付け",
+      "columns": [
+        {
+          "name": "created_at",
+          "type": "timestamp without time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "id",
+          "type": "bigint",
+          "nullable": false,
+          "default": "nextval('video_sessions_id_seq'::regclass)"
+        },
+        {
+          "name": "session_id",
+          "type": "bigint",
+          "nullable": false,
+          "comment": "セッションID"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp without time zone",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "name": "video_id",
+          "type": "bigint",
+          "nullable": false,
+          "comment": "動画ID"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_video_sessions_session_id",
+          "def": "CREATE INDEX idx_video_sessions_session_id ON public.video_sessions USING btree (session_id)",
+          "table": "public.video_sessions",
+          "columns": [
+            "session_id"
+          ]
+        },
+        {
+          "name": "idx_video_sessions_video_id",
+          "def": "CREATE INDEX idx_video_sessions_video_id ON public.video_sessions USING btree (video_id)",
+          "table": "public.video_sessions",
+          "columns": [
+            "video_id"
+          ]
+        },
+        {
+          "name": "video_sessions_pkey",
+          "def": "CREATE UNIQUE INDEX video_sessions_pkey ON public.video_sessions USING btree (id)",
+          "table": "public.video_sessions",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "video_sessions_video_id_session_id_key",
+          "def": "CREATE UNIQUE INDEX video_sessions_video_id_session_id_key ON public.video_sessions USING btree (video_id, session_id)",
+          "table": "public.video_sessions",
+          "columns": [
+            "video_id",
+            "session_id"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "video_sessions_created_at_not_null",
+          "type": "n",
+          "def": "NOT NULL created_at",
+          "table": "public.video_sessions",
+          "referenced_table": "",
+          "columns": [
+            "created_at"
+          ]
+        },
+        {
+          "name": "video_sessions_id_not_null",
+          "type": "n",
+          "def": "NOT NULL id",
+          "table": "public.video_sessions",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "video_sessions_pkey",
+          "type": "PRIMARY KEY",
+          "def": "PRIMARY KEY (id)",
+          "table": "public.video_sessions",
+          "referenced_table": "",
+          "columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "video_sessions_session_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE",
+          "table": "public.video_sessions",
+          "referenced_table": "sessions",
+          "columns": [
+            "session_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "video_sessions_session_id_not_null",
+          "type": "n",
+          "def": "NOT NULL session_id",
+          "table": "public.video_sessions",
+          "referenced_table": "",
+          "columns": [
+            "session_id"
+          ]
+        },
+        {
+          "name": "video_sessions_updated_at_not_null",
+          "type": "n",
+          "def": "NOT NULL updated_at",
+          "table": "public.video_sessions",
+          "referenced_table": "",
+          "columns": [
+            "updated_at"
+          ]
+        },
+        {
+          "name": "video_sessions_video_id_fkey",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE",
+          "table": "public.video_sessions",
+          "referenced_table": "videos",
+          "columns": [
+            "video_id"
+          ],
+          "referenced_columns": [
+            "id"
+          ]
+        },
+        {
+          "name": "video_sessions_video_id_not_null",
+          "type": "n",
+          "def": "NOT NULL video_id",
+          "table": "public.video_sessions",
+          "referenced_table": "",
+          "columns": [
+            "video_id"
+          ]
+        },
+        {
+          "name": "video_sessions_video_id_session_id_key",
+          "type": "UNIQUE",
+          "def": "UNIQUE (video_id, session_id)",
+          "table": "public.video_sessions",
+          "referenced_table": "",
+          "columns": [
+            "video_id",
+            "session_id"
+          ]
+        }
+      ]
+    },
+    {
       "name": "public.videos",
       "type": "BASE TABLE",
       "comment": "動画情報",
@@ -326,184 +497,11 @@
           ]
         }
       ]
-    },
-    {
-      "name": "public.videosessions",
-      "type": "BASE TABLE",
-      "comment": "動画とセッションの関連テーブル",
-      "columns": [
-        {
-          "name": "created_at",
-          "type": "timestamp without time zone",
-          "nullable": false,
-          "default": "now()"
-        },
-        {
-          "name": "id",
-          "type": "bigint",
-          "nullable": false,
-          "default": "nextval('videosessions_id_seq'::regclass)"
-        },
-        {
-          "name": "session_id",
-          "type": "bigint",
-          "nullable": false,
-          "comment": "セッションID"
-        },
-        {
-          "name": "video_id",
-          "type": "bigint",
-          "nullable": false,
-          "comment": "動画ID"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_videosessions_session_id",
-          "def": "CREATE INDEX idx_videosessions_session_id ON public.videosessions USING btree (session_id)",
-          "table": "public.videosessions",
-          "columns": [
-            "session_id"
-          ]
-        },
-        {
-          "name": "idx_videosessions_video_id",
-          "def": "CREATE INDEX idx_videosessions_video_id ON public.videosessions USING btree (video_id)",
-          "table": "public.videosessions",
-          "columns": [
-            "video_id"
-          ]
-        },
-        {
-          "name": "videosessions_pkey",
-          "def": "CREATE UNIQUE INDEX videosessions_pkey ON public.videosessions USING btree (id)",
-          "table": "public.videosessions",
-          "columns": [
-            "id"
-          ]
-        },
-        {
-          "name": "videosessions_session_id_key",
-          "def": "CREATE UNIQUE INDEX videosessions_session_id_key ON public.videosessions USING btree (session_id)",
-          "table": "public.videosessions",
-          "columns": [
-            "session_id"
-          ]
-        },
-        {
-          "name": "videosessions_video_id_session_id_key",
-          "def": "CREATE UNIQUE INDEX videosessions_video_id_session_id_key ON public.videosessions USING btree (video_id, session_id)",
-          "table": "public.videosessions",
-          "columns": [
-            "video_id",
-            "session_id"
-          ]
-        }
-      ],
-      "constraints": [
-        {
-          "name": "videosessions_created_at_not_null",
-          "type": "n",
-          "def": "NOT NULL created_at",
-          "table": "public.videosessions",
-          "referenced_table": "",
-          "columns": [
-            "created_at"
-          ]
-        },
-        {
-          "name": "videosessions_id_not_null",
-          "type": "n",
-          "def": "NOT NULL id",
-          "table": "public.videosessions",
-          "referenced_table": "",
-          "columns": [
-            "id"
-          ]
-        },
-        {
-          "name": "videosessions_pkey",
-          "type": "PRIMARY KEY",
-          "def": "PRIMARY KEY (id)",
-          "table": "public.videosessions",
-          "referenced_table": "",
-          "columns": [
-            "id"
-          ]
-        },
-        {
-          "name": "videosessions_session_id_fkey",
-          "type": "FOREIGN KEY",
-          "def": "FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE",
-          "table": "public.videosessions",
-          "referenced_table": "sessions",
-          "columns": [
-            "session_id"
-          ],
-          "referenced_columns": [
-            "id"
-          ]
-        },
-        {
-          "name": "videosessions_session_id_key",
-          "type": "UNIQUE",
-          "def": "UNIQUE (session_id)",
-          "table": "public.videosessions",
-          "referenced_table": "",
-          "columns": [
-            "session_id"
-          ]
-        },
-        {
-          "name": "videosessions_session_id_not_null",
-          "type": "n",
-          "def": "NOT NULL session_id",
-          "table": "public.videosessions",
-          "referenced_table": "",
-          "columns": [
-            "session_id"
-          ]
-        },
-        {
-          "name": "videosessions_video_id_fkey",
-          "type": "FOREIGN KEY",
-          "def": "FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE",
-          "table": "public.videosessions",
-          "referenced_table": "videos",
-          "columns": [
-            "video_id"
-          ],
-          "referenced_columns": [
-            "id"
-          ]
-        },
-        {
-          "name": "videosessions_video_id_not_null",
-          "type": "n",
-          "def": "NOT NULL video_id",
-          "table": "public.videosessions",
-          "referenced_table": "",
-          "columns": [
-            "video_id"
-          ]
-        },
-        {
-          "name": "videosessions_video_id_session_id_key",
-          "type": "UNIQUE",
-          "def": "UNIQUE (video_id, session_id)",
-          "table": "public.videosessions",
-          "referenced_table": "",
-          "columns": [
-            "video_id",
-            "session_id"
-          ]
-        }
-      ]
     }
   ],
   "relations": [
     {
-      "table": "public.videosessions",
+      "table": "public.video_sessions",
       "columns": [
         "video_id"
       ],
@@ -516,11 +514,11 @@
       "def": "FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE"
     },
     {
-      "table": "public.videosessions",
+      "table": "public.video_sessions",
       "columns": [
         "session_id"
       ],
-      "cardinality": "zero_or_one",
+      "cardinality": "zero_or_more",
       "parent_table": "public.sessions",
       "parent_columns": [
         "id"

@@ -42,8 +42,8 @@ comments:
       status: セッション状態（recording, completed, failed）
       started_at: 録画開始日時
       finished_at: 録画終了日時
-  - table: videosessions
-    tableComment: 動画とセッションの関連テーブル
+  - table: video_sessions
+    tableComment: 動画とセッションの関連付け
     columnComments:
       video_id: 動画ID
       session_id: セッションID

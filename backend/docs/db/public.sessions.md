@@ -11,7 +11,7 @@
 | created_at | timestamp without time zone | now() | false |  |  |  |
 | filename | varchar(255) |  | false |  |  | ファイル名 |
 | finished_at | timestamp without time zone |  | true |  |  | 録画終了日時 |
-| id | bigint | nextval('sessions_id_seq'::regclass) | false | [public.videosessions](public.videosessions.md) |  |  |
+| id | bigint | nextval('sessions_id_seq'::regclass) | false | [public.video_sessions](public.video_sessions.md) |  |  |
 | started_at | timestamp without time zone | now() | false |  |  | 録画開始日時 |
 | status | varchar(20) | 'recording'::character varying | false |  |  | セッション状態（recording, completed, failed） |
 | title | varchar(255) |  | false |  |  | セッションタイトル |
@@ -43,7 +43,7 @@
 ```mermaid
 erDiagram
 
-"public.videosessions" |o--|| "public.sessions" : "FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE"
+"public.video_sessions" }o--|| "public.sessions" : "FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE"
 
 "public.sessions" {
   timestamp_without_time_zone created_at
@@ -55,10 +55,11 @@ erDiagram
   varchar_255_ title
   timestamp_without_time_zone updated_at
 }
-"public.videosessions" {
+"public.video_sessions" {
   timestamp_without_time_zone created_at
   bigint id
   bigint session_id FK
+  timestamp_without_time_zone updated_at
   bigint video_id FK
 }
 ```

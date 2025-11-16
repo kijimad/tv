@@ -19,15 +19,23 @@ INSERT INTO videos (
 )
 RETURNING *;
 
+-- name: CreateVideoFromSession :one
+INSERT INTO videos (filename, title, started_at, finished_at)
+SELECT filename, title, started_at, COALESCE(finished_at, NOW())
+FROM sessions
+WHERE sessions.id = $1
+  AND finished_at IS NOT NULL
+RETURNING *;
+
 -- name: UpdateVideo :one
 UPDATE videos
 SET
-    title = $1,
-    filename = $2,
-    started_at = $3,
-    finished_at = $4,
+    title = COALESCE(sqlc.narg('title'), title),
+    filename = COALESCE(sqlc.narg('filename'), filename),
+    started_at = COALESCE(sqlc.narg('started_at'), started_at),
+    finished_at = COALESCE(sqlc.narg('finished_at'), finished_at),
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $5
+WHERE id = sqlc.arg('id')
 RETURNING *;
 
 -- name: DeleteVideo :exec

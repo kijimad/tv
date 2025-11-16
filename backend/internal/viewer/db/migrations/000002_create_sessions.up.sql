@@ -9,13 +9,14 @@ CREATE TABLE sessions (
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE videosessions (
+CREATE TABLE video_sessions (
     id BIGSERIAL PRIMARY KEY,
     video_id BIGINT NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
-    session_id BIGINT NOT NULL UNIQUE REFERENCES sessions(id) ON DELETE CASCADE,
+    session_id BIGINT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    UNIQUE (video_id, session_id)
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE(video_id, session_id)
 );
 
-CREATE INDEX idx_videosessions_session_id ON videosessions(session_id);
-CREATE INDEX idx_videosessions_video_id ON videosessions(video_id);
+CREATE INDEX idx_video_sessions_video_id ON video_sessions(video_id);
+CREATE INDEX idx_video_sessions_session_id ON video_sessions(session_id);
