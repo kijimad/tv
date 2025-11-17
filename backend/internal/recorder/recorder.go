@@ -28,7 +28,6 @@ type SessionClient interface {
 // RecordingSession は録画セッションを表する
 type RecordingSession struct {
 	currentSessionID int64
-	filename         string
 	recorder         Recorder
 	statusProvider   StatusProvider
 	client           SessionClient
@@ -50,11 +49,11 @@ func (s *RecordingSession) Start() error {
 		return fmt.Errorf("failed to get title: %w", err)
 	}
 
-	s.filename = s.generateFilename()
+	filename := s.generateFilename()
 
 	// Viewerにセッション作成をリクエストする
 	session, err := s.client.CreateSession(oapi.SessionCreate{
-		Filename: s.filename,
+		Filename: filename,
 		Title:    &title,
 	})
 	if err != nil {
@@ -64,7 +63,7 @@ func (s *RecordingSession) Start() error {
 	s.currentSessionID = *session.Id
 
 	// 録画を開始する
-	if err := s.recorder.Start(s.filename); err != nil {
+	if err := s.recorder.Start(filename); err != nil {
 		// 録画開始に失敗したらセッションを失敗にマークする
 		status := oapi.SessionUpdateStatusFailed
 		_, _ = s.client.UpdateSessionStatus(s.currentSessionID, oapi.SessionUpdate{
