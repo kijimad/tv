@@ -149,6 +149,77 @@ func (h *VideoHandler) VideosDelete(c *gin.Context, id int64) {
 	c.Status(http.StatusNoContent)
 }
 
+// VideosFile は動画ファイルを配信する
+func (h *VideoHandler) VideosFile(c *gin.Context, id int64) {
+	// ビデオ情報を取得する
+	video, err := h.service.GetVideo(c.Request.Context(), id)
+	if err != nil {
+		statusCode, message := errorResponse(err)
+		c.JSON(statusCode, oapi.Error{
+			Message: message,
+		})
+		return
+	}
+
+	// ファイル名を検証する（パストラバーサル対策）
+	if err := validateFilename(video.Filename); err != nil {
+		c.JSON(http.StatusBadRequest, oapi.Error{
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// ファイルパスを構築する
+	filePath := filepath.Join(config.Config.VideoDir, video.Filename)
+
+	// Content-Typeを設定して配信する
+	c.Header("Content-Type", "video/webm")
+	c.File(filePath)
+}
+
+// VideosThumbnail はサムネイル画像を配信する
+func (h *VideoHandler) VideosThumbnail(c *gin.Context, id int64) {
+	// ビデオ情報を取得する
+	video, err := h.service.GetVideo(c.Request.Context(), id)
+	if err != nil {
+		statusCode, message := errorResponse(err)
+		c.JSON(statusCode, oapi.Error{
+			Message: message,
+		})
+		return
+	}
+
+	// ファイル名を検証する（パストラバーサル対策）
+	if err := validateFilename(video.Filename); err != nil {
+		c.JSON(http.StatusBadRequest, oapi.Error{
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// サムネイルパスを生成する
+	thumbnailFilename := strings.TrimSuffix(video.Filename, ".webm") + ".jpg"
+	thumbnailPath := filepath.Join(config.Config.VideoDir, thumbnailFilename)
+
+	// Content-Typeを設定して配信する
+	c.Header("Content-Type", "image/jpeg")
+	c.Header("Cache-Control", "public, max-age=31536000")
+	c.File(thumbnailPath)
+}
+
+// validateFilename はファイル名を検証する（パストラバーサル対策）
+func validateFilename(filename string) error {
+	// ファイル名にパス区切り文字が含まれていないことを確認する
+	if strings.Contains(filename, "/") || strings.Contains(filename, "\\") {
+		return fmt.Errorf("filename contains path separator")
+	}
+	// ファイル名に相対パス指定が含まれていないことを確認する
+	if strings.Contains(filename, "..") {
+		return fmt.Errorf("filename contains relative path")
+	}
+	return nil
+}
+
 // toAPIVideo はsqlc.Videoをoapi.Videoに変換する
 func toAPIVideo(v sqlc.Video) oapi.Video {
 	id := v.ID

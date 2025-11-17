@@ -177,6 +177,30 @@ interface Videos {
   @delete
   @route("/{id}")
   delete(@path id: int64): void | Error;
+
+  /** ビデオファイル配信 */
+  @get
+  @route("/{id}/file")
+  file(@path id: int64): {
+    @statusCode statusCode: 200;
+    @header contentType: "video/webm";
+    @body body: bytes;
+  } | {
+    @statusCode statusCode: 404;
+    @body body: Error;
+  } | Error;
+
+  /** サムネイル画像取得 */
+  @get
+  @route("/{id}/thumbnail")
+  thumbnail(@path id: int64): {
+    @statusCode statusCode: 200;
+    @header contentType: "image/jpeg";
+    @body body: bytes;
+  } | {
+    @statusCode statusCode: 404;
+    @body body: Error;
+  } | Error;
 }
 
 @route("/api/v1/sessions")
