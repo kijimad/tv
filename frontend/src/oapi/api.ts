@@ -34,12 +34,6 @@ export interface ModelError {
      * @type {string}
      * @memberof ModelError
      */
-    'code': string;
-    /**
-     * 
-     * @type {string}
-     * @memberof ModelError
-     */
     'message': string;
 }
 /**

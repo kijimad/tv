@@ -4,9 +4,11 @@
     "allowJs": true,
     "skipLibCheck": true,
     "sourceMap": true,
-    "types": ["vitest/globals", "@testing-library/jest-dom"]
+    "types": ["vitest/globals", "@testing-library/jest-dom"],
+    "erasableSyntaxOnly": false,
+    "exactOptionalPropertyTypes": false
   },
-  "include": ["src"],
+  "include": ["src", "vite-env.d.ts"],
   "exclude": ["src/oapi"],
   "extends": [
     "@tsconfig/vite-react/tsconfig.json",
