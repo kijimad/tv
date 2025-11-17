@@ -59,7 +59,7 @@ func (s *videoService) GetVideo(ctx context.Context, id int64) (*sqlc.Video, err
 func (s *videoService) CreateVideo(ctx context.Context, params sqlc.CreateVideoParams) (*sqlc.Video, error) {
 	// 時系列の整合性チェック
 	if params.StartedAt.After(params.FinishedAt) {
-		return nil, fmt.Errorf("started_at must be before finished_at")
+		return nil, ErrInvalidTimeRange
 	}
 
 	video, err := s.queries.CreateVideo(ctx, params)
@@ -73,7 +73,7 @@ func (s *videoService) UpdateVideo(ctx context.Context, id int64, params sqlc.Up
 	// 時系列の整合性チェック
 	if params.StartedAt.Valid && params.FinishedAt.Valid {
 		if params.StartedAt.Time.After(params.FinishedAt.Time) {
-			return nil, fmt.Errorf("started_at must be before finished_at")
+			return nil, ErrInvalidTimeRange
 		}
 	}
 

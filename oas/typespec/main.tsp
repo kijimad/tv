@@ -147,7 +147,6 @@ model RecordingStatus {
 /** エラーレスポンス */
 @error
 model Error {
-  code: string;
   message: string;
 }
 

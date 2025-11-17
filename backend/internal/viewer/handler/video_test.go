@@ -3,8 +3,10 @@ package handler
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -150,7 +152,7 @@ func TestVideoHandler_VideosList(t *testing.T) {
 		mockService.AssertExpectations(t)
 	})
 
-	t.Run("データベースエラー時は400エラーを返す", func(t *testing.T) {
+	t.Run("データベースエラー時は500エラーを返す", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
 		mockSessionService := new(MockSessionService)
@@ -164,12 +166,11 @@ func TestVideoHandler_VideosList(t *testing.T) {
 
 		handler.VideosList(c, oapi.VideosListParams{})
 
-		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
 
 		var response oapi.Error
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, "list_failed", response.Code)
 		mockService.AssertExpectations(t)
 	})
 }
@@ -219,7 +220,7 @@ func TestVideoHandler_VideosGet(t *testing.T) {
 		mockSessionService := new(MockSessionService)
 		handler := NewVideoHandler(mockService, mockSessionService)
 
-		mockService.On("GetVideo", mock.Anything, int64(999)).Return(nil, errors.New("video not found"))
+		mockService.On("GetVideo", mock.Anything, int64(999)).Return(nil, fmt.Errorf("failed to get video: %w", sql.ErrNoRows))
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
@@ -232,7 +233,6 @@ func TestVideoHandler_VideosGet(t *testing.T) {
 		var response oapi.Error
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, "not_found", response.Code)
 		mockService.AssertExpectations(t)
 	})
 }
@@ -309,10 +309,9 @@ func TestVideoHandler_VideosCreate(t *testing.T) {
 		var response oapi.Error
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, "invalid_request", response.Code)
 	})
 
-	t.Run("作成処理に失敗した場合は400エラーを返す", func(t *testing.T) {
+	t.Run("作成処理に失敗した場合は500エラーを返す", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
 		mockSessionService := new(MockSessionService)
@@ -340,12 +339,11 @@ func TestVideoHandler_VideosCreate(t *testing.T) {
 
 		handler.VideosCreate(c)
 
-		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
 
 		var response oapi.Error
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, "create_failed", response.Code)
 		mockService.AssertExpectations(t)
 	})
 }
@@ -444,7 +442,7 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 		mockService.AssertExpectations(t)
 	})
 
-	t.Run("更新処理に失敗した場合は400エラーを返す", func(t *testing.T) {
+	t.Run("更新処理に失敗した場合は500エラーを返す", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
 		mockSessionService := new(MockSessionService)
@@ -467,12 +465,11 @@ func TestVideoHandler_VideosUpdate(t *testing.T) {
 
 		handler.VideosUpdate(c, 1)
 
-		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
 
 		var response oapi.Error
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, "update_failed", response.Code)
 		mockService.AssertExpectations(t)
 	})
 }
@@ -524,7 +521,6 @@ func TestVideoHandler_VideosDelete(t *testing.T) {
 		var response oapi.Error
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, "delete_failed", response.Code)
 		mockService.AssertExpectations(t)
 	})
 }
