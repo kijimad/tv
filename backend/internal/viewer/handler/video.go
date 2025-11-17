@@ -2,7 +2,9 @@
 package handler
 
 import (
+	"database/sql"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kijimaD/tv/internal/oapi"
@@ -12,12 +14,16 @@ import (
 
 // VideoHandler は動画ハンドラ
 type VideoHandler struct {
-	service service.VideoService
+	service        service.VideoService
+	sessionService service.SessionService
 }
 
 // NewVideoHandler はVideoHandlerを作成する
-func NewVideoHandler(service service.VideoService) *VideoHandler {
-	return &VideoHandler{service: service}
+func NewVideoHandler(service service.VideoService, sessionService service.SessionService) *VideoHandler {
+	return &VideoHandler{
+		service:        service,
+		sessionService: sessionService,
+	}
 }
 
 // VideosList はビデオ一覧を取得する
@@ -104,16 +110,16 @@ func (h *VideoHandler) VideosUpdate(c *gin.Context, id int64) {
 		ID: id,
 	}
 	if req.Title != nil {
-		params.Title = *req.Title
+		params.Title = sql.NullString{String: *req.Title, Valid: true}
 	}
 	if req.Filename != nil {
-		params.Filename = *req.Filename
+		params.Filename = sql.NullString{String: *req.Filename, Valid: true}
 	}
 	if req.StartedAt != nil {
-		params.StartedAt = *req.StartedAt
+		params.StartedAt = sql.NullTime{Time: *req.StartedAt, Valid: true}
 	}
 	if req.FinishedAt != nil {
-		params.FinishedAt = *req.FinishedAt
+		params.FinishedAt = sql.NullTime{Time: *req.FinishedAt, Valid: true}
 	}
 
 	video, err := h.service.UpdateVideo(c.Request.Context(), id, params)
@@ -161,4 +167,118 @@ func toAPIVideos(videos []sqlc.Video) []oapi.Video {
 		result[i] = toAPIVideo(v)
 	}
 	return result
+}
+
+// SessionsCreate はセッションを作成する
+func (h *VideoHandler) SessionsCreate(c *gin.Context) {
+	var req oapi.SessionCreate
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, oapi.Error{
+			Code:    "invalid_request",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	title := ""
+	if req.Title != nil {
+		title = *req.Title
+	}
+
+	session, err := h.sessionService.CreateSession(c.Request.Context(), sqlc.CreateSessionParams{
+		Filename: req.Filename,
+		Title:    title,
+	})
+	if err != nil {
+		c.JSON(http.StatusBadRequest, oapi.Error{
+			Code:    "create_failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, toAPISession(*session, nil))
+}
+
+// SessionsUpdate はセッションを更新する
+func (h *VideoHandler) SessionsUpdate(c *gin.Context, id int64) {
+	var req oapi.SessionUpdate
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, oapi.Error{
+			Code:    "invalid_request",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	if req.Status == nil {
+		c.JSON(http.StatusBadRequest, oapi.Error{
+			Code:    "invalid_request",
+			Message: "status is required",
+		})
+		return
+	}
+
+	result, err := h.sessionService.UpdateSessionStatus(c.Request.Context(), id, string(*req.Status))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, oapi.Error{
+			Code:    "update_failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, toAPISession(result.Session, result.VideoID))
+}
+
+// StatusGet は現在の録画状態を取得する
+func (h *VideoHandler) StatusGet(c *gin.Context) {
+	session, err := h.sessionService.GetCurrentRecordingSession(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, oapi.Error{
+			Code:    "get_failed",
+			Message: err.Error(),
+		})
+		return
+	}
+
+	if session == nil {
+		c.JSON(http.StatusOK, oapi.RecordingStatus{
+			Recording:      false,
+			CurrentSession: nil,
+		})
+		return
+	}
+
+	currentSession := toAPISession(*session, nil)
+	c.JSON(http.StatusOK, oapi.RecordingStatus{
+		Recording:      true,
+		CurrentSession: &currentSession,
+	})
+}
+
+// toAPISession はsqlc.Sessionをoapi.Sessionに変換する
+func toAPISession(s sqlc.Session, videoID *int64) oapi.Session {
+	id := s.ID
+	createdAt := s.CreatedAt
+	updatedAt := s.UpdatedAt
+	startedAt := s.StartedAt
+	var finishedAt *time.Time
+	if s.FinishedAt.Valid {
+		finishedAt = &s.FinishedAt.Time
+	}
+
+	status := oapi.SessionStatus(s.Status)
+
+	return oapi.Session{
+		Id:         &id,
+		Filename:   s.Filename,
+		Title:      &s.Title,
+		Status:     status,
+		StartedAt:  &startedAt,
+		FinishedAt: finishedAt,
+		CreatedAt:  &createdAt,
+		UpdatedAt:  &updatedAt,
+		VideoId:    videoID,
+	}
 }

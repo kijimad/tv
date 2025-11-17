@@ -6,7 +6,7 @@ toolinstall: ## 依存ライブラリをインストールする
 
 .PHONY: compile
 compile: ## TypeSpec を OpenAPI にコンパイルする
-	cd typespec && npx tsp compile . --emit @typespec/openapi3
+	cd typespec && npx tsp compile . --config tspconfig.yml
 
 .PHONY: genapi
 genapi: ## OpenAPIスキーマからバックエンドコードを生成する

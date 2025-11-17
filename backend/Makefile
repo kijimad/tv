@@ -8,7 +8,7 @@ build: ## ビルドする
 
 .PHONY: test
 test: ## テストを実行する
-	go test -race -shuffle=on -v ./...
+	go test -race -shuffle=on -cover -v ./...
 
 .PHONY: stresstest
 stresstest: ## テストを繰り返し実行して競合を検知する
@@ -45,8 +45,8 @@ build-image: ## Dockerイメージをビルドする
 .PHONY: updatetbls
 updatetbls: migrate ## tblsドキュメントを更新する。DBスキーマを変更した場合はローカル環境で実行してコミットすること!
 	./scripts/tbls.sh lint
-	./scripts/tbls.sh diff docs/db
 	./scripts/tbls.sh doc --rm-dist
+	./scripts/tbls.sh diff docs/db
 
 .PHONY: sqlc
 sqlc: ## sqlcでコード生成する

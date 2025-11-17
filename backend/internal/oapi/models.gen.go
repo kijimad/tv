@@ -7,11 +7,80 @@ import (
 	"time"
 )
 
+// Defines values for SessionStatus.
+const (
+	SessionStatusCompleted SessionStatus = "completed"
+	SessionStatusFailed    SessionStatus = "failed"
+	SessionStatusRecording SessionStatus = "recording"
+)
+
+// Defines values for SessionUpdateStatus.
+const (
+	SessionUpdateStatusCompleted SessionUpdateStatus = "completed"
+	SessionUpdateStatusFailed    SessionUpdateStatus = "failed"
+)
+
 // Error エラーレスポンス
 type Error struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
+
+// RecordingStatus 録画ステータスレスポンス
+type RecordingStatus struct {
+	// CurrentSession 現在のセッション
+	CurrentSession *Session `json:"currentSession,omitempty"`
+
+	// Recording 録画中かどうか
+	Recording bool `json:"recording"`
+}
+
+// Session 録画セッション
+type Session struct {
+	// CreatedAt 作成日時
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// Filename ファイル名
+	Filename string `json:"filename"`
+
+	// FinishedAt 録画終了時刻
+	FinishedAt *time.Time `json:"finishedAt,omitempty"`
+
+	// Id セッションID
+	Id *int64 `json:"id,omitempty"`
+
+	// StartedAt 録画開始時刻
+	StartedAt *time.Time `json:"startedAt,omitempty"`
+
+	// Status ステータス
+	Status SessionStatus `json:"status"`
+
+	// Title タイトル
+	Title *string `json:"title,omitempty"`
+
+	// UpdatedAt 更新日時
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+
+	// VideoId 関連ビデオID
+	VideoId *int64 `json:"videoId,omitempty"`
+}
+
+// SessionStatus ステータス
+type SessionStatus string
+
+// SessionCreate セッション作成リクエスト
+type SessionCreate struct {
+	Filename string  `json:"filename"`
+	Title    *string `json:"title,omitempty"`
+}
+
+// SessionUpdate セッション更新リクエスト
+type SessionUpdate struct {
+	Status *SessionUpdateStatus `json:"status,omitempty"`
+}
+
+// SessionUpdateStatus defines model for SessionUpdate.Status.
+type SessionUpdateStatus string
 
 // Video 録画ビデオ
 type Video struct {
@@ -27,6 +96,9 @@ type Video struct {
 	// Id ビデオID
 	Id *int64 `json:"id,omitempty"`
 
+	// SessionId セッションID
+	SessionId *int64 `json:"sessionId,omitempty"`
+
 	// StartedAt 録画開始時刻
 	StartedAt time.Time `json:"startedAt"`
 
@@ -41,6 +113,7 @@ type Video struct {
 type VideoCreate struct {
 	Filename   string    `json:"filename"`
 	FinishedAt time.Time `json:"finishedAt"`
+	SessionId  *int64    `json:"sessionId,omitempty"`
 	StartedAt  time.Time `json:"startedAt"`
 	Title      string    `json:"title"`
 }
@@ -64,6 +137,12 @@ type VideosListParams struct {
 	Limit  *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
 }
+
+// SessionsCreateJSONRequestBody defines body for SessionsCreate for application/json ContentType.
+type SessionsCreateJSONRequestBody = SessionCreate
+
+// SessionsUpdateJSONRequestBody defines body for SessionsUpdate for application/json ContentType.
+type SessionsUpdateJSONRequestBody = SessionUpdate
 
 // VideosCreateJSONRequestBody defines body for VideosCreate for application/json ContentType.
 type VideosCreateJSONRequestBody = VideoCreate

@@ -10,12 +10,12 @@ import (
 
 // Config はアプリケーションの設定を保持する
 var Config struct {
-	Host            string `env:"HOST" envDefault:"0.0.0.0"`
-	Port            int    `env:"PORT" envDefault:"8080"`
-	Address         string `env:"ADDRESS,expand" envDefault:"$HOST:$PORT"`
-	AppEnv          string `env:"APP_ENV" envDefault:"development"`
-	DBDriver        string `env:"DB_DRIVER" envDefault:"postgres"`
-	DBConnectionStr string `env:"DATABASE_URL" envDefault:"postgres://root:root@localhost:5432/tv?sslmode=disable"`
+	Host            string `env:"TV_HOST" envDefault:"0.0.0.0"`
+	Port            int    `env:"TV_PORT" envDefault:"8080"`
+	Address         string `env:"TV_ADDRESS,expand" envDefault:"$TV_HOST:$TV_PORT"`
+	AppEnv          string `env:"TV_APP_ENV" envDefault:"development"`
+	DBDriver        string `env:"TV_DB_DRIVER" envDefault:"postgres"`
+	DBConnectionStr string `env:"TV_DATABASE_URL" envDefault:"postgres://root:root@localhost:5432/tv?sslmode=disable"`
 }
 
 func init() {

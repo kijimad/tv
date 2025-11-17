@@ -34,3 +34,16 @@ comments:
       finished_at: 録画終了日時
       title: 動画タイトル
       filename: ファイル名
+  - table: sessions
+    tableComment: 録画セッション情報
+    columnComments:
+      filename: ファイル名
+      title: セッションタイトル
+      status: セッション状態（recording, completed, failed）
+      started_at: 録画開始日時
+      finished_at: 録画終了日時
+  - table: video_sessions
+    tableComment: 動画とセッションの関連付け
+    columnComments:
+      video_id: 動画ID
+      session_id: セッションID

@@ -11,7 +11,7 @@
 | created_at | timestamp without time zone | CURRENT_TIMESTAMP | false |  |  |  |
 | filename | text |  | false |  |  | ファイル名 |
 | finished_at | timestamp without time zone |  | false |  |  | 録画終了日時 |
-| id | bigint | nextval('videos_id_seq'::regclass) | false |  |  |  |
+| id | bigint | nextval('videos_id_seq'::regclass) | false | [public.video_sessions](public.video_sessions.md) |  |  |
 | started_at | timestamp without time zone |  | false |  |  | 録画開始日時 |
 | title | text |  | false |  |  | 動画タイトル |
 | updated_at | timestamp without time zone | CURRENT_TIMESTAMP | false |  |  |  |
@@ -42,6 +42,7 @@
 ```mermaid
 erDiagram
 
+"public.video_sessions" }o--|| "public.videos" : "FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE"
 
 "public.videos" {
   timestamp_without_time_zone created_at
@@ -51,6 +52,13 @@ erDiagram
   timestamp_without_time_zone started_at
   text title
   timestamp_without_time_zone updated_at
+}
+"public.video_sessions" {
+  timestamp_without_time_zone created_at
+  bigint id
+  bigint session_id FK
+  timestamp_without_time_zone updated_at
+  bigint video_id FK
 }
 ```
 

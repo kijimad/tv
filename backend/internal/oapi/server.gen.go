@@ -17,6 +17,15 @@ import (
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
+	// (POST /api/v1/sessions)
+	SessionsCreate(c *gin.Context)
+
+	// (PATCH /api/v1/sessions/{id})
+	SessionsUpdate(c *gin.Context, id int64)
+
+	// (GET /api/v1/status)
+	StatusGet(c *gin.Context)
+
 	// (GET /api/v1/videos)
 	VideosList(c *gin.Context, params VideosListParams)
 
@@ -41,6 +50,56 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(c *gin.Context)
+
+// SessionsCreate operation middleware
+func (siw *ServerInterfaceWrapper) SessionsCreate(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.SessionsCreate(c)
+}
+
+// SessionsUpdate operation middleware
+func (siw *ServerInterfaceWrapper) SessionsUpdate(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.SessionsUpdate(c, id)
+}
+
+// StatusGet operation middleware
+func (siw *ServerInterfaceWrapper) StatusGet(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.StatusGet(c)
+}
 
 // VideosList operation middleware
 func (siw *ServerInterfaceWrapper) VideosList(c *gin.Context) {
@@ -188,11 +247,101 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 		ErrorHandler:       errorHandler,
 	}
 
+	router.POST(options.BaseURL+"/api/v1/sessions", wrapper.SessionsCreate)
+	router.PATCH(options.BaseURL+"/api/v1/sessions/:id", wrapper.SessionsUpdate)
+	router.GET(options.BaseURL+"/api/v1/status", wrapper.StatusGet)
 	router.GET(options.BaseURL+"/api/v1/videos", wrapper.VideosList)
 	router.POST(options.BaseURL+"/api/v1/videos", wrapper.VideosCreate)
 	router.DELETE(options.BaseURL+"/api/v1/videos/:id", wrapper.VideosDelete)
 	router.GET(options.BaseURL+"/api/v1/videos/:id", wrapper.VideosGet)
 	router.PATCH(options.BaseURL+"/api/v1/videos/:id", wrapper.VideosUpdate)
+}
+
+type SessionsCreateRequestObject struct {
+	Body *SessionsCreateJSONRequestBody
+}
+
+type SessionsCreateResponseObject interface {
+	VisitSessionsCreateResponse(w http.ResponseWriter) error
+}
+
+type SessionsCreate200JSONResponse Session
+
+func (response SessionsCreate200JSONResponse) VisitSessionsCreateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SessionsCreatedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response SessionsCreatedefaultJSONResponse) VisitSessionsCreateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type SessionsUpdateRequestObject struct {
+	Id   int64 `json:"id"`
+	Body *SessionsUpdateJSONRequestBody
+}
+
+type SessionsUpdateResponseObject interface {
+	VisitSessionsUpdateResponse(w http.ResponseWriter) error
+}
+
+type SessionsUpdate200JSONResponse Session
+
+func (response SessionsUpdate200JSONResponse) VisitSessionsUpdateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type SessionsUpdatedefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response SessionsUpdatedefaultJSONResponse) VisitSessionsUpdateResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type StatusGetRequestObject struct {
+}
+
+type StatusGetResponseObject interface {
+	VisitStatusGetResponse(w http.ResponseWriter) error
+}
+
+type StatusGet200JSONResponse RecordingStatus
+
+func (response StatusGet200JSONResponse) VisitStatusGetResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type StatusGetdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response StatusGetdefaultJSONResponse) VisitStatusGetResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type VideosListRequestObject struct {
@@ -343,6 +492,15 @@ func (response VideosUpdatedefaultJSONResponse) VisitVideosUpdateResponse(w http
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 
+	// (POST /api/v1/sessions)
+	SessionsCreate(ctx context.Context, request SessionsCreateRequestObject) (SessionsCreateResponseObject, error)
+
+	// (PATCH /api/v1/sessions/{id})
+	SessionsUpdate(ctx context.Context, request SessionsUpdateRequestObject) (SessionsUpdateResponseObject, error)
+
+	// (GET /api/v1/status)
+	StatusGet(ctx context.Context, request StatusGetRequestObject) (StatusGetResponseObject, error)
+
 	// (GET /api/v1/videos)
 	VideosList(ctx context.Context, request VideosListRequestObject) (VideosListResponseObject, error)
 
@@ -369,6 +527,99 @@ func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareF
 type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
+}
+
+// SessionsCreate operation middleware
+func (sh *strictHandler) SessionsCreate(ctx *gin.Context) {
+	var request SessionsCreateRequestObject
+
+	var body SessionsCreateJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.Status(http.StatusBadRequest)
+		ctx.Error(err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.SessionsCreate(ctx, request.(SessionsCreateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SessionsCreate")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(SessionsCreateResponseObject); ok {
+		if err := validResponse.VisitSessionsCreateResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SessionsUpdate operation middleware
+func (sh *strictHandler) SessionsUpdate(ctx *gin.Context, id int64) {
+	var request SessionsUpdateRequestObject
+
+	request.Id = id
+
+	var body SessionsUpdateJSONRequestBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		ctx.Status(http.StatusBadRequest)
+		ctx.Error(err)
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.SessionsUpdate(ctx, request.(SessionsUpdateRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SessionsUpdate")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(SessionsUpdateResponseObject); ok {
+		if err := validResponse.VisitSessionsUpdateResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StatusGet operation middleware
+func (sh *strictHandler) StatusGet(ctx *gin.Context) {
+	var request StatusGetRequestObject
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.StatusGet(ctx, request.(StatusGetRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StatusGet")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(StatusGetResponseObject); ok {
+		if err := validResponse.VisitStatusGetResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // VideosList operation middleware

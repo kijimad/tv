@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/kijimaD/tv/internal/recorder"
+	recorderConfig "github.com/kijimaD/tv/internal/recorder/config"
 	"github.com/urfave/cli/v3"
 )
 
@@ -34,12 +35,14 @@ func runRecorder(ctx context.Context) error {
 		cancel()
 	}()
 
+	emacsStatusProvider := recorder.NewEmacsStatusProvider()
 	ffmpegRecorder := recorder.NewFFmpegRecorder()
-	monitor := recorder.NewMonitor(ffmpegRecorder)
+	viewerClient := recorder.NewViewerClient(recorderConfig.Config.APIEndpoint)
+	monitor := recorder.NewMonitor(ffmpegRecorder, emacsStatusProvider, viewerClient)
 
 	states := make(chan bool)
-	checker := recorder.NewEmacsChecker()
-	go recorder.PollChecker(ctx, checker, 2*time.Second, states)
+	pollInterval := time.Duration(recorderConfig.Config.PollInterval) * time.Second
+	go recorder.PollChecker(ctx, emacsStatusProvider, pollInterval, states)
 
 	monitor.Run(ctx, states)
 	log.Println("Shutdown complete")

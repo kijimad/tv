@@ -27,7 +27,8 @@ func setupTestServer(t *testing.T) (*gin.Engine, *sqlc.Queries, func()) {
 	queries, cleanup := db.SetupTestDB(t)
 
 	videoService := service.NewVideoService(queries)
-	videoHandler := NewVideoHandler(videoService)
+	sessionService := service.NewSessionService(queries)
+	videoHandler := NewVideoHandler(videoService, sessionService)
 
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
@@ -41,7 +42,7 @@ func setupTestServer(t *testing.T) (*gin.Engine, *sqlc.Queries, func()) {
 	return r, queries, cleanup
 }
 
-func TestIntegration_VideosCRUD(t *testing.T) {
+func TestIntegration_VideosCreate(t *testing.T) {
 	t.Parallel()
 
 	t.Run("ビデオを作成できる", func(t *testing.T) {
@@ -76,6 +77,10 @@ func TestIntegration_VideosCRUD(t *testing.T) {
 		assert.Equal(t, "統合テストビデオ", response.Title)
 		assert.Equal(t, "integration-test-create.mp4", response.Filename)
 	})
+}
+
+func TestIntegration_VideosGet(t *testing.T) {
+	t.Parallel()
 
 	t.Run("作成したビデオを取得できる", func(t *testing.T) {
 		t.Parallel()
@@ -108,6 +113,10 @@ func TestIntegration_VideosCRUD(t *testing.T) {
 		assert.Equal(t, video.ID, *response.Id)
 		assert.Equal(t, "取得テスト用ビデオ", response.Title)
 	})
+}
+
+func TestIntegration_VideosList(t *testing.T) {
+	t.Parallel()
 
 	t.Run("ビデオ一覧を取得できる", func(t *testing.T) {
 		t.Parallel()
@@ -140,6 +149,10 @@ func TestIntegration_VideosCRUD(t *testing.T) {
 		assert.Equal(t, int32(1), response.Total)
 		assert.Len(t, response.Videos, 1)
 	})
+}
+
+func TestIntegration_VideosUpdate(t *testing.T) {
+	t.Parallel()
 
 	t.Run("ビデオを更新できる", func(t *testing.T) {
 		t.Parallel()
@@ -179,6 +192,10 @@ func TestIntegration_VideosCRUD(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, newTitle, response.Title)
 	})
+}
+
+func TestIntegration_VideosDelete(t *testing.T) {
+	t.Parallel()
 
 	t.Run("ビデオを削除できる", func(t *testing.T) {
 		t.Parallel()
@@ -394,4 +411,163 @@ func TestIntegration_Parallel(t *testing.T) {
 			assert.Equal(t, http.StatusCreated, w.Code)
 		})
 	}
+}
+
+func TestIntegration_SessionsCreate(t *testing.T) {
+	t.Parallel()
+
+	t.Run("セッションを作成できる", func(t *testing.T) {
+		t.Parallel()
+		r, _, cleanup := setupTestServer(t)
+		t.Cleanup(cleanup)
+
+		title := "統合テストセッション"
+		reqBody := oapi.SessionCreate{
+			Filename: "integration-test-session.webm",
+			Title:    &title,
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/v1/sessions", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusCreated, w.Code)
+
+		var response oapi.Session
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		require.NoError(t, err)
+		assert.NotNil(t, response.Id)
+		assert.Equal(t, title, *response.Title)
+		assert.Equal(t, "integration-test-session.webm", response.Filename)
+		assert.Equal(t, oapi.SessionStatus("recording"), response.Status)
+	})
+}
+
+func TestIntegration_SessionsUpdate(t *testing.T) {
+	t.Parallel()
+
+	t.Run("セッションをcompletedに更新できる", func(t *testing.T) {
+		t.Parallel()
+		r, queries, cleanup := setupTestServer(t)
+		t.Cleanup(cleanup)
+
+		ctx := context.Background()
+		// このテスト用のセッションを作成
+		session, err := queries.CreateSession(ctx, sqlc.CreateSessionParams{
+			Filename: "integration-test-update-session.webm",
+			Title:    "更新テスト用セッション",
+		})
+		require.NoError(t, err)
+
+		status := oapi.SessionUpdateStatusCompleted
+		reqBody := oapi.SessionUpdate{
+			Status: &status,
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/sessions/%d", session.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response oapi.Session
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		require.NoError(t, err)
+		assert.Equal(t, oapi.SessionStatus("completed"), response.Status)
+		assert.NotNil(t, response.VideoId)
+	})
+
+	t.Run("セッションをfailedに更新できる", func(t *testing.T) {
+		t.Parallel()
+		r, queries, cleanup := setupTestServer(t)
+		t.Cleanup(cleanup)
+
+		ctx := context.Background()
+		// このテスト用のセッションを作成
+		session, err := queries.CreateSession(ctx, sqlc.CreateSessionParams{
+			Filename: "integration-test-failed-session.webm",
+			Title:    "失敗テスト用セッション",
+		})
+		require.NoError(t, err)
+
+		status := oapi.SessionUpdateStatusFailed
+		reqBody := oapi.SessionUpdate{
+			Status: &status,
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/sessions/%d", session.ID), bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response oapi.Session
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		require.NoError(t, err)
+		assert.Equal(t, oapi.SessionStatus("failed"), response.Status)
+		assert.Nil(t, response.VideoId)
+	})
+}
+
+func TestIntegration_StatusGet(t *testing.T) {
+	t.Parallel()
+
+	t.Run("録画中のセッションがない場合、recording=falseを返す", func(t *testing.T) {
+		t.Parallel()
+		r, _, cleanup := setupTestServer(t)
+		t.Cleanup(cleanup)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/status", nil)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response oapi.RecordingStatus
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		require.NoError(t, err)
+		assert.False(t, response.Recording)
+		assert.Nil(t, response.CurrentSession)
+	})
+
+	t.Run("録画中のセッションがある場合、recording=trueとセッション情報を返す", func(t *testing.T) {
+		t.Parallel()
+		r, queries, cleanup := setupTestServer(t)
+		t.Cleanup(cleanup)
+
+		ctx := context.Background()
+		// このテスト用の録画中セッションを作成
+		session, err := queries.CreateSession(ctx, sqlc.CreateSessionParams{
+			Filename: "integration-test-status.webm",
+			Title:    "ステータステスト用セッション",
+		})
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/status", nil)
+		w := httptest.NewRecorder()
+
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response oapi.RecordingStatus
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		require.NoError(t, err)
+		assert.True(t, response.Recording)
+		assert.NotNil(t, response.CurrentSession)
+		assert.Equal(t, session.ID, *response.CurrentSession.Id)
+	})
 }

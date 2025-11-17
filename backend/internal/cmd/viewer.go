@@ -33,7 +33,8 @@ func runViewer() error {
 
 	// 依存関係を注入
 	videoService := service.NewVideoService(queries)
-	videoHandler := handler.NewVideoHandler(videoService)
+	sessionService := service.NewSessionService(queries)
+	videoHandler := handler.NewVideoHandler(videoService, sessionService)
 
 	r := gin.Default()
 

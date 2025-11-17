@@ -9,11 +9,15 @@ import (
 )
 
 type Querier interface {
+	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateVideo(ctx context.Context, arg CreateVideoParams) (Video, error)
+	CreateVideoFromSession(ctx context.Context, id int64) (Video, error)
+	CreateVideoSession(ctx context.Context, arg CreateVideoSessionParams) (VideoSession, error)
 	DeleteVideo(ctx context.Context, id int64) error
+	GetCurrentRecordingSession(ctx context.Context) (Session, error)
 	GetVideo(ctx context.Context, id int64) (Video, error)
-	GetVideoByFilename(ctx context.Context, filename string) (Video, error)
 	ListVideos(ctx context.Context, arg ListVideosParams) ([]Video, error)
+	UpdateSessionStatus(ctx context.Context, arg UpdateSessionStatusParams) (Session, error)
 	UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error)
 }
 
