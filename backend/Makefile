@@ -8,7 +8,7 @@ build: ## ビルドする
 
 .PHONY: test
 test: ## テストを実行する
-	go test -race -shuffle=on -v ./...
+	go test -race -shuffle=on -cover -v ./...
 
 .PHONY: stresstest
 stresstest: ## テストを繰り返し実行して競合を検知する
