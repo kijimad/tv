@@ -35,14 +35,14 @@ func runRecorder(ctx context.Context) error {
 		cancel()
 	}()
 
-	emacsChecker := recorder.NewEmacsChecker()
+	emacsStatusProvider := recorder.NewEmacsStatusProvider()
 	ffmpegRecorder := recorder.NewFFmpegRecorder()
 	viewerClient := recorder.NewViewerClient(recorderConfig.Config.APIEndpoint)
-	monitor := recorder.NewMonitor(ffmpegRecorder, emacsChecker, viewerClient)
+	monitor := recorder.NewMonitor(ffmpegRecorder, emacsStatusProvider, viewerClient)
 
 	states := make(chan bool)
 	pollInterval := time.Duration(recorderConfig.Config.PollInterval) * time.Second
-	go recorder.PollChecker(ctx, emacsChecker, pollInterval, states)
+	go recorder.PollChecker(ctx, emacsStatusProvider, pollInterval, states)
 
 	monitor.Run(ctx, states)
 	log.Println("Shutdown complete")

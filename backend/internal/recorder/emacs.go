@@ -7,16 +7,16 @@ import (
 	"strings"
 )
 
-// EmacsChecker はemacsclient経由でEmacsから情報を取得する
-type EmacsChecker struct{}
+// EmacsStatusProvider はemacsclient経由でEmacsから情報を取得する
+type EmacsStatusProvider struct{}
 
-// NewEmacsChecker は新しいEmacsCheckerを作成する
-func NewEmacsChecker() *EmacsChecker {
-	return &EmacsChecker{}
+// NewEmacsStatusProvider は新しいEmacsStatusProviderを作成する
+func NewEmacsStatusProvider() *EmacsStatusProvider {
+	return &EmacsStatusProvider{}
 }
 
 // IsActive はorg-pomodoroが現在アクティブな場合trueを返す
-func (e *EmacsChecker) IsActive() (bool, error) {
+func (e *EmacsStatusProvider) IsActive() (bool, error) {
 	out, err := exec.Command("emacsclient", "-e", "(org-pomodoro-active-p)").CombinedOutput()
 	if err != nil {
 		return false, fmt.Errorf("emacsclient error: %w, output: %s", err, string(out))
@@ -25,7 +25,7 @@ func (e *EmacsChecker) IsActive() (bool, error) {
 }
 
 // GetTitle は現在のorg-modeクロック見出しを返す
-func (e *EmacsChecker) GetTitle() (string, error) {
+func (e *EmacsStatusProvider) GetTitle() (string, error) {
 	out, err := exec.Command("emacsclient", "-e", "org-clock-heading").CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("emacsclient error: %w, output: %s", err, string(out))
