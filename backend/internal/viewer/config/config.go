@@ -16,6 +16,7 @@ var Config struct {
 	AppEnv          string `env:"TV_APP_ENV" envDefault:"development"`
 	DBDriver        string `env:"TV_DB_DRIVER" envDefault:"postgres"`
 	DBConnectionStr string `env:"TV_DATABASE_URL" envDefault:"postgres://root:root@localhost:5432/tv?sslmode=disable"`
+	VideoDir        string `env:"TV_VIDEO_DIR" envDefault:"./outputs"`
 }
 
 func init() {
@@ -35,6 +36,9 @@ func validate() error {
 	}
 	if Config.DBConnectionStr == "" {
 		return fmt.Errorf("database connection string is required")
+	}
+	if Config.VideoDir == "" {
+		return fmt.Errorf("video directory is required")
 	}
 	return nil
 }

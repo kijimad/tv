@@ -2,6 +2,7 @@
 *.webm
 
 bin
+backend/outputs
 
 # Node.js
 node_modules/
