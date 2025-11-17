@@ -25,7 +25,7 @@ type SessionClient interface {
 	UpdateSessionStatus(id int64, req oapi.SessionUpdate) (*oapi.Session, error)
 }
 
-// RecordingSession は録画セッションを表する
+// RecordingSession は録画セッションを表す
 type RecordingSession struct {
 	currentSessionID int64
 	recorder         Recorder

@@ -28,6 +28,20 @@ func (m *MockRecorder) Stop() error {
 	return nil
 }
 
+type MockStatusProvider struct{}
+
+func NewMockStatusProvider() *MockStatusProvider {
+	return &MockStatusProvider{}
+}
+
+func (m *MockStatusProvider) IsActive() (bool, error) {
+	return true, nil
+}
+
+func (m *MockStatusProvider) GetTitle() (string, error) {
+	return "Test Task", nil
+}
+
 type MockSessionClient struct {
 	createCalls chan oapi.SessionCreate
 	updateCalls chan int64
@@ -63,9 +77,9 @@ func (m *MockSessionClient) UpdateSessionStatus(id int64, _ oapi.SessionUpdate) 
 func TestMonitor_StartRecordingOnPomodoroStart(t *testing.T) {
 	t.Parallel()
 	mockRecorder := NewMockRecorder()
-	mockEmacs := NewEmacsChecker()
+	mockStatusProvider := NewMockStatusProvider()
 	mockClient := NewMockSessionClient()
-	monitor := NewMonitor(mockRecorder, mockEmacs, mockClient)
+	monitor := NewMonitor(mockRecorder, mockStatusProvider, mockClient)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -86,9 +100,9 @@ func TestMonitor_StartRecordingOnPomodoroStart(t *testing.T) {
 func TestMonitor_StopRecordingOnPomodoroStop(t *testing.T) {
 	t.Parallel()
 	mockRecorder := NewMockRecorder()
-	mockEmacs := NewEmacsChecker()
+	mockStatusProvider := NewMockStatusProvider()
 	mockClient := NewMockSessionClient()
-	monitor := NewMonitor(mockRecorder, mockEmacs, mockClient)
+	monitor := NewMonitor(mockRecorder, mockStatusProvider, mockClient)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
