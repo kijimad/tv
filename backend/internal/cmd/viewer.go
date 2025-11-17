@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/kijimaD/tv/internal/oapi"
 	"github.com/kijimaD/tv/internal/viewer/config"
@@ -37,6 +38,13 @@ func runViewer() error {
 	videoHandler := handler.NewVideoHandler(videoService, sessionService)
 
 	r := gin.Default()
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
+		AllowCredentials: true,
+	}))
 
 	// OpenAPIバリデーションミドルウェアを追加
 	validateMiddleware, err := handler.MakeValidateMiddleware()
