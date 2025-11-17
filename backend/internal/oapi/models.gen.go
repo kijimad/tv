@@ -90,7 +90,7 @@ type Video struct {
 	// Filename ファイル名
 	Filename string `json:"filename"`
 
-	// FinishedAt 録画終了時刻
+	// FinishedAt 録画終了時刻(UTC)
 	FinishedAt time.Time `json:"finishedAt"`
 
 	// Id ビデオID
@@ -99,7 +99,7 @@ type Video struct {
 	// SessionId セッションID
 	SessionId *int64 `json:"sessionId,omitempty"`
 
-	// StartedAt 録画開始時刻
+	// StartedAt 録画開始時刻(UTC)
 	StartedAt time.Time `json:"startedAt"`
 
 	// Title タイトル

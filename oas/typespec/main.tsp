@@ -17,10 +17,10 @@ model Video {
   @visibility("read")
   id: int64;
 
-  /** 録画開始時刻 */
+  /** 録画開始時刻(UTC) */
   startedAt: utcDateTime;
 
-  /** 録画終了時刻 */
+  /** 録画終了時刻(UTC) */
   finishedAt: utcDateTime;
 
   /** タイトル */

@@ -184,13 +184,13 @@ export interface Video {
      */
     'id': number;
     /**
-     * 録画開始時刻
+     * 録画開始時刻(UTC)
      * @type {string}
      * @memberof Video
      */
     'startedAt': string;
     /**
-     * 録画終了時刻
+     * 録画終了時刻(UTC)
      * @type {string}
      * @memberof Video
      */
@@ -492,6 +492,39 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             };
         },
         /**
+         * ビデオファイル配信
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        videosFile: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('videosFile', 'id', id)
+            const localVarPath = `/api/v1/videos/{id}/file`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * ビデオ詳細取得
          * @param {number} id 
          * @param {*} [options] Override http request option.
@@ -551,6 +584,39 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             if (offset !== undefined) {
                 localVarQueryParameter['offset'] = offset;
             }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * サムネイル画像取得
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        videosThumbnail: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('videosThumbnail', 'id', id)
+            const localVarPath = `/api/v1/videos/{id}/thumbnail`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
 
 
     
@@ -673,6 +739,18 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * ビデオファイル配信
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async videosFile(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<File>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.videosFile(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.videosFile']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * ビデオ詳細取得
          * @param {number} id 
          * @param {*} [options] Override http request option.
@@ -695,6 +773,18 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.videosList(limit, offset, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.videosList']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * サムネイル画像取得
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async videosThumbnail(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<File>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.videosThumbnail(id, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.videosThumbnail']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -766,6 +856,15 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.videosDelete(id, options).then((request) => request(axios, basePath));
         },
         /**
+         * ビデオファイル配信
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        videosFile(id: number, options?: RawAxiosRequestConfig): AxiosPromise<File> {
+            return localVarFp.videosFile(id, options).then((request) => request(axios, basePath));
+        },
+        /**
          * ビデオ詳細取得
          * @param {number} id 
          * @param {*} [options] Override http request option.
@@ -783,6 +882,15 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
          */
         videosList(limit?: number, offset?: number, options?: RawAxiosRequestConfig): AxiosPromise<VideoList> {
             return localVarFp.videosList(limit, offset, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * サムネイル画像取得
+         * @param {number} id 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        videosThumbnail(id: number, options?: RawAxiosRequestConfig): AxiosPromise<File> {
+            return localVarFp.videosThumbnail(id, options).then((request) => request(axios, basePath));
         },
         /**
          * ビデオ更新
@@ -860,6 +968,17 @@ export class DefaultApi extends BaseAPI {
     }
 
     /**
+     * ビデオファイル配信
+     * @param {number} id 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public videosFile(id: number, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).videosFile(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * ビデオ詳細取得
      * @param {number} id 
      * @param {*} [options] Override http request option.
@@ -880,6 +999,17 @@ export class DefaultApi extends BaseAPI {
      */
     public videosList(limit?: number, offset?: number, options?: RawAxiosRequestConfig) {
         return DefaultApiFp(this.configuration).videosList(limit, offset, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * サムネイル画像取得
+     * @param {number} id 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public videosThumbnail(id: number, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).videosThumbnail(id, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

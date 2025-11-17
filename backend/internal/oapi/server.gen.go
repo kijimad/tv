@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -40,6 +41,12 @@ type ServerInterface interface {
 
 	// (PATCH /api/v1/videos/{id})
 	VideosUpdate(c *gin.Context, id int64)
+
+	// (GET /api/v1/videos/{id}/file)
+	VideosFile(c *gin.Context, id int64)
+
+	// (GET /api/v1/videos/{id}/thumbnail)
+	VideosThumbnail(c *gin.Context, id int64)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -220,6 +227,54 @@ func (siw *ServerInterfaceWrapper) VideosUpdate(c *gin.Context) {
 	siw.Handler.VideosUpdate(c, id)
 }
 
+// VideosFile operation middleware
+func (siw *ServerInterfaceWrapper) VideosFile(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.VideosFile(c, id)
+}
+
+// VideosThumbnail operation middleware
+func (siw *ServerInterfaceWrapper) VideosThumbnail(c *gin.Context) {
+
+	var err error
+
+	// ------------- Path parameter "id" -------------
+	var id int64
+
+	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.VideosThumbnail(c, id)
+}
+
 // GinServerOptions provides options for the Gin server.
 type GinServerOptions struct {
 	BaseURL      string
@@ -255,6 +310,8 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.DELETE(options.BaseURL+"/api/v1/videos/:id", wrapper.VideosDelete)
 	router.GET(options.BaseURL+"/api/v1/videos/:id", wrapper.VideosGet)
 	router.PATCH(options.BaseURL+"/api/v1/videos/:id", wrapper.VideosUpdate)
+	router.GET(options.BaseURL+"/api/v1/videos/:id/file", wrapper.VideosFile)
+	router.GET(options.BaseURL+"/api/v1/videos/:id/thumbnail", wrapper.VideosThumbnail)
 }
 
 type SessionsCreateRequestObject struct {
@@ -489,6 +546,102 @@ func (response VideosUpdatedefaultJSONResponse) VisitVideosUpdateResponse(w http
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
+type VideosFileRequestObject struct {
+	Id int64 `json:"id"`
+}
+
+type VideosFileResponseObject interface {
+	VisitVideosFileResponse(w http.ResponseWriter) error
+}
+
+type VideosFile200VideowebmResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response VideosFile200VideowebmResponse) VisitVideosFileResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "video/webm")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type VideosFile404JSONResponse Error
+
+func (response VideosFile404JSONResponse) VisitVideosFileResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VideosFiledefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response VideosFiledefaultJSONResponse) VisitVideosFileResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
+type VideosThumbnailRequestObject struct {
+	Id int64 `json:"id"`
+}
+
+type VideosThumbnailResponseObject interface {
+	VisitVideosThumbnailResponse(w http.ResponseWriter) error
+}
+
+type VideosThumbnail200ImagejpegResponse struct {
+	Body          io.Reader
+	ContentLength int64
+}
+
+func (response VideosThumbnail200ImagejpegResponse) VisitVideosThumbnailResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "image/jpeg")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type VideosThumbnail404JSONResponse Error
+
+func (response VideosThumbnail404JSONResponse) VisitVideosThumbnailResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type VideosThumbnaildefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response VideosThumbnaildefaultJSONResponse) VisitVideosThumbnailResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 
@@ -515,6 +668,12 @@ type StrictServerInterface interface {
 
 	// (PATCH /api/v1/videos/{id})
 	VideosUpdate(ctx context.Context, request VideosUpdateRequestObject) (VideosUpdateResponseObject, error)
+
+	// (GET /api/v1/videos/{id}/file)
+	VideosFile(ctx context.Context, request VideosFileRequestObject) (VideosFileResponseObject, error)
+
+	// (GET /api/v1/videos/{id}/thumbnail)
+	VideosThumbnail(ctx context.Context, request VideosThumbnailRequestObject) (VideosThumbnailResponseObject, error)
 }
 
 type StrictHandlerFunc = strictgin.StrictGinHandlerFunc
@@ -764,6 +923,60 @@ func (sh *strictHandler) VideosUpdate(ctx *gin.Context, id int64) {
 		ctx.Status(http.StatusInternalServerError)
 	} else if validResponse, ok := response.(VideosUpdateResponseObject); ok {
 		if err := validResponse.VisitVideosUpdateResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// VideosFile operation middleware
+func (sh *strictHandler) VideosFile(ctx *gin.Context, id int64) {
+	var request VideosFileRequestObject
+
+	request.Id = id
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.VideosFile(ctx, request.(VideosFileRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VideosFile")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(VideosFileResponseObject); ok {
+		if err := validResponse.VisitVideosFileResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// VideosThumbnail operation middleware
+func (sh *strictHandler) VideosThumbnail(ctx *gin.Context, id int64) {
+	var request VideosThumbnailRequestObject
+
+	request.Id = id
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.VideosThumbnail(ctx, request.(VideosThumbnailRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "VideosThumbnail")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(VideosThumbnailResponseObject); ok {
+		if err := validResponse.VisitVideosThumbnailResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {

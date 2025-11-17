@@ -333,11 +333,11 @@ components:
         startedAt:
           type: string
           format: date-time
-          description: 録画開始時刻
+          description: 録画開始時刻(UTC)
         finishedAt:
           type: string
           format: date-time
-          description: 録画終了時刻
+          description: 録画終了時刻(UTC)
         title:
           type: string
           minLength: 1
