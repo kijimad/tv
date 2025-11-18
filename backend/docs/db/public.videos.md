@@ -10,9 +10,9 @@
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
 | created_at | timestamp without time zone | CURRENT_TIMESTAMP | false |  |  |  |
 | filename | text |  | false |  |  | ファイル名 |
-| finished_at | timestamp without time zone |  | false |  |  | 録画終了日時 |
+| finished_at | timestamp without time zone |  | false |  |  | 録画終了日時(UTC) |
 | id | bigint | nextval('videos_id_seq'::regclass) | false | [public.video_sessions](public.video_sessions.md) |  |  |
-| started_at | timestamp without time zone |  | false |  |  | 録画開始日時 |
+| started_at | timestamp without time zone |  | false |  |  | 録画開始日時(UTC) |
 | title | text |  | false |  |  | 動画タイトル |
 | updated_at | timestamp without time zone | CURRENT_TIMESTAMP | false |  |  |  |
 
