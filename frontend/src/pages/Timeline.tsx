@@ -1,9 +1,32 @@
-import { Box, Button, Heading, HStack } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Container,
+  Heading,
+  HStack,
+  Image,
+} from "@chakra-ui/react";
 import { useState } from "react";
 import { useVideos } from "../hooks/useVideos";
+import { useThumbnail } from "../hooks/useThumbnail";
 import VideoPlayerModal from "../components/video/VideoPlayerModal";
 import type { Video } from "../oapi";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
+
+function VideoThumbnail({ videoId }: { videoId: number }) {
+  const thumbnailUrl = useThumbnail(videoId);
+  return (
+    <Image
+      src={thumbnailUrl}
+      alt="サムネイル"
+      objectFit="cover"
+      w="60px"
+      h="40px"
+      borderRadius="sm"
+      flexShrink={0}
+    />
+  );
+}
 
 export default function Timeline() {
   const { data, isLoading, error } = useVideos();
@@ -26,6 +49,19 @@ export default function Timeline() {
   };
 
   const displayVideos = getVideosForDate(selectedDate);
+
+  // その日の最初の動画の開始時刻を取得する
+  const getFirstVideoStartHour = () => {
+    if (displayVideos.length === 0) return 0;
+    const firstVideo = displayVideos.reduce((earliest, video) => {
+      const videoTime = new Date(video.startedAt).getTime();
+      const earliestTime = new Date(earliest.startedAt).getTime();
+      return videoTime < earliestTime ? video : earliest;
+    });
+    return new Date(firstVideo.startedAt).getHours();
+  };
+
+  const firstHour = getFirstVideoStartHour();
 
   // 前の日に移動する
   const goToPreviousDay = () => {
@@ -55,8 +91,8 @@ export default function Timeline() {
     return today.getTime() === selected.getTime();
   };
 
-  // 0時から23時までの時刻配列を生成する
-  const hours = Array.from({ length: 24 }, (_, i) => i);
+  // 最初の動画開始時刻から23時までの時刻配列を生成する
+  const hours = Array.from({ length: 24 - firstHour }, (_, i) => i + firstHour);
 
   // 0時からの経過分数を計算する
   const getMinutesFromStart = (dateString: string) => {
@@ -79,13 +115,15 @@ export default function Timeline() {
     return <Box>エラーが発生しました</Box>;
   }
 
-  // タイムラインの高さを計算する（0時から23:59まで）
-  const timelineHeight = 24 * 60;
+  // タイムラインの高さを計算する（最初の動画開始時刻から23:59まで）
+  const timelineHeight = (24 - firstHour) * 60;
 
-  // 現在時刻の位置を計算する
+  // 現在時刻の位置を計算する（最初の動画開始時刻からの相対位置）
   const getCurrentTimePosition = () => {
     const now = new Date();
-    return now.getHours() * 60 + now.getMinutes();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const startMinutes = firstHour * 60;
+    return currentMinutes - startMinutes;
   };
 
   const currentTimePosition = getCurrentTimePosition();
@@ -100,8 +138,8 @@ export default function Timeline() {
   };
 
   return (
-    <Box>
-      <Heading size="lg" mb={4}>
+    <Container maxW="container.xl">
+      <Heading size="xl" mb={4}>
         タイムライン
       </Heading>
       <HStack mb={6} gap={2}>
@@ -135,11 +173,11 @@ export default function Timeline() {
       </HStack>
       <Box position="relative" h={`${timelineHeight}px`} w="full">
         {/* 時刻軸 */}
-        {hours.map((hour, index) => (
+        {hours.map((hour) => (
           <Box
             key={hour}
             position="absolute"
-            top={`${index * 60}px`}
+            top={`${(hour - firstHour) * 60}px`}
             w="full"
             borderTop="1px solid"
             borderColor="gray.200"
@@ -173,6 +211,7 @@ export default function Timeline() {
         {/* 動画カード */}
         {displayVideos.map((video) => {
           const startMinutes = getMinutesFromStart(video.startedAt);
+          const relativeStartMinutes = startMinutes - firstHour * 60;
           const durationMinutes = getDurationMinutes(
             video.startedAt,
             video.finishedAt,
@@ -180,32 +219,35 @@ export default function Timeline() {
           const height = Math.max(durationMinutes, 20); // 最小20pxの高さ
 
           return (
-            <Box
+            <HStack
               key={video.id}
               position="absolute"
-              top={`${startMinutes}px`}
+              top={`${relativeStartMinutes}px`}
               left="80px"
               w="calc(100% - 100px)"
               h={`${height}px`}
               bg="gray.100"
               border="1px solid"
               borderColor="gray.300"
-              borderRadius="md"
+              borderRadius="sm"
               p={2}
+              gap={2}
               cursor="pointer"
               onClick={() => setSelectedVideo(video)}
               overflow="hidden"
             >
-              <Box
-                fontSize="sm"
-                overflow="hidden"
-                textOverflow="ellipsis"
-                whiteSpace="nowrap"
-              >
-                {video.title}
+              <VideoThumbnail videoId={video.id} />
+              <Box flex={1} overflow="hidden">
+                <Box
+                  fontSize="sm"
+                  overflow="hidden"
+                  textOverflow="ellipsis"
+                  whiteSpace="nowrap"
+                >
+                  {video.title}
+                </Box>
               </Box>
-              <Box fontSize="xs">{durationMinutes}分</Box>
-            </Box>
+            </HStack>
           );
         })}
       </Box>
@@ -217,6 +259,6 @@ export default function Timeline() {
           onClose={() => setSelectedVideo(null)}
         />
       )}
-    </Box>
+    </Container>
   );
 }
