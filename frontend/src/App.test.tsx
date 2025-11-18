@@ -1,21 +1,24 @@
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { ChakraProvider } from "@chakra-ui/react";
-import { queryClient } from "./api/queries";
-import { system } from "./theme";
+import { screen } from "@testing-library/react";
+import { describe, expect, test, vi } from "vitest";
+import { render } from "./test/render";
 import App from "./App";
+
+vi.mock("./hooks/useVideos", () => ({
+  useVideos: () => ({
+    data: { pager: { page: 1, size: 30, totalCount: 0 }, data: [] },
+    isLoading: false,
+    error: null,
+  }),
+}));
+
+vi.mock("./hooks/useThumbnail", () => ({
+  useThumbnail: () => "http://localhost:8080/api/v1/videos/1/thumbnail",
+}));
 
 describe("App", () => {
   test("レンダリングできる", () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <ChakraProvider value={system}>
-          <App />
-        </ChakraProvider>
-      </QueryClientProvider>,
-    );
+    render(<App />);
     const heading = screen.getByRole("heading", { name: /TV/i });
     expect(heading).toBeInTheDocument();
   });

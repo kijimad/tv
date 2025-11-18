@@ -1,18 +1,15 @@
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { describe, expect, test } from "vitest";
-import { ChakraProvider } from "@chakra-ui/react";
-import { system } from "../../theme";
+import { render } from "../../test/render";
 import Header from "./Header";
 
 describe("Header", () => {
   test("タイトルを表示できる", () => {
     render(
       <BrowserRouter>
-        <ChakraProvider value={system}>
-          <Header />
-        </ChakraProvider>
+        <Header />
       </BrowserRouter>,
     );
 
@@ -22,9 +19,7 @@ describe("Header", () => {
   test("ナビゲーションリンクを表示できる", () => {
     render(
       <BrowserRouter>
-        <ChakraProvider value={system}>
-          <Header />
-        </ChakraProvider>
+        <Header />
       </BrowserRouter>,
     );
 
@@ -35,9 +30,7 @@ describe("Header", () => {
   test("リンクは正しいhrefを持つ", () => {
     render(
       <BrowserRouter>
-        <ChakraProvider value={system}>
-          <Header />
-        </ChakraProvider>
+        <Header />
       </BrowserRouter>,
     );
 
