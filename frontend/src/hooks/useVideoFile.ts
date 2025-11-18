@@ -16,14 +16,14 @@ export const useVideoFile = (videoId: number) => {
   });
 
   useEffect(() => {
-    if (data) {
-      const url = URL.createObjectURL(data);
-      setVideoUrl(url);
+    if (!data) return;
 
-      return () => {
-        URL.revokeObjectURL(url);
-      };
-    }
+    const url = URL.createObjectURL(data);
+    setVideoUrl(url);
+
+    return () => {
+      URL.revokeObjectURL(url);
+    };
   }, [data]);
 
   return videoUrl;

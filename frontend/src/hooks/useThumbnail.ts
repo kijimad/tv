@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { apiClient } from "../api/client";
 
-export const useThumbnail = (videoId: number): string | undefined => {
+export const useThumbnail = (videoId: number) => {
   const [thumbnailUrl, setThumbnailUrl] = useState<string>();
 
   const { data } = useQuery({
@@ -16,14 +16,14 @@ export const useThumbnail = (videoId: number): string | undefined => {
   });
 
   useEffect(() => {
-    if (data) {
-      const url = URL.createObjectURL(data);
-      setThumbnailUrl(url);
+    if (!data) return;
 
-      return () => {
-        URL.revokeObjectURL(url);
-      };
-    }
+    const url = URL.createObjectURL(data);
+    setThumbnailUrl(url);
+
+    return () => {
+      URL.revokeObjectURL(url);
+    };
   }, [data]);
 
   return thumbnailUrl;

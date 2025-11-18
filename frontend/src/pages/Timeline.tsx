@@ -1,50 +1,67 @@
-import { Box, Heading } from "@chakra-ui/react";
+import { Box, Button, Heading, HStack } from "@chakra-ui/react";
 import { useState } from "react";
 import { useVideos } from "../hooks/useVideos";
 import VideoPlayerModal from "../components/video/VideoPlayerModal";
 import type { Video } from "../oapi";
+import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 
 export default function Timeline() {
   const { data, isLoading, error } = useVideos();
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  // 今日の動画のみフィルタする
-  const getTodayVideos = () => {
-    if (!data?.videos) return [];
+  // 選択された日付の動画のみフィルタする
+  const getVideosForDate = (date: Date) => {
+    if (!data?.data) return [];
+
+    return data.data.filter((video) => {
+      const videoDate = new Date(video.startedAt);
+      // 年月日のみを比較する
+      return (
+        videoDate.getFullYear() === date.getFullYear() &&
+        videoDate.getMonth() === date.getMonth() &&
+        videoDate.getDate() === date.getDate()
+      );
+    });
+  };
+
+  const displayVideos = getVideosForDate(selectedDate);
+
+  // 前の日に移動する
+  const goToPreviousDay = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() - 1);
+    setSelectedDate(newDate);
+  };
+
+  // 今日に移動する
+  const goToToday = () => {
+    setSelectedDate(new Date());
+  };
+
+  // 次の日に移動する
+  const goToNextDay = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + 1);
+    setSelectedDate(newDate);
+  };
+
+  // 選択された日付が今日かどうかを判定する
+  const isToday = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    return data.videos.filter((video) => {
-      const videoDate = new Date(video.startedAt);
-      return videoDate >= today && videoDate < tomorrow;
-    });
+    const selected = new Date(selectedDate);
+    selected.setHours(0, 0, 0, 0);
+    return today.getTime() === selected.getTime();
   };
 
-  const todayVideos = getTodayVideos();
+  // 0時から23時までの時刻配列を生成する
+  const hours = Array.from({ length: 24 }, (_, i) => i);
 
-  // その日の最初のタスクの開始時刻を取得する
-  const getFirstTaskStartHour = () => {
-    if (todayVideos.length === 0) return 0;
-    const firstVideo = todayVideos.reduce((earliest, video) => {
-      const videoDate = new Date(video.startedAt);
-      const earliestDate = new Date(earliest.startedAt);
-      return videoDate < earliestDate ? video : earliest;
-    });
-    return new Date(firstVideo.startedAt).getHours();
-  };
-
-  const firstHour = getFirstTaskStartHour();
-  // 最初のタスクの時刻から23時までの時刻配列を生成する
-  const hours = Array.from({ length: 24 - firstHour }, (_, i) => i + firstHour);
-
-  // 最初のタスク開始時刻からの経過分数を計算する
+  // 0時からの経過分数を計算する
   const getMinutesFromStart = (dateString: string) => {
     const date = new Date(dateString);
-    const totalMinutes = date.getHours() * 60 + date.getMinutes();
-    const startMinutes = firstHour * 60;
-    return totalMinutes - startMinutes;
+    return date.getHours() * 60 + date.getMinutes();
   };
 
   // 動画の長さ（分）を計算する
@@ -62,24 +79,60 @@ export default function Timeline() {
     return <Box>エラーが発生しました</Box>;
   }
 
-  // タイムラインの高さを計算する（最初の時刻から23:59まで）
-  const timelineHeight = (24 - firstHour) * 60;
+  // タイムラインの高さを計算する（0時から23:59まで）
+  const timelineHeight = 24 * 60;
 
   // 現在時刻の位置を計算する
   const getCurrentTimePosition = () => {
     const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    const startMinutes = firstHour * 60;
-    return currentMinutes - startMinutes;
+    return now.getHours() * 60 + now.getMinutes();
   };
 
   const currentTimePosition = getCurrentTimePosition();
 
+  // 選択された日付を表示する
+  const formatSelectedDate = () => {
+    return selectedDate.toLocaleDateString("ja-JP", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   return (
     <Box>
-      <Heading size="lg" mb={6}>
-        タイムライン（今日）
+      <Heading size="lg" mb={4}>
+        タイムライン
       </Heading>
+      <HStack mb={6} gap={2}>
+        <Button
+          onClick={goToPreviousDay}
+          size="sm"
+          variant="outline"
+          aria-label="前の日"
+        >
+          <IoChevronBack />
+        </Button>
+        <Button
+          onClick={goToToday}
+          size="sm"
+          variant="outline"
+          disabled={isToday()}
+        >
+          今日
+        </Button>
+        <Button
+          onClick={goToNextDay}
+          size="sm"
+          variant="outline"
+          aria-label="次の日"
+        >
+          <IoChevronForward />
+        </Button>
+        <Box ml={4} fontSize="md" fontWeight="medium">
+          {formatSelectedDate()}
+        </Box>
+      </HStack>
       <Box position="relative" h={`${timelineHeight}px`} w="full">
         {/* 時刻軸 */}
         {hours.map((hour, index) => (
@@ -118,7 +171,7 @@ export default function Timeline() {
         )}
 
         {/* 動画カード */}
-        {todayVideos.map((video) => {
+        {displayVideos.map((video) => {
           const startMinutes = getMinutesFromStart(video.startedAt);
           const durationMinutes = getDurationMinutes(
             video.startedAt,
@@ -149,7 +202,7 @@ export default function Timeline() {
                 textOverflow="ellipsis"
                 whiteSpace="nowrap"
               >
-                {video.title || video.filename}
+                {video.title}
               </Box>
               <Box fontSize="xs">{durationMinutes}分</Box>
             </Box>

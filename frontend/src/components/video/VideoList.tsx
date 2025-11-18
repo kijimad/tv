@@ -25,7 +25,7 @@ export default function VideoList() {
     );
   }
 
-  if (!data?.videos || data.videos.length === 0) {
+  if (!data?.data || data.data.length === 0) {
     return (
       <Box textAlign="center" py={8}>
         <Text color="gray.500">録画データがありません</Text>
@@ -40,7 +40,7 @@ export default function VideoList() {
         gap={6}
         w="full"
       >
-        {data.videos.map((video) => (
+        {data.data.map((video: Video) => (
           <VideoCard
             key={video.id}
             video={video}
