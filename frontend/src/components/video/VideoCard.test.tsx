@@ -1,13 +1,14 @@
-import "@testing-library/jest-dom";
-import { screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
-import { render } from "../../test/render";
-import VideoCard from "./VideoCard";
-import type { Video } from "../../oapi";
 
 vi.mock("../../hooks/useThumbnail", () => ({
   useThumbnail: () => "http://localhost:8080/api/v1/videos/1/thumbnail",
 }));
+
+import "@testing-library/jest-dom";
+import { screen } from "@testing-library/react";
+import { render } from "../../test/render";
+import VideoCard from "./VideoCard";
+import type { Video } from "../../oapi";
 
 describe("VideoCard", () => {
   const mockVideo: Video = {

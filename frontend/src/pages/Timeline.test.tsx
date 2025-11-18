@@ -1,12 +1,16 @@
+import { describe, expect, test, vi, afterEach } from "vitest";
+
+vi.mock("../hooks/useVideos");
+vi.mock("../hooks/useThumbnail", () => ({
+  useThumbnail: () => "http://localhost:8080/api/v1/videos/1/thumbnail",
+}));
+
 import "@testing-library/jest-dom";
 import { screen } from "@testing-library/react";
-import { describe, expect, test, vi, afterEach } from "vitest";
 import { render } from "../test/render";
 import Timeline from "./Timeline";
 import * as useVideosModule from "../hooks/useVideos";
 import type { VideoPage } from "../oapi";
-
-vi.mock("../hooks/useVideos");
 
 describe("Timeline", () => {
   afterEach(() => {

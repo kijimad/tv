@@ -1,8 +1,4 @@
-import "@testing-library/jest-dom";
-import { screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
-import { render } from "./test/render";
-import App from "./App";
 
 vi.mock("./hooks/useVideos", () => ({
   useVideos: () => ({
@@ -15,6 +11,11 @@ vi.mock("./hooks/useVideos", () => ({
 vi.mock("./hooks/useThumbnail", () => ({
   useThumbnail: () => "http://localhost:8080/api/v1/videos/1/thumbnail",
 }));
+
+import "@testing-library/jest-dom";
+import { screen } from "@testing-library/react";
+import { render } from "./test/render";
+import App from "./App";
 
 describe("App", () => {
   test("レンダリングできる", () => {
