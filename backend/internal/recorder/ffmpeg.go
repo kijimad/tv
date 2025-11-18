@@ -78,17 +78,17 @@ func (f *FFmpegRecorder) postProcess() {
 
 	log.Printf("Starting post-processing for %s", f.filename)
 
-	// WebMに変換する
-	if err := f.convertToWebM(tempPath, outputPath); err != nil {
-		log.Printf("Failed to convert to WebM: %v", err)
-		return
-	}
-
 	// サムネイルを生成する
 	thumbnailPath := strings.TrimSuffix(outputPath, ".webm") + ".jpg"
 	if err := f.generateThumbnail(outputPath, thumbnailPath); err != nil {
 		log.Printf("Failed to generate thumbnail: %v", err)
 		// サムネイル生成に失敗しても続行する
+	}
+
+	// WebMに変換する
+	if err := f.convertToWebM(tempPath, outputPath); err != nil {
+		log.Printf("Failed to convert to WebM: %v", err)
+		return
 	}
 
 	// 一時ファイルを削除する
