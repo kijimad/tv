@@ -23,6 +23,7 @@ type VideoQuerier interface {
 	CreateVideo(ctx context.Context, params sqlc.CreateVideoParams) (sqlc.Video, error)
 	GetVideo(ctx context.Context, id int64) (sqlc.Video, error)
 	ListVideos(ctx context.Context, params sqlc.ListVideosParams) ([]sqlc.Video, error)
+	CountVideos(ctx context.Context) (int64, error)
 	UpdateVideo(ctx context.Context, params sqlc.UpdateVideoParams) (sqlc.Video, error)
 	DeleteVideo(ctx context.Context, id int64) error
 }
@@ -45,7 +46,12 @@ func (s *videoService) ListVideos(ctx context.Context, limit, offset int32) ([]s
 		return nil, 0, fmt.Errorf("failed to list videos: %w", err)
 	}
 
-	return videos, int64(len(videos)), nil
+	totalCount, err := s.queries.CountVideos(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count videos: %w", err)
+	}
+
+	return videos, totalCount, nil
 }
 
 func (s *videoService) GetVideo(ctx context.Context, id int64) (*sqlc.Video, error) {

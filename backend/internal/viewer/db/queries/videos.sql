@@ -7,6 +7,9 @@ SELECT * FROM videos
 ORDER BY started_at DESC
 LIMIT $1 OFFSET $2;
 
+-- name: CountVideos :one
+SELECT COUNT(*) FROM videos;
+
 -- name: CreateVideo :one
 INSERT INTO videos (
     started_at, finished_at, title, filename

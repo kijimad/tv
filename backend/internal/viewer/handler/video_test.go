@@ -111,7 +111,7 @@ func TestVideoHandler_VideosList(t *testing.T) {
 		mockSessionService := new(MockSessionService)
 		handler := NewVideoHandler(mockService, mockSessionService)
 
-		mockService.On("ListVideos", mock.Anything, int32(10), int32(0)).Return(testVideos, 1, nil)
+		mockService.On("ListVideos", mock.Anything, int32(30), int32(0)).Return(testVideos, 5, nil)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
@@ -121,34 +121,43 @@ func TestVideoHandler_VideosList(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response oapi.VideoList
+		var response oapi.VideoPage
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Equal(t, int32(1), response.Total)
-		assert.Len(t, response.Videos, 1)
+		assert.Equal(t, int32(1), response.Pager.Page)
+		assert.Equal(t, int32(30), response.Pager.Size)
+		assert.Equal(t, int32(5), response.Pager.TotalCount)
+		assert.Len(t, response.Data, 1)
 		mockService.AssertExpectations(t)
 	})
 
-	t.Run("limitとoffsetパラメータ指定", func(t *testing.T) {
+	t.Run("pageとsizeパラメータ指定できる", func(t *testing.T) {
 		t.Parallel()
 		mockService := new(MockVideoService)
 		mockSessionService := new(MockSessionService)
 		handler := NewVideoHandler(mockService, mockSessionService)
 
-		limit := int32(20)
-		offset := int32(10)
-		mockService.On("ListVideos", mock.Anything, int32(20), int32(10)).Return(testVideos, 1, nil)
+		page := int32(2)
+		size := int32(20)
+		mockService.On("ListVideos", mock.Anything, int32(20), int32(20)).Return(testVideos, 50, nil)
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
-		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/videos?limit=20&offset=10", nil)
+		c.Request = httptest.NewRequest(http.MethodGet, "/api/v1/videos?page=2&size=20", nil)
 
 		handler.VideosList(c, oapi.VideosListParams{
-			Limit:  &limit,
-			Offset: &offset,
+			Page: &page,
+			Size: &size,
 		})
 
 		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response oapi.VideoPage
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, int32(2), response.Pager.Page)
+		assert.Equal(t, int32(20), response.Pager.Size)
+		assert.Equal(t, int32(50), response.Pager.TotalCount)
 		mockService.AssertExpectations(t)
 	})
 
@@ -158,7 +167,7 @@ func TestVideoHandler_VideosList(t *testing.T) {
 		mockSessionService := new(MockSessionService)
 		handler := NewVideoHandler(mockService, mockSessionService)
 
-		mockService.On("ListVideos", mock.Anything, int32(10), int32(0)).Return([]sqlc.Video{}, 0, errors.New("database error"))
+		mockService.On("ListVideos", mock.Anything, int32(30), int32(0)).Return([]sqlc.Video{}, 0, errors.New("database error"))
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)

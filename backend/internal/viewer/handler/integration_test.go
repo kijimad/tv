@@ -143,11 +143,11 @@ func TestIntegration_VideosList(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response oapi.VideoList
+		var response oapi.VideoPage
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
-		assert.Equal(t, int32(1), response.Total)
-		assert.Len(t, response.Videos, 1)
+		assert.Equal(t, int32(1), response.Pager.TotalCount)
+		assert.Len(t, response.Data, 1)
 	})
 }
 
@@ -233,9 +233,9 @@ func TestIntegration_ValidationErrors(t *testing.T) {
 	r, _, cleanup := setupTestServer(t)
 	t.Cleanup(cleanup)
 
-	t.Run("limit範囲外でエラー", func(t *testing.T) {
+	t.Run("size範囲外でエラー", func(t *testing.T) {
 		t.Parallel()
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/videos?limit=101", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/videos?size=101", nil)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
@@ -244,9 +244,9 @@ func TestIntegration_ValidationErrors(t *testing.T) {
 		assert.Contains(t, w.Body.String(), "must be at most 100")
 	})
 
-	t.Run("limitが0でエラー", func(t *testing.T) {
+	t.Run("sizeが0でエラー", func(t *testing.T) {
 		t.Parallel()
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/videos?limit=0", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/videos?size=0", nil)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
@@ -298,7 +298,7 @@ func TestIntegration_BusinessLogicValidation(t *testing.T) {
 func TestIntegration_Pagination(t *testing.T) {
 	t.Parallel()
 
-	t.Run("limitパラメータが機能する", func(t *testing.T) {
+	t.Run("sizeパラメータが機能する", func(t *testing.T) {
 		t.Parallel()
 		r, queries, cleanup := setupTestServer(t)
 		t.Cleanup(cleanup)
@@ -310,27 +310,28 @@ func TestIntegration_Pagination(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			_, err := queries.CreateVideo(ctx, sqlc.CreateVideoParams{
 				Title:      fmt.Sprintf("テストビデオ %d", i),
-				Filename:   fmt.Sprintf("test-limit-%d.mp4", i),
+				Filename:   fmt.Sprintf("test-size-%d.mp4", i),
 				StartedAt:  now.Add(time.Duration(i) * time.Minute),
 				FinishedAt: now.Add(time.Duration(i+1) * time.Hour),
 			})
 			require.NoError(t, err)
 		}
 
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/videos?limit=5", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/videos?size=5", nil)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response oapi.VideoList
+		var response oapi.VideoPage
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
-		assert.Len(t, response.Videos, 5)
+		assert.Len(t, response.Data, 5)
+		assert.Equal(t, int32(10), response.Pager.TotalCount)
 	})
 
-	t.Run("offsetパラメータが機能する", func(t *testing.T) {
+	t.Run("pageパラメータが機能する", func(t *testing.T) {
 		t.Parallel()
 		r, queries, cleanup := setupTestServer(t)
 		t.Cleanup(cleanup)
@@ -342,24 +343,27 @@ func TestIntegration_Pagination(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			_, err := queries.CreateVideo(ctx, sqlc.CreateVideoParams{
 				Title:      fmt.Sprintf("テストビデオ %d", i),
-				Filename:   fmt.Sprintf("test-offset-%d.mp4", i),
+				Filename:   fmt.Sprintf("test-page-%d.mp4", i),
 				StartedAt:  now.Add(time.Duration(i) * time.Minute),
 				FinishedAt: now.Add(time.Duration(i+1) * time.Hour),
 			})
 			require.NoError(t, err)
 		}
 
-		req := httptest.NewRequest(http.MethodGet, "/api/v1/videos?limit=5&offset=7", nil)
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/videos?page=2&size=3", nil)
 		w := httptest.NewRecorder()
 
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response oapi.VideoList
+		var response oapi.VideoPage
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
-		assert.Len(t, response.Videos, 3) // 10件中、7件スキップして残り3件
+		assert.Equal(t, int32(2), response.Pager.Page)
+		assert.Equal(t, int32(3), response.Pager.Size)
+		assert.Len(t, response.Data, 3) // 10件中、3件スキップして3件取得
+		assert.Equal(t, int32(10), response.Pager.TotalCount)
 	})
 }
 

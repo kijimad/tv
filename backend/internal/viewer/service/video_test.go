@@ -16,6 +16,7 @@ type mockVideoQueries struct {
 	createVideoFunc func(ctx context.Context, params sqlc.CreateVideoParams) (sqlc.Video, error)
 	getVideoFunc    func(ctx context.Context, id int64) (sqlc.Video, error)
 	listVideosFunc  func(ctx context.Context, params sqlc.ListVideosParams) ([]sqlc.Video, error)
+	countVideosFunc func(ctx context.Context) (int64, error)
 	updateVideoFunc func(ctx context.Context, params sqlc.UpdateVideoParams) (sqlc.Video, error)
 	deleteVideoFunc func(ctx context.Context, id int64) error
 }
@@ -39,6 +40,13 @@ func (m *mockVideoQueries) ListVideos(ctx context.Context, params sqlc.ListVideo
 		return m.listVideosFunc(ctx, params)
 	}
 	return []sqlc.Video{}, nil
+}
+
+func (m *mockVideoQueries) CountVideos(ctx context.Context) (int64, error) {
+	if m.countVideosFunc != nil {
+		return m.countVideosFunc(ctx)
+	}
+	return 0, nil
 }
 
 func (m *mockVideoQueries) UpdateVideo(ctx context.Context, params sqlc.UpdateVideoParams) (sqlc.Video, error) {
@@ -248,6 +256,9 @@ func TestVideoService_ListVideos(t *testing.T) {
 			listVideosFunc: func(_ context.Context, _ sqlc.ListVideosParams) ([]sqlc.Video, error) {
 				return expectedVideos, nil
 			},
+			countVideosFunc: func(_ context.Context) (int64, error) {
+				return 5, nil
+			},
 		}
 
 		svc := NewVideoService(mock)
@@ -255,7 +266,7 @@ func TestVideoService_ListVideos(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Len(t, videos, 2)
-		assert.Equal(t, int64(2), total)
+		assert.Equal(t, int64(5), total)
 		assert.Equal(t, "ビデオ1", videos[0].Title)
 		assert.Equal(t, "ビデオ2", videos[1].Title)
 	})

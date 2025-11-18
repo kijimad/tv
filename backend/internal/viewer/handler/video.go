@@ -32,16 +32,20 @@ func NewVideoHandler(service service.VideoService, sessionService service.Sessio
 
 // VideosList はビデオ一覧を取得する
 func (h *VideoHandler) VideosList(c *gin.Context, params oapi.VideosListParams) {
-	limit := int32(10)
-	offset := int32(0)
-	if params.Limit != nil {
-		limit = *params.Limit
+	page := int32(1)
+	size := int32(30)
+	if params.Page != nil {
+		page = *params.Page
 	}
-	if params.Offset != nil {
-		offset = *params.Offset
+	if params.Size != nil {
+		size = *params.Size
 	}
 
-	videos, total, err := h.service.ListVideos(c.Request.Context(), limit, offset)
+	// page/sizeをoffset/limitに変換する
+	offset := (page - 1) * size
+	limit := size
+
+	videos, totalCount, err := h.service.ListVideos(c.Request.Context(), limit, offset)
 	if err != nil {
 		statusCode, message := errorResponse(err)
 		c.JSON(statusCode, oapi.Error{
@@ -50,9 +54,13 @@ func (h *VideoHandler) VideosList(c *gin.Context, params oapi.VideosListParams) 
 		return
 	}
 
-	response := oapi.VideoList{
-		Total:  int32(total),
-		Videos: toAPIVideos(videos),
+	response := oapi.VideoPage{
+		Pager: oapi.Pager{
+			Page:       page,
+			Size:       size,
+			TotalCount: int32(totalCount),
+		},
+		Data: toAPIVideos(videos),
 	}
 	c.JSON(http.StatusOK, response)
 }

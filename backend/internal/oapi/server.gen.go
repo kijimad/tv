@@ -116,19 +116,19 @@ func (siw *ServerInterfaceWrapper) VideosList(c *gin.Context) {
 	// Parameter object where we will unmarshal all parameters from the context
 	var params VideosListParams
 
-	// ------------- Optional query parameter "limit" -------------
+	// ------------- Optional query parameter "page" -------------
 
-	err = runtime.BindQueryParameter("form", false, false, "limit", c.Request.URL.Query(), &params.Limit)
+	err = runtime.BindQueryParameter("form", false, false, "page", c.Request.URL.Query(), &params.Page)
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter page: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	// ------------- Optional query parameter "offset" -------------
+	// ------------- Optional query parameter "size" -------------
 
-	err = runtime.BindQueryParameter("form", false, false, "offset", c.Request.URL.Query(), &params.Offset)
+	err = runtime.BindQueryParameter("form", false, false, "size", c.Request.URL.Query(), &params.Size)
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter offset: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter size: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -409,7 +409,7 @@ type VideosListResponseObject interface {
 	VisitVideosListResponse(w http.ResponseWriter) error
 }
 
-type VideosList200JSONResponse VideoList
+type VideosList200JSONResponse VideoPage
 
 func (response VideosList200JSONResponse) VisitVideosListResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")

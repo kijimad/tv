@@ -11,6 +11,17 @@ import (
 	"time"
 )
 
+const countVideos = `-- name: CountVideos :one
+SELECT COUNT(*) FROM videos
+`
+
+func (q *Queries) CountVideos(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countVideos)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createVideo = `-- name: CreateVideo :one
 INSERT INTO videos (
     started_at, finished_at, title, filename
