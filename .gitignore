@@ -9,5 +9,4 @@ node_modules/
 
 # TypeSpec
 oas/typespec/node_modules/
-api/
 tsp-output/

@@ -26,7 +26,7 @@ type Error struct {
 }
 
 // Pager レスポンスのページネーション情報。
-// ページに含まれる対象の数は以下で求められる
+// ページに含まれる対象の数は以下で求められる。
 //
 // ```
 // min(size, totalCount - size * (page - 1))
@@ -134,18 +134,12 @@ type VideoCreate struct {
 	Title      string    `json:"title"`
 }
 
-// VideoList ビデオ一覧レスポンス
-type VideoList struct {
-	Total  int32   `json:"total"`
-	Videos []Video `json:"videos"`
-}
-
 // VideoPage ビデオページレスポンス
 type VideoPage struct {
 	Data []Video `json:"data"`
 
 	// Pager レスポンスのページネーション情報。
-	// ページに含まれる対象の数は以下で求められる
+	// ページに含まれる対象の数は以下で求められる。
 	//
 	// ```
 	// min(size, totalCount - size * (page - 1))

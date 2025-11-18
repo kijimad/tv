@@ -37,7 +37,7 @@ export interface ModelError {
     'message': string;
 }
 /**
- * レスポンスのページネーション情報。 ページに含まれる対象の数は以下で求められる  ``` min(size, totalCount - size * (page - 1)) ``` 
+ * レスポンスのページネーション情報。 ページに含まれる対象の数は以下で求められる。  ``` min(size, totalCount - size * (page - 1)) ```
  * @export
  * @interface Pager
  */
@@ -281,25 +281,6 @@ export interface VideoCreate {
      * @memberof VideoCreate
      */
     'sessionId'?: number;
-}
-/**
- * ビデオ一覧レスポンス
- * @export
- * @interface VideoList
- */
-export interface VideoList {
-    /**
-     * 
-     * @type {Array<Video>}
-     * @memberof VideoList
-     */
-    'videos': Array<Video>;
-    /**
-     * 
-     * @type {number}
-     * @memberof VideoList
-     */
-    'total': number;
 }
 /**
  * ビデオページレスポンス

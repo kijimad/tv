@@ -37,7 +37,7 @@ export default function Timeline() {
   const getVideosForDate = (date: Date) => {
     if (!data?.data) return [];
 
-    return data.data.filter((video) => {
+    return data.data.filter((video: Video) => {
       const videoDate = new Date(video.startedAt);
       // 年月日のみを比較する
       return (
@@ -53,7 +53,7 @@ export default function Timeline() {
   // その日の最初の動画の開始時刻を取得する
   const getFirstVideoStartHour = () => {
     if (displayVideos.length === 0) return 0;
-    const firstVideo = displayVideos.reduce((earliest, video) => {
+    const firstVideo = displayVideos.reduce((earliest: Video, video: Video) => {
       const videoTime = new Date(video.startedAt).getTime();
       const earliestTime = new Date(earliest.startedAt).getTime();
       return videoTime < earliestTime ? video : earliest;
@@ -209,7 +209,7 @@ export default function Timeline() {
         )}
 
         {/* 動画カード */}
-        {displayVideos.map((video) => {
+        {displayVideos.map((video: Video) => {
           const startMinutes = getMinutesFromStart(video.startedAt);
           const relativeStartMinutes = startMinutes - firstHour * 60;
           const durationMinutes = getDurationMinutes(

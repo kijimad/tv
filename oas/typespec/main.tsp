@@ -129,10 +129,33 @@ model VideoUpdate {
   filename?: string;
 }
 
-/** ビデオ一覧レスポンス */
-model VideoList {
-  videos: Video[];
-  total: int32;
+/**
+ * レスポンスのページネーション情報。
+ * ページに含まれる対象の数は以下で求められる。
+ *
+ * ```
+ * min(size, totalCount - size * (page - 1))
+ * ```
+ */
+model Pager {
+  /** ページ番号 */
+  @minValue(1)
+  page: int32;
+
+  /** 1ページあたりの最大取得件数 */
+  @minValue(0)
+  @maxValue(100)
+  size: int32;
+
+  /** ページに含まれているものも含まれていないものも合わせた対象の全数 */
+  @minValue(0)
+  totalCount: int32;
+}
+
+/** ビデオページレスポンス */
+model VideoPage {
+  pager: Pager;
+  data: Video[];
 }
 
 /** 録画ステータスレスポンス */
@@ -155,9 +178,11 @@ interface Videos {
   /** ビデオ一覧取得 */
   @get
   list(
-    @query @minValue(1) @maxValue(100) limit?: int32 = 20,
-    @query @minValue(0) offset?: int32 = 0,
-  ): VideoList | Error;
+    /** ページ番号 */
+    @query @minValue(1) page?: int32 = 1,
+    /** 1ページあたりの最大取得件数 */
+    @query @minValue(1) @maxValue(100) size?: int32 = 30,
+  ): VideoPage | Error;
 
   /** ビデオ詳細取得 */
   @get
