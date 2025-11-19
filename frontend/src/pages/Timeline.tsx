@@ -6,7 +6,7 @@ import {
   HStack,
   Image,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useVideos } from "../hooks/useVideos";
 import { useThumbnail } from "../hooks/useThumbnail";
 import VideoPlayerModal from "../components/video/VideoPlayerModal";
@@ -32,6 +32,16 @@ export default function Timeline() {
   const { data, isLoading, error } = useVideos();
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+
+  // 現在時刻を1秒ごとに更新する
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // 選択された日付の動画のみフィルタする
   const getVideosForDate = (date: Date) => {
@@ -120,8 +130,7 @@ export default function Timeline() {
 
   // 現在時刻の位置を計算する（最初の動画開始時刻からの相対位置）
   const getCurrentTimePosition = () => {
-    const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes() + currentTime.getSeconds() / 60;
     const startMinutes = firstHour * 60;
     return currentMinutes - startMinutes;
   };
