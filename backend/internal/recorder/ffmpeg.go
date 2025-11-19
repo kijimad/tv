@@ -80,7 +80,7 @@ func (f *FFmpegRecorder) postProcess() {
 
 	// サムネイルを生成する
 	thumbnailPath := strings.TrimSuffix(outputPath, ".webm") + ".jpg"
-	if err := f.generateThumbnail(outputPath, thumbnailPath); err != nil {
+	if err := f.generateThumbnail(tempPath, thumbnailPath); err != nil {
 		log.Printf("Failed to generate thumbnail: %v", err)
 		// サムネイル生成に失敗しても続行する
 	}
