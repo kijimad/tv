@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: root
       POSTGRES_DB: tv
-      TZ: Asia/Tokyo
+      TZ: UTC
     ports:
       - "5432:5432"
     volumes:
@@ -29,10 +29,13 @@ services:
       TV_HOST: "0.0.0.0"
       TV_PORT: "8080"
       TV_DATABASE_URL: "postgres://root:root@postgres:5432/tv?sslmode=disable"
+      TV_VIDEO_DIR: "/outputs"
       TV_APP_ENV: "production"
-      TZ: Asia/Tokyo
+      TZ: UTC
     ports:
       - "8080:8080"
+    volumes:
+      - ./backend/outputs:/outputs
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,10 +55,9 @@ services:
       EMACS_SOCKET_NAME: /run/user/1000/emacs/server
       DISPLAY: ${DISPLAY}
       PULSE_SERVER: unix:/run/user/1000/pulse/native
-      TZ: Asia/Tokyo
+      TZ: UTC
     volumes:
       - ./backend/outputs:/outputs
-      - ./backend/record_screen.sh:/workdir/record_screen.sh:ro
       # ホストマシンによって変わるだろう
       # (print server-socket-dir) で確認する
       - /run/user/1000/emacs:/run/user/1000/emacs:ro

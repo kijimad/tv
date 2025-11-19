@@ -10,9 +10,9 @@
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
 | created_at | timestamp without time zone | now() | false |  |  |  |
 | filename | varchar(255) |  | false |  |  | ファイル名 |
-| finished_at | timestamp without time zone |  | true |  |  | 録画終了日時 |
+| finished_at | timestamp without time zone |  | true |  |  | 録画終了日時(UTC) |
 | id | bigint | nextval('sessions_id_seq'::regclass) | false | [public.video_sessions](public.video_sessions.md) |  |  |
-| started_at | timestamp without time zone | now() | false |  |  | 録画開始日時 |
+| started_at | timestamp without time zone | now() | false |  |  | 録画開始日時(UTC) |
 | status | varchar(20) | 'recording'::character varying | false |  |  | セッション状態（recording, completed, failed） |
 | title | varchar(255) |  | false |  |  | セッションタイトル |
 | updated_at | timestamp without time zone | now() | false |  |  |  |

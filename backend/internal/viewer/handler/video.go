@@ -3,11 +3,15 @@ package handler
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kijimaD/tv/internal/oapi"
+	"github.com/kijimaD/tv/internal/viewer/config"
 	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 	"github.com/kijimaD/tv/internal/viewer/service"
 )
@@ -28,27 +32,35 @@ func NewVideoHandler(service service.VideoService, sessionService service.Sessio
 
 // VideosList はビデオ一覧を取得する
 func (h *VideoHandler) VideosList(c *gin.Context, params oapi.VideosListParams) {
-	limit := int32(10)
-	offset := int32(0)
-	if params.Limit != nil {
-		limit = *params.Limit
+	page := int32(1)
+	size := int32(30)
+	if params.Page != nil {
+		page = *params.Page
 	}
-	if params.Offset != nil {
-		offset = *params.Offset
+	if params.Size != nil {
+		size = *params.Size
 	}
 
-	videos, total, err := h.service.ListVideos(c.Request.Context(), limit, offset)
+	// page/sizeをoffset/limitに変換する
+	offset := (page - 1) * size
+	limit := size
+
+	videos, totalCount, err := h.service.ListVideos(c.Request.Context(), limit, offset)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, oapi.Error{
-			Code:    "list_failed",
-			Message: err.Error(),
+		statusCode, message := errorResponse(err)
+		c.JSON(statusCode, oapi.Error{
+			Message: message,
 		})
 		return
 	}
 
-	response := oapi.VideoList{
-		Total:  int32(total),
-		Videos: toAPIVideos(videos),
+	response := oapi.VideoPage{
+		Pager: oapi.Pager{
+			Page:       page,
+			Size:       size,
+			TotalCount: int32(totalCount),
+		},
+		Data: toAPIVideos(videos),
 	}
 	c.JSON(http.StatusOK, response)
 }
@@ -58,7 +70,6 @@ func (h *VideoHandler) VideosCreate(c *gin.Context) {
 	var req oapi.VideoCreate
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, oapi.Error{
-			Code:    "invalid_request",
 			Message: err.Error(),
 		})
 		return
@@ -71,9 +82,9 @@ func (h *VideoHandler) VideosCreate(c *gin.Context) {
 		FinishedAt: req.FinishedAt,
 	})
 	if err != nil {
-		c.JSON(http.StatusBadRequest, oapi.Error{
-			Code:    "create_failed",
-			Message: err.Error(),
+		statusCode, message := errorResponse(err)
+		c.JSON(statusCode, oapi.Error{
+			Message: message,
 		})
 		return
 	}
@@ -85,9 +96,9 @@ func (h *VideoHandler) VideosCreate(c *gin.Context) {
 func (h *VideoHandler) VideosGet(c *gin.Context, id int64) {
 	video, err := h.service.GetVideo(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, oapi.Error{
-			Code:    "not_found",
-			Message: err.Error(),
+		statusCode, message := errorResponse(err)
+		c.JSON(statusCode, oapi.Error{
+			Message: message,
 		})
 		return
 	}
@@ -100,7 +111,6 @@ func (h *VideoHandler) VideosUpdate(c *gin.Context, id int64) {
 	var req oapi.VideoUpdate
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, oapi.Error{
-			Code:    "invalid_request",
 			Message: err.Error(),
 		})
 		return
@@ -124,9 +134,9 @@ func (h *VideoHandler) VideosUpdate(c *gin.Context, id int64) {
 
 	video, err := h.service.UpdateVideo(c.Request.Context(), id, params)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, oapi.Error{
-			Code:    "update_failed",
-			Message: err.Error(),
+		statusCode, message := errorResponse(err)
+		c.JSON(statusCode, oapi.Error{
+			Message: message,
 		})
 		return
 	}
@@ -137,14 +147,85 @@ func (h *VideoHandler) VideosUpdate(c *gin.Context, id int64) {
 // VideosDelete はビデオを削除する
 func (h *VideoHandler) VideosDelete(c *gin.Context, id int64) {
 	if err := h.service.DeleteVideo(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, oapi.Error{
-			Code:    "delete_failed",
-			Message: err.Error(),
+		statusCode, message := errorResponse(err)
+		c.JSON(statusCode, oapi.Error{
+			Message: message,
 		})
 		return
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// VideosFile は動画ファイルを配信する
+func (h *VideoHandler) VideosFile(c *gin.Context, id int64) {
+	// ビデオ情報を取得する
+	video, err := h.service.GetVideo(c.Request.Context(), id)
+	if err != nil {
+		statusCode, message := errorResponse(err)
+		c.JSON(statusCode, oapi.Error{
+			Message: message,
+		})
+		return
+	}
+
+	// ファイル名を検証する（パストラバーサル対策）
+	if err := validateFilename(video.Filename); err != nil {
+		c.JSON(http.StatusBadRequest, oapi.Error{
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// ファイルパスを構築する
+	filePath := filepath.Join(config.Config.VideoDir, video.Filename)
+
+	// Content-Typeを設定して配信する
+	c.Header("Content-Type", "video/webm")
+	c.File(filePath)
+}
+
+// VideosThumbnail はサムネイル画像を配信する
+func (h *VideoHandler) VideosThumbnail(c *gin.Context, id int64) {
+	// ビデオ情報を取得する
+	video, err := h.service.GetVideo(c.Request.Context(), id)
+	if err != nil {
+		statusCode, message := errorResponse(err)
+		c.JSON(statusCode, oapi.Error{
+			Message: message,
+		})
+		return
+	}
+
+	// ファイル名を検証する（パストラバーサル対策）
+	if err := validateFilename(video.Filename); err != nil {
+		c.JSON(http.StatusBadRequest, oapi.Error{
+			Message: err.Error(),
+		})
+		return
+	}
+
+	// サムネイルパスを生成する
+	thumbnailFilename := strings.TrimSuffix(video.Filename, ".webm") + ".jpg"
+	thumbnailPath := filepath.Join(config.Config.VideoDir, thumbnailFilename)
+
+	// Content-Typeを設定して配信する
+	c.Header("Content-Type", "image/jpeg")
+	c.Header("Cache-Control", "public, max-age=31536000")
+	c.File(thumbnailPath)
+}
+
+// validateFilename はファイル名を検証する（パストラバーサル対策）
+func validateFilename(filename string) error {
+	// ファイル名にパス区切り文字が含まれていないことを確認する
+	if strings.Contains(filename, "/") || strings.Contains(filename, "\\") {
+		return fmt.Errorf("filename contains path separator")
+	}
+	// ファイル名に相対パス指定が含まれていないことを確認する
+	if strings.Contains(filename, "..") {
+		return fmt.Errorf("filename contains relative path")
+	}
+	return nil
 }
 
 // toAPIVideo はsqlc.Videoをoapi.Videoに変換する
@@ -174,7 +255,6 @@ func (h *VideoHandler) SessionsCreate(c *gin.Context) {
 	var req oapi.SessionCreate
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, oapi.Error{
-			Code:    "invalid_request",
 			Message: err.Error(),
 		})
 		return
@@ -190,9 +270,9 @@ func (h *VideoHandler) SessionsCreate(c *gin.Context) {
 		Title:    title,
 	})
 	if err != nil {
-		c.JSON(http.StatusBadRequest, oapi.Error{
-			Code:    "create_failed",
-			Message: err.Error(),
+		statusCode, message := errorResponse(err)
+		c.JSON(statusCode, oapi.Error{
+			Message: message,
 		})
 		return
 	}
@@ -205,7 +285,6 @@ func (h *VideoHandler) SessionsUpdate(c *gin.Context, id int64) {
 	var req oapi.SessionUpdate
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, oapi.Error{
-			Code:    "invalid_request",
 			Message: err.Error(),
 		})
 		return
@@ -213,7 +292,6 @@ func (h *VideoHandler) SessionsUpdate(c *gin.Context, id int64) {
 
 	if req.Status == nil {
 		c.JSON(http.StatusBadRequest, oapi.Error{
-			Code:    "invalid_request",
 			Message: "status is required",
 		})
 		return
@@ -221,9 +299,9 @@ func (h *VideoHandler) SessionsUpdate(c *gin.Context, id int64) {
 
 	result, err := h.sessionService.UpdateSessionStatus(c.Request.Context(), id, string(*req.Status))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, oapi.Error{
-			Code:    "update_failed",
-			Message: err.Error(),
+		statusCode, message := errorResponse(err)
+		c.JSON(statusCode, oapi.Error{
+			Message: message,
 		})
 		return
 	}
@@ -235,9 +313,9 @@ func (h *VideoHandler) SessionsUpdate(c *gin.Context, id int64) {
 func (h *VideoHandler) StatusGet(c *gin.Context) {
 	session, err := h.sessionService.GetCurrentRecordingSession(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, oapi.Error{
-			Code:    "get_failed",
-			Message: err.Error(),
+		statusCode, message := errorResponse(err)
+		c.JSON(statusCode, oapi.Error{
+			Message: message,
 		})
 		return
 	}

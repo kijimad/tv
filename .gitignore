@@ -2,11 +2,11 @@
 *.webm
 
 bin
+backend/outputs
 
 # Node.js
 node_modules/
 
 # TypeSpec
 oas/typespec/node_modules/
-api/
 tsp-output/

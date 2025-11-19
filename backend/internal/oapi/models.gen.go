@@ -22,8 +22,24 @@ const (
 
 // Error エラーレスポンス
 type Error struct {
-	Code    string `json:"code"`
 	Message string `json:"message"`
+}
+
+// Pager レスポンスのページネーション情報。
+// ページに含まれる対象の数は以下で求められる。
+//
+// ```
+// min(size, totalCount - size * (page - 1))
+// ```
+type Pager struct {
+	// Page ページ番号
+	Page int32 `json:"page"`
+
+	// Size 1ページあたりの最大取得件数
+	Size int32 `json:"size"`
+
+	// TotalCount ページに含まれているものも含まれていないものも合わせた対象の全数
+	TotalCount int32 `json:"totalCount"`
 }
 
 // RecordingStatus 録画ステータスレスポンス
@@ -90,7 +106,7 @@ type Video struct {
 	// Filename ファイル名
 	Filename string `json:"filename"`
 
-	// FinishedAt 録画終了時刻
+	// FinishedAt 録画終了時刻(UTC)
 	FinishedAt time.Time `json:"finishedAt"`
 
 	// Id ビデオID
@@ -99,7 +115,7 @@ type Video struct {
 	// SessionId セッションID
 	SessionId *int64 `json:"sessionId,omitempty"`
 
-	// StartedAt 録画開始時刻
+	// StartedAt 録画開始時刻(UTC)
 	StartedAt time.Time `json:"startedAt"`
 
 	// Title タイトル
@@ -118,10 +134,17 @@ type VideoCreate struct {
 	Title      string    `json:"title"`
 }
 
-// VideoList ビデオ一覧レスポンス
-type VideoList struct {
-	Total  int32   `json:"total"`
-	Videos []Video `json:"videos"`
+// VideoPage ビデオページレスポンス
+type VideoPage struct {
+	Data []Video `json:"data"`
+
+	// Pager レスポンスのページネーション情報。
+	// ページに含まれる対象の数は以下で求められる。
+	//
+	// ```
+	// min(size, totalCount - size * (page - 1))
+	// ```
+	Pager Pager `json:"pager"`
 }
 
 // VideoUpdate ビデオ更新リクエスト
@@ -134,8 +157,11 @@ type VideoUpdate struct {
 
 // VideosListParams defines parameters for VideosList.
 type VideosListParams struct {
-	Limit  *int32 `form:"limit,omitempty" json:"limit,omitempty"`
-	Offset *int32 `form:"offset,omitempty" json:"offset,omitempty"`
+	// Page ページ番号
+	Page *int32 `form:"page,omitempty" json:"page,omitempty"`
+
+	// Size 1ページあたりの最大取得件数
+	Size *int32 `form:"size,omitempty" json:"size,omitempty"`
 }
 
 // SessionsCreateJSONRequestBody defines body for SessionsCreate for application/json ContentType.

@@ -22,7 +22,7 @@
           "name": "finished_at",
           "type": "timestamp without time zone",
           "nullable": true,
-          "comment": "録画終了日時"
+          "comment": "録画終了日時(UTC)"
         },
         {
           "name": "id",
@@ -35,7 +35,7 @@
           "type": "timestamp without time zone",
           "nullable": false,
           "default": "now()",
-          "comment": "録画開始日時"
+          "comment": "録画開始日時(UTC)"
         },
         {
           "name": "status",
@@ -360,7 +360,7 @@
           "name": "finished_at",
           "type": "timestamp without time zone",
           "nullable": false,
-          "comment": "録画終了日時"
+          "comment": "録画終了日時(UTC)"
         },
         {
           "name": "id",
@@ -372,7 +372,7 @@
           "name": "started_at",
           "type": "timestamp without time zone",
           "nullable": false,
-          "comment": "録画開始日時"
+          "comment": "録画開始日時(UTC)"
         },
         {
           "name": "title",

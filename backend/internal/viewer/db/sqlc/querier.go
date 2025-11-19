@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	CountVideos(ctx context.Context) (int64, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateVideo(ctx context.Context, arg CreateVideoParams) (Video, error)
 	CreateVideoFromSession(ctx context.Context, id int64) (Video, error)

@@ -39,7 +39,8 @@ FROM debian:bullseye-slim AS recorder
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     emacs-nox \
-    ffmpeg
+    ffmpeg \
+    bc
 
 # UID 1000のユーザーを作成する
 RUN groupadd -g 1000 appuser && \
@@ -49,6 +50,7 @@ RUN groupadd -g 1000 appuser && \
 WORKDIR /workdir
 
 COPY --from=builder /build/bin/tv /bin/
+COPY --from=builder /build/*.sh /workdir/
 
 # 所有権を変更する
 RUN chown -R appuser:appuser /workdir
