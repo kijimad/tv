@@ -5,6 +5,8 @@ import {
   Heading,
   HStack,
   Image,
+  Text,
+  VStack,
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { useVideos } from "../hooks/useVideos";
@@ -117,6 +119,42 @@ export default function Timeline() {
     return Math.floor((end.getTime() - start.getTime()) / 1000 / 60);
   };
 
+  // 統計情報を計算する
+  const getStatistics = () => {
+    if (displayVideos.length === 0) {
+      return {
+        count: 0,
+        totalMinutes: 0,
+        coverage: 0,
+      };
+    }
+
+    const totalMinutes = displayVideos.reduce((sum, video) => {
+      return sum + getDurationMinutes(video.startedAt, video.finishedAt);
+    }, 0);
+
+    // 最初の録画開始時間から23:59までの時間（分）を計算する
+    const firstHour = getFirstVideoStartHour();
+    const totalAvailableMinutes = (24 - firstHour) * 60; // 23:59まで
+
+    const coverage = (totalMinutes / totalAvailableMinutes) * 100;
+
+    return {
+      count: displayVideos.length,
+      totalMinutes,
+      coverage,
+    };
+  };
+
+  const statistics = getStatistics();
+
+  // 時間を HH:MM 形式にフォーマットする
+  const formatDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = Math.floor(minutes % 60);
+    return `${hours}時間${mins}分`;
+  };
+
   if (isLoading) {
     return <Box>読み込み中...</Box>;
   }
@@ -180,6 +218,37 @@ export default function Timeline() {
           {formatSelectedDate()}
         </Box>
       </HStack>
+
+      {/* 統計情報カード */}
+      <Box mb={6} p={4} bg="gray.50" borderRadius="md">
+        <HStack gap={8}>
+          <VStack align="start" gap={1}>
+            <Text fontSize="sm" color="gray.600">
+              録画回数
+            </Text>
+            <Text fontSize="2xl" fontWeight="bold">
+              {statistics.count}回
+            </Text>
+          </VStack>
+          <VStack align="start" gap={1}>
+            <Text fontSize="sm" color="gray.600">
+              総録画時間
+            </Text>
+            <Text fontSize="2xl" fontWeight="bold">
+              {formatDuration(statistics.totalMinutes)}
+            </Text>
+          </VStack>
+          <VStack align="start" gap={1}>
+            <Text fontSize="sm" color="gray.600">
+              カバレッジ
+            </Text>
+            <Text fontSize="2xl" fontWeight="bold">
+              {statistics.coverage.toFixed(1)}%
+            </Text>
+          </VStack>
+        </HStack>
+      </Box>
+
       <Box position="relative" h={`${timelineHeight}px`} w="full">
         {/* 時刻軸 */}
         {hours.map((hour) => (
