@@ -20,8 +20,9 @@ fi
 
 echo "Converting to high-efficiency format..."
 ffmpeg -i "$INPUT_FILE" \
-    -c:v libvpx-vp9 -b:v 500k -crf 40 -cpu-used 2 \
-    -c:a libopus -b:a 96k \
+    -vf scale=1280:-1 \
+    -c:v libvpx-vp9 -b:v 300k -crf 45 -cpu-used 2 \
+    -c:a libopus -b:a 64k \
     "$OUTPUT_FILE"
 
 echo "Conversion completed: $OUTPUT_FILE"
