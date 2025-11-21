@@ -168,7 +168,10 @@ export default function Timeline() {
 
   // 現在時刻の位置を計算する（最初の動画開始時刻からの相対位置）
   const getCurrentTimePosition = () => {
-    const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes() + currentTime.getSeconds() / 60;
+    const currentMinutes =
+      currentTime.getHours() * 60 +
+      currentTime.getMinutes() +
+      currentTime.getSeconds() / 60;
     const startMinutes = firstHour * 60;
     return currentMinutes - startMinutes;
   };
