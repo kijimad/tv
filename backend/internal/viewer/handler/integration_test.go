@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kijimaD/tv/internal/oapi"
+	"github.com/kijimaD/tv/internal/viewer/clock"
 	"github.com/kijimaD/tv/internal/viewer/config"
 	"github.com/kijimaD/tv/internal/viewer/db"
 	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
@@ -28,8 +29,8 @@ func setupTestServer(t *testing.T) (*gin.Engine, *sqlc.Queries, func()) {
 	queries, cleanup := db.SetupTestDB(t)
 
 	cfg := config.AppConfig{VideoDir: t.TempDir()}
-	videoService := service.NewVideoService(queries, cfg)
-	sessionService := service.NewSessionService(queries)
+	videoService := service.NewVideoService(queries, cfg, clock.RealClock{})
+	sessionService := service.NewSessionService(queries, cfg, clock.RealClock{})
 	videoHandler := NewVideoHandler(videoService, sessionService)
 
 	gin.SetMode(gin.TestMode)

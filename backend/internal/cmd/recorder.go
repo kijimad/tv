@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -23,6 +24,11 @@ var CmdRecorder = &cli.Command{
 }
 
 func runRecorder(ctx context.Context) error {
+	cfg, err := recorderConfig.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -36,12 +42,12 @@ func runRecorder(ctx context.Context) error {
 	}()
 
 	emacsStatusProvider := recorder.NewEmacsStatusProvider()
-	ffmpegRecorder := recorder.NewFFmpegRecorder()
-	viewerClient := recorder.NewViewerClient(recorderConfig.Config.APIEndpoint)
+	ffmpegRecorder := recorder.NewFFmpegRecorder(cfg)
+	viewerClient := recorder.NewViewerClient(cfg)
 	monitor := recorder.NewMonitor(ffmpegRecorder, emacsStatusProvider, viewerClient)
 
 	states := make(chan bool)
-	pollInterval := time.Duration(recorderConfig.Config.PollInterval) * time.Second
+	pollInterval := time.Duration(cfg.PollInterval) * time.Second
 	go recorder.PollChecker(ctx, emacsStatusProvider, pollInterval, states)
 
 	monitor.Run(ctx, states)

@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/kijimaD/tv/internal/oapi"
+	"github.com/kijimaD/tv/internal/recorder/config"
 )
 
 // ViewerClient はViewerサービスのAPIクライアント
@@ -17,9 +18,9 @@ type ViewerClient struct {
 }
 
 // NewViewerClient は新しいViewerClientを作成する
-func NewViewerClient(endpoint string) *ViewerClient {
+func NewViewerClient(cfg config.AppConfig) *ViewerClient {
 	return &ViewerClient{
-		endpoint:   endpoint,
+		endpoint:   cfg.APIEndpoint,
 		httpClient: &http.Client{},
 	}
 }

@@ -14,6 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kijimaD/tv/internal/oapi"
+	"github.com/kijimaD/tv/internal/viewer/clock"
 	"github.com/kijimaD/tv/internal/viewer/config"
 	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 	"github.com/kijimaD/tv/internal/viewer/service"
@@ -52,6 +53,11 @@ func (m *MockVideoService) GetConfig() config.AppConfig {
 	return args.Get(0).(config.AppConfig)
 }
 
+func (m *MockVideoService) GetClock() clock.Clock {
+	args := m.Called()
+	return args.Get(0).(clock.Clock)
+}
+
 // MockSessionService はSessionServiceのモック
 type MockSessionService struct {
 	mock.Mock
@@ -79,6 +85,16 @@ func (m *MockSessionService) GetCurrentRecordingSession(ctx context.Context) (*s
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*sqlc.Session), args.Error(1)
+}
+
+func (m *MockSessionService) GetConfig() config.AppConfig {
+	args := m.Called()
+	return args.Get(0).(config.AppConfig)
+}
+
+func (m *MockSessionService) GetClock() clock.Clock {
+	args := m.Called()
+	return args.Get(0).(clock.Clock)
 }
 
 func (m *MockVideoService) UpdateVideo(ctx context.Context, id int64, params sqlc.UpdateVideoParams) (*sqlc.Video, error) {

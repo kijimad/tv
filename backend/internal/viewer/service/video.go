@@ -9,18 +9,25 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/kijimaD/tv/internal/viewer/clock"
 	"github.com/kijimaD/tv/internal/viewer/config"
 	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 )
 
+// Baser は全サービス共通の依存を提供するインターフェース
+type Baser interface {
+	GetConfig() config.AppConfig
+	GetClock() clock.Clock
+}
+
 // VideoService は動画ビジネスロジックのインターフェース
 type VideoService interface {
+	Baser
 	ListVideos(ctx context.Context, limit, offset int32) ([]sqlc.Video, int64, error)
 	GetVideo(ctx context.Context, id int64) (*sqlc.Video, error)
 	CreateVideo(ctx context.Context, params sqlc.CreateVideoParams) (*sqlc.Video, error)
 	UpdateVideo(ctx context.Context, id int64, params sqlc.UpdateVideoParams) (*sqlc.Video, error)
 	DeleteVideo(ctx context.Context, id int64) error
-	GetConfig() config.AppConfig
 }
 
 // VideoQuerier はビデオ操作に必要なクエリメソッドのインターフェース
@@ -34,20 +41,16 @@ type VideoQuerier interface {
 }
 
 type videoService struct {
+	Base
 	queries VideoQuerier
-	Config  config.AppConfig
 }
 
 // NewVideoService はVideoServiceを作成する
-func NewVideoService(queries VideoQuerier, cfg config.AppConfig) VideoService {
+func NewVideoService(queries VideoQuerier, cfg config.AppConfig, clk clock.Clock) VideoService {
 	return &videoService{
+		Base:    NewBase(cfg, clk),
 		queries: queries,
-		Config:  cfg,
 	}
-}
-
-func (s *videoService) GetConfig() config.AppConfig {
-	return s.Config
 }
 
 func (s *videoService) ListVideos(ctx context.Context, limit, offset int32) ([]sqlc.Video, int64, error) {
@@ -117,14 +120,14 @@ func (s *videoService) DeleteVideo(ctx context.Context, id int64) error {
 	}
 
 	// 動画ファイルを削除する
-	videoFilePath := filepath.Join(s.Config.VideoDir, video.Filename)
+	videoFilePath := filepath.Join(s.GetConfig().VideoDir, video.Filename)
 	if err := os.Remove(videoFilePath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to delete video file: %w", err)
 	}
 
 	// サムネイルファイルを削除する
 	thumbnailFilename := strings.TrimSuffix(video.Filename, ".webm") + ".jpg"
-	thumbnailPath := filepath.Join(s.Config.VideoDir, thumbnailFilename)
+	thumbnailPath := filepath.Join(s.GetConfig().VideoDir, thumbnailFilename)
 	if err := os.Remove(thumbnailPath); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to delete thumbnail file: %w", err)
 	}

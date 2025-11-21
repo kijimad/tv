@@ -17,15 +17,15 @@ import (
 
 // VideoHandler は動画ハンドラ
 type VideoHandler struct {
-	service        service.VideoService
-	sessionService service.SessionService
+	videoSvc   service.VideoService
+	sessionSvc service.SessionService
 }
 
 // NewVideoHandler はVideoHandlerを作成する
-func NewVideoHandler(svc service.VideoService, sessionService service.SessionService) *VideoHandler {
+func NewVideoHandler(videoSvc service.VideoService, sessionSvc service.SessionService) *VideoHandler {
 	return &VideoHandler{
-		service:        svc,
-		sessionService: sessionService,
+		videoSvc:   videoSvc,
+		sessionSvc: sessionSvc,
 	}
 }
 
@@ -44,7 +44,7 @@ func (h *VideoHandler) VideosList(c *gin.Context, params oapi.VideosListParams) 
 	offset := (page - 1) * size
 	limit := size
 
-	videos, totalCount, err := h.service.ListVideos(c.Request.Context(), limit, offset)
+	videos, totalCount, err := h.videoSvc.ListVideos(c.Request.Context(), limit, offset)
 	if err != nil {
 		statusCode, message := errorResponse(err)
 		c.JSON(statusCode, oapi.Error{
@@ -74,7 +74,7 @@ func (h *VideoHandler) VideosCreate(c *gin.Context) {
 		return
 	}
 
-	video, err := h.service.CreateVideo(c.Request.Context(), sqlc.CreateVideoParams{
+	video, err := h.videoSvc.CreateVideo(c.Request.Context(), sqlc.CreateVideoParams{
 		Title:      req.Title,
 		Filename:   req.Filename,
 		StartedAt:  req.StartedAt,
@@ -93,7 +93,7 @@ func (h *VideoHandler) VideosCreate(c *gin.Context) {
 
 // VideosGet はビデオ詳細を取得する
 func (h *VideoHandler) VideosGet(c *gin.Context, id int64) {
-	video, err := h.service.GetVideo(c.Request.Context(), id)
+	video, err := h.videoSvc.GetVideo(c.Request.Context(), id)
 	if err != nil {
 		statusCode, message := errorResponse(err)
 		c.JSON(statusCode, oapi.Error{
@@ -131,7 +131,7 @@ func (h *VideoHandler) VideosUpdate(c *gin.Context, id int64) {
 		params.FinishedAt = sql.NullTime{Time: *req.FinishedAt, Valid: true}
 	}
 
-	video, err := h.service.UpdateVideo(c.Request.Context(), id, params)
+	video, err := h.videoSvc.UpdateVideo(c.Request.Context(), id, params)
 	if err != nil {
 		statusCode, message := errorResponse(err)
 		c.JSON(statusCode, oapi.Error{
@@ -145,7 +145,7 @@ func (h *VideoHandler) VideosUpdate(c *gin.Context, id int64) {
 
 // VideosDelete はビデオを削除する
 func (h *VideoHandler) VideosDelete(c *gin.Context, id int64) {
-	if err := h.service.DeleteVideo(c.Request.Context(), id); err != nil {
+	if err := h.videoSvc.DeleteVideo(c.Request.Context(), id); err != nil {
 		statusCode, message := errorResponse(err)
 		c.JSON(statusCode, oapi.Error{
 			Message: message,
@@ -159,7 +159,7 @@ func (h *VideoHandler) VideosDelete(c *gin.Context, id int64) {
 // VideosFile は動画ファイルを配信する
 func (h *VideoHandler) VideosFile(c *gin.Context, id int64) {
 	// ビデオ情報を取得する
-	video, err := h.service.GetVideo(c.Request.Context(), id)
+	video, err := h.videoSvc.GetVideo(c.Request.Context(), id)
 	if err != nil {
 		statusCode, message := errorResponse(err)
 		c.JSON(statusCode, oapi.Error{
@@ -177,7 +177,7 @@ func (h *VideoHandler) VideosFile(c *gin.Context, id int64) {
 	}
 
 	// ファイルパスを構築する
-	filePath := filepath.Join(h.service.GetConfig().VideoDir, video.Filename)
+	filePath := filepath.Join(h.videoSvc.GetConfig().VideoDir, video.Filename)
 
 	// Content-Typeを設定して配信する
 	c.Header("Content-Type", "video/webm")
@@ -187,7 +187,7 @@ func (h *VideoHandler) VideosFile(c *gin.Context, id int64) {
 // VideosThumbnail はサムネイル画像を配信する
 func (h *VideoHandler) VideosThumbnail(c *gin.Context, id int64) {
 	// ビデオ情報を取得する
-	video, err := h.service.GetVideo(c.Request.Context(), id)
+	video, err := h.videoSvc.GetVideo(c.Request.Context(), id)
 	if err != nil {
 		statusCode, message := errorResponse(err)
 		c.JSON(statusCode, oapi.Error{
@@ -206,7 +206,7 @@ func (h *VideoHandler) VideosThumbnail(c *gin.Context, id int64) {
 
 	// サムネイルパスを生成する
 	thumbnailFilename := strings.TrimSuffix(video.Filename, ".webm") + ".jpg"
-	thumbnailPath := filepath.Join(h.service.GetConfig().VideoDir, thumbnailFilename)
+	thumbnailPath := filepath.Join(h.videoSvc.GetConfig().VideoDir, thumbnailFilename)
 
 	// Content-Typeを設定して配信する
 	c.Header("Content-Type", "image/jpeg")
@@ -264,7 +264,7 @@ func (h *VideoHandler) SessionsCreate(c *gin.Context) {
 		title = *req.Title
 	}
 
-	session, err := h.sessionService.CreateSession(c.Request.Context(), sqlc.CreateSessionParams{
+	session, err := h.sessionSvc.CreateSession(c.Request.Context(), sqlc.CreateSessionParams{
 		Filename: req.Filename,
 		Title:    title,
 	})
@@ -296,7 +296,7 @@ func (h *VideoHandler) SessionsUpdate(c *gin.Context, id int64) {
 		return
 	}
 
-	result, err := h.sessionService.UpdateSessionStatus(c.Request.Context(), id, string(*req.Status))
+	result, err := h.sessionSvc.UpdateSessionStatus(c.Request.Context(), id, string(*req.Status))
 	if err != nil {
 		statusCode, message := errorResponse(err)
 		c.JSON(statusCode, oapi.Error{
@@ -310,7 +310,7 @@ func (h *VideoHandler) SessionsUpdate(c *gin.Context, id int64) {
 
 // StatusGet は現在の録画状態を取得する
 func (h *VideoHandler) StatusGet(c *gin.Context) {
-	session, err := h.sessionService.GetCurrentRecordingSession(c.Request.Context())
+	session, err := h.sessionSvc.GetCurrentRecordingSession(c.Request.Context())
 	if err != nil {
 		statusCode, message := errorResponse(err)
 		c.JSON(statusCode, oapi.Error{

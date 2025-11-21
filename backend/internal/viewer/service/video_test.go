@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kijimaD/tv/internal/viewer/clock"
 	"github.com/kijimaD/tv/internal/viewer/config"
 	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 	"github.com/stretchr/testify/assert"
@@ -110,7 +111,7 @@ func TestVideoService_CreateVideo(t *testing.T) {
 			},
 		}
 
-		svc := NewVideoService(mock, config.AppConfig{})
+		svc := NewVideoService(mock, config.AppConfig{}, clock.RealClock{})
 		video, err := svc.CreateVideo(ctx, sqlc.CreateVideoParams{
 			Title:      "テストビデオ",
 			Filename:   "test.mp4",
@@ -129,7 +130,7 @@ func TestVideoService_CreateVideo(t *testing.T) {
 		now := time.Now()
 
 		mock := &mockVideoQueries{}
-		svc := NewVideoService(mock, config.AppConfig{})
+		svc := NewVideoService(mock, config.AppConfig{}, clock.RealClock{})
 
 		_, err := svc.CreateVideo(ctx, sqlc.CreateVideoParams{
 			Title:      "不正なビデオ",
@@ -165,7 +166,7 @@ func TestVideoService_UpdateVideo(t *testing.T) {
 			},
 		}
 
-		svc := NewVideoService(mock, config.AppConfig{})
+		svc := NewVideoService(mock, config.AppConfig{}, clock.RealClock{})
 		newTitle := "更新されたタイトル"
 		video, err := svc.UpdateVideo(ctx, 1, sqlc.UpdateVideoParams{
 			ID:    1,
@@ -182,7 +183,7 @@ func TestVideoService_UpdateVideo(t *testing.T) {
 		now := time.Now()
 
 		mock := &mockVideoQueries{}
-		svc := NewVideoService(mock, config.AppConfig{})
+		svc := NewVideoService(mock, config.AppConfig{}, clock.RealClock{})
 
 		_, err := svc.UpdateVideo(ctx, 1, sqlc.UpdateVideoParams{
 			ID:         1,
@@ -218,7 +219,7 @@ func TestVideoService_GetVideo(t *testing.T) {
 			},
 		}
 
-		svc := NewVideoService(mock, config.AppConfig{})
+		svc := NewVideoService(mock, config.AppConfig{}, clock.RealClock{})
 		video, err := svc.GetVideo(ctx, 1)
 
 		require.NoError(t, err)
@@ -264,7 +265,7 @@ func TestVideoService_ListVideos(t *testing.T) {
 			},
 		}
 
-		svc := NewVideoService(mock, config.AppConfig{})
+		svc := NewVideoService(mock, config.AppConfig{}, clock.RealClock{})
 		videos, total, err := svc.ListVideos(ctx, 10, 0)
 
 		require.NoError(t, err)
@@ -313,7 +314,7 @@ func TestVideoService_DeleteVideo(t *testing.T) {
 			},
 		}
 
-		svc := NewVideoService(mock, config.AppConfig{VideoDir: tempDir})
+		svc := NewVideoService(mock, config.AppConfig{VideoDir: tempDir}, clock.RealClock{})
 		err = svc.DeleteVideo(ctx, 1)
 
 		require.NoError(t, err)
@@ -350,7 +351,7 @@ func TestVideoService_DeleteVideo(t *testing.T) {
 			},
 		}
 
-		svc := NewVideoService(mock, config.AppConfig{VideoDir: tempDir})
+		svc := NewVideoService(mock, config.AppConfig{VideoDir: tempDir}, clock.RealClock{})
 		err := svc.DeleteVideo(ctx, 1)
 
 		// ファイルが存在しなくてもエラーにならない

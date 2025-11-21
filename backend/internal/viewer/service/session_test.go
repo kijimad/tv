@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kijimaD/tv/internal/viewer/clock"
+	"github.com/kijimaD/tv/internal/viewer/config"
 	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -116,7 +118,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 			},
 		}
 
-		svc := NewSessionService(mock)
+		svc := NewSessionService(mock, config.AppConfig{}, clock.RealClock{})
 		session, err := svc.CreateSession(ctx, sqlc.CreateSessionParams{
 			Filename: "test.webm",
 			Title:    "テストセッション",
@@ -173,7 +175,7 @@ func TestSessionService_UpdateSessionStatus(t *testing.T) {
 			},
 		}
 
-		svc := NewSessionService(mock)
+		svc := NewSessionService(mock, config.AppConfig{}, clock.RealClock{})
 		result, err := svc.UpdateSessionStatus(ctx, 1, "completed")
 
 		require.NoError(t, err)
@@ -201,7 +203,7 @@ func TestSessionService_UpdateSessionStatus(t *testing.T) {
 			},
 		}
 
-		svc := NewSessionService(mock)
+		svc := NewSessionService(mock, config.AppConfig{}, clock.RealClock{})
 		result, err := svc.UpdateSessionStatus(ctx, 1, "failed")
 
 		require.NoError(t, err)
@@ -231,7 +233,7 @@ func TestSessionService_UpdateSessionStatus(t *testing.T) {
 			},
 		}
 
-		svc := NewSessionService(mock)
+		svc := NewSessionService(mock, config.AppConfig{}, clock.RealClock{})
 		result, err := svc.UpdateSessionStatus(ctx, 1, "completed")
 
 		require.NoError(t, err)
@@ -272,7 +274,7 @@ func TestSessionService_UpdateSessionStatus(t *testing.T) {
 			},
 		}
 
-		svc := NewSessionService(mock)
+		svc := NewSessionService(mock, config.AppConfig{}, clock.RealClock{})
 		result, err := svc.UpdateSessionStatus(ctx, 1, "completed")
 
 		require.NoError(t, err)
@@ -306,7 +308,7 @@ func TestSessionService_GetCurrentRecordingSession(t *testing.T) {
 			},
 		}
 
-		svc := NewSessionService(mock)
+		svc := NewSessionService(mock, config.AppConfig{}, clock.RealClock{})
 		session, err := svc.GetCurrentRecordingSession(ctx)
 
 		require.NoError(t, err)
@@ -322,7 +324,7 @@ func TestSessionService_GetCurrentRecordingSession(t *testing.T) {
 			},
 		}
 
-		svc := NewSessionService(mock)
+		svc := NewSessionService(mock, config.AppConfig{}, clock.RealClock{})
 		session, err := svc.GetCurrentRecordingSession(ctx)
 
 		require.NoError(t, err)

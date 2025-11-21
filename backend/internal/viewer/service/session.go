@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/kijimaD/tv/internal/viewer/clock"
+	"github.com/kijimaD/tv/internal/viewer/config"
 	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 )
 
 // SessionService はセッションビジネスロジックのインターフェース
 type SessionService interface {
+	Baser
 	CreateSession(ctx context.Context, params sqlc.CreateSessionParams) (*sqlc.Session, error)
 	UpdateSessionStatus(ctx context.Context, id int64, status string) (*SessionWithVideoID, error)
 	GetCurrentRecordingSession(ctx context.Context) (*sqlc.Session, error)
@@ -32,12 +35,16 @@ type SessionQuerier interface {
 }
 
 type sessionService struct {
+	Base
 	queries SessionQuerier
 }
 
 // NewSessionService はSessionServiceを作成する
-func NewSessionService(queries SessionQuerier) SessionService {
-	return &sessionService{queries: queries}
+func NewSessionService(queries SessionQuerier, cfg config.AppConfig, clk clock.Clock) SessionService {
+	return &sessionService{
+		Base:    NewBase(cfg, clk),
+		queries: queries,
+	}
 }
 
 func (s *sessionService) CreateSession(ctx context.Context, params sqlc.CreateSessionParams) (*sqlc.Session, error) {

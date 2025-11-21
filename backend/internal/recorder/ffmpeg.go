@@ -16,17 +16,20 @@ import (
 type FFmpegRecorder struct {
 	cmd      *exec.Cmd
 	filename string
+	config   config.AppConfig
 }
 
 // NewFFmpegRecorder は新しいFFmpegRecorderを作成する
-func NewFFmpegRecorder() *FFmpegRecorder {
-	return &FFmpegRecorder{}
+func NewFFmpegRecorder(cfg config.AppConfig) *FFmpegRecorder {
+	return &FFmpegRecorder{
+		config: cfg,
+	}
 }
 
 // Start は画面録画を開始する
 func (f *FFmpegRecorder) Start(filename string) error {
 	f.filename = filename
-	outputPath := filepath.Join(config.Config.OutputDir, filename)
+	outputPath := filepath.Join(f.config.OutputDir, filename)
 
 	scriptPath := "./record_screen.sh"
 	// 相対パスの場合は絶対パスに変換
@@ -73,7 +76,7 @@ func (f *FFmpegRecorder) Stop() error {
 
 // postProcess は録画後の処理を実行する
 func (f *FFmpegRecorder) postProcess() {
-	outputPath := filepath.Join(config.Config.OutputDir, f.filename)
+	outputPath := filepath.Join(f.config.OutputDir, f.filename)
 	tempPath := strings.TrimSuffix(outputPath, ".webm") + ".temp.mp4"
 
 	log.Printf("Starting post-processing for %s", f.filename)

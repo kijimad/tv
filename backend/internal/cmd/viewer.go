@@ -7,6 +7,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/kijimaD/tv/internal/oapi"
+	"github.com/kijimaD/tv/internal/viewer/clock"
 	"github.com/kijimaD/tv/internal/viewer/config"
 	"github.com/kijimaD/tv/internal/viewer/db"
 	"github.com/kijimaD/tv/internal/viewer/handler"
@@ -38,8 +39,8 @@ func runViewer() error {
 	}()
 
 	// 依存関係を注入
-	videoService := service.NewVideoService(queries, cfg)
-	sessionService := service.NewSessionService(queries)
+	videoService := service.NewVideoService(queries, cfg, clock.RealClock{})
+	sessionService := service.NewSessionService(queries, cfg, clock.RealClock{})
 	videoHandler := handler.NewVideoHandler(videoService, sessionService)
 
 	r := gin.Default()
