@@ -11,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kijimaD/tv/internal/oapi"
-	"github.com/kijimaD/tv/internal/viewer/config"
 	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 	"github.com/kijimaD/tv/internal/viewer/service"
 )
@@ -23,9 +22,9 @@ type VideoHandler struct {
 }
 
 // NewVideoHandler はVideoHandlerを作成する
-func NewVideoHandler(service service.VideoService, sessionService service.SessionService) *VideoHandler {
+func NewVideoHandler(svc service.VideoService, sessionService service.SessionService) *VideoHandler {
 	return &VideoHandler{
-		service:        service,
+		service:        svc,
 		sessionService: sessionService,
 	}
 }
@@ -178,7 +177,7 @@ func (h *VideoHandler) VideosFile(c *gin.Context, id int64) {
 	}
 
 	// ファイルパスを構築する
-	filePath := filepath.Join(config.Config.VideoDir, video.Filename)
+	filePath := filepath.Join(h.service.GetConfig().VideoDir, video.Filename)
 
 	// Content-Typeを設定して配信する
 	c.Header("Content-Type", "video/webm")
@@ -207,7 +206,7 @@ func (h *VideoHandler) VideosThumbnail(c *gin.Context, id int64) {
 
 	// サムネイルパスを生成する
 	thumbnailFilename := strings.TrimSuffix(video.Filename, ".webm") + ".jpg"
-	thumbnailPath := filepath.Join(config.Config.VideoDir, thumbnailFilename)
+	thumbnailPath := filepath.Join(h.service.GetConfig().VideoDir, thumbnailFilename)
 
 	// Content-Typeを設定して配信する
 	c.Header("Content-Type", "image/jpeg")

@@ -3,13 +3,12 @@ package config
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/caarlos0/env/v11"
 )
 
-// Config はアプリケーションの設定を保持する
-var Config struct {
+// AppConfig はアプリケーションの設定を保持する
+type AppConfig struct {
 	Host            string `env:"TV_HOST" envDefault:"0.0.0.0"`
 	Port            int    `env:"TV_PORT" envDefault:"8080"`
 	Address         string `env:"TV_ADDRESS,expand" envDefault:"$TV_HOST:$TV_PORT"`
@@ -19,25 +18,29 @@ var Config struct {
 	VideoDir        string `env:"TV_VIDEO_DIR" envDefault:"./outputs"`
 }
 
-func init() {
-	if err := env.Parse(&Config); err != nil {
-		log.Fatal(err)
+// Load は環境変数から設定を読み込む
+func Load() (AppConfig, error) {
+	var cfg AppConfig
+	if err := env.Parse(&cfg); err != nil {
+		return AppConfig{}, fmt.Errorf("failed to parse config: %w", err)
 	}
 
-	if err := validate(); err != nil {
-		log.Fatal(err)
+	if err := validate(cfg); err != nil {
+		return AppConfig{}, err
 	}
+
+	return cfg, nil
 }
 
 // validate は設定の妥当性を検証する
-func validate() error {
-	if Config.Port <= 0 || Config.Port > 65535 {
-		return fmt.Errorf("invalid port number: %d", Config.Port)
+func validate(cfg AppConfig) error {
+	if cfg.Port <= 0 || cfg.Port > 65535 {
+		return fmt.Errorf("invalid port number: %d", cfg.Port)
 	}
-	if Config.DBConnectionStr == "" {
+	if cfg.DBConnectionStr == "" {
 		return fmt.Errorf("database connection string is required")
 	}
-	if Config.VideoDir == "" {
+	if cfg.VideoDir == "" {
 		return fmt.Errorf("video directory is required")
 	}
 	return nil

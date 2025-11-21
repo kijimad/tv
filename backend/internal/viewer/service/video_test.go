@@ -3,9 +3,12 @@ package service
 import (
 	"context"
 	"database/sql"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/kijimaD/tv/internal/viewer/config"
 	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -107,7 +110,7 @@ func TestVideoService_CreateVideo(t *testing.T) {
 			},
 		}
 
-		svc := NewVideoService(mock)
+		svc := NewVideoService(mock, config.AppConfig{})
 		video, err := svc.CreateVideo(ctx, sqlc.CreateVideoParams{
 			Title:      "テストビデオ",
 			Filename:   "test.mp4",
@@ -126,7 +129,7 @@ func TestVideoService_CreateVideo(t *testing.T) {
 		now := time.Now()
 
 		mock := &mockVideoQueries{}
-		svc := NewVideoService(mock)
+		svc := NewVideoService(mock, config.AppConfig{})
 
 		_, err := svc.CreateVideo(ctx, sqlc.CreateVideoParams{
 			Title:      "不正なビデオ",
@@ -162,7 +165,7 @@ func TestVideoService_UpdateVideo(t *testing.T) {
 			},
 		}
 
-		svc := NewVideoService(mock)
+		svc := NewVideoService(mock, config.AppConfig{})
 		newTitle := "更新されたタイトル"
 		video, err := svc.UpdateVideo(ctx, 1, sqlc.UpdateVideoParams{
 			ID:    1,
@@ -179,7 +182,7 @@ func TestVideoService_UpdateVideo(t *testing.T) {
 		now := time.Now()
 
 		mock := &mockVideoQueries{}
-		svc := NewVideoService(mock)
+		svc := NewVideoService(mock, config.AppConfig{})
 
 		_, err := svc.UpdateVideo(ctx, 1, sqlc.UpdateVideoParams{
 			ID:         1,
@@ -215,7 +218,7 @@ func TestVideoService_GetVideo(t *testing.T) {
 			},
 		}
 
-		svc := NewVideoService(mock)
+		svc := NewVideoService(mock, config.AppConfig{})
 		video, err := svc.GetVideo(ctx, 1)
 
 		require.NoError(t, err)
@@ -261,7 +264,7 @@ func TestVideoService_ListVideos(t *testing.T) {
 			},
 		}
 
-		svc := NewVideoService(mock)
+		svc := NewVideoService(mock, config.AppConfig{})
 		videos, total, err := svc.ListVideos(ctx, 10, 0)
 
 		require.NoError(t, err)
@@ -276,17 +279,81 @@ func TestVideoService_DeleteVideo(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 
-	t.Run("ビデオを削除できる", func(t *testing.T) {
+	t.Run("ビデオとファイルを削除できる", func(t *testing.T) {
 		t.Parallel()
+
+		// テスト用の一時ディレクトリを作成する
+		tempDir := t.TempDir()
+
+		// テスト用の動画ファイルとサムネイルを作成する
+		videoFilename := "test_video.webm"
+		videoPath := filepath.Join(tempDir, videoFilename)
+		thumbnailPath := filepath.Join(tempDir, "test_video.jpg")
+
+		err := os.WriteFile(videoPath, []byte("test video content"), 0644)
+		require.NoError(t, err)
+		err = os.WriteFile(thumbnailPath, []byte("test thumbnail content"), 0644)
+		require.NoError(t, err)
+
+		now := time.Now()
 		mock := &mockVideoQueries{
+			getVideoFunc: func(_ context.Context, id int64) (sqlc.Video, error) {
+				return sqlc.Video{
+					ID:         id,
+					Title:      "テストビデオ",
+					Filename:   videoFilename,
+					StartedAt:  now,
+					FinishedAt: now.Add(time.Hour),
+					CreatedAt:  now,
+					UpdatedAt:  now,
+				}, nil
+			},
 			deleteVideoFunc: func(_ context.Context, _ int64) error {
 				return nil
 			},
 		}
 
-		svc := NewVideoService(mock)
+		svc := NewVideoService(mock, config.AppConfig{VideoDir: tempDir})
+		err = svc.DeleteVideo(ctx, 1)
+
+		require.NoError(t, err)
+
+		// ファイルが削除されたことを確認する
+		_, err = os.Stat(videoPath)
+		assert.True(t, os.IsNotExist(err), "動画ファイルが削除されていない")
+
+		_, err = os.Stat(thumbnailPath)
+		assert.True(t, os.IsNotExist(err), "サムネイルファイルが削除されていない")
+	})
+
+	t.Run("ファイルが存在しない場合でも削除できる", func(t *testing.T) {
+		t.Parallel()
+
+		// テスト用の一時ディレクトリを作成する
+		tempDir := t.TempDir()
+
+		now := time.Now()
+		mock := &mockVideoQueries{
+			getVideoFunc: func(_ context.Context, id int64) (sqlc.Video, error) {
+				return sqlc.Video{
+					ID:         id,
+					Title:      "テストビデオ",
+					Filename:   "nonexistent.webm",
+					StartedAt:  now,
+					FinishedAt: now.Add(time.Hour),
+					CreatedAt:  now,
+					UpdatedAt:  now,
+				}, nil
+			},
+			deleteVideoFunc: func(_ context.Context, _ int64) error {
+				return nil
+			},
+		}
+
+		svc := NewVideoService(mock, config.AppConfig{VideoDir: tempDir})
 		err := svc.DeleteVideo(ctx, 1)
 
+		// ファイルが存在しなくてもエラーにならない
 		require.NoError(t, err)
 	})
 }

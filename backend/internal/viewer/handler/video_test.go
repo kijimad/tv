@@ -14,6 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kijimaD/tv/internal/oapi"
+	"github.com/kijimaD/tv/internal/viewer/config"
 	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 	"github.com/kijimaD/tv/internal/viewer/service"
 	"github.com/stretchr/testify/assert"
@@ -44,6 +45,11 @@ func (m *MockVideoService) CreateVideo(ctx context.Context, params sqlc.CreateVi
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*sqlc.Video), args.Error(1)
+}
+
+func (m *MockVideoService) GetConfig() config.AppConfig {
+	args := m.Called()
+	return args.Get(0).(config.AppConfig)
 }
 
 // MockSessionService はSessionServiceのモック

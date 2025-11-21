@@ -24,7 +24,12 @@ var CmdViewer = &cli.Command{
 }
 
 func runViewer() error {
-	queries, sqlDB, err := db.InitDB(config.Config.DBConnectionStr)
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	queries, sqlDB, err := db.InitDB(cfg.DBConnectionStr)
 	if err != nil {
 		return fmt.Errorf("failed to initialize database: %w", err)
 	}
@@ -33,7 +38,7 @@ func runViewer() error {
 	}()
 
 	// 依存関係を注入
-	videoService := service.NewVideoService(queries)
+	videoService := service.NewVideoService(queries, cfg)
 	sessionService := service.NewSessionService(queries)
 	videoHandler := handler.NewVideoHandler(videoService, sessionService)
 
@@ -55,5 +60,5 @@ func runViewer() error {
 
 	oapi.RegisterHandlers(r, videoHandler)
 
-	return r.Run(config.Config.Address)
+	return r.Run(cfg.Address)
 }

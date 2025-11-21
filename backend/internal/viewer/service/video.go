@@ -5,7 +5,11 @@ package service
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
+	"github.com/kijimaD/tv/internal/viewer/config"
 	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 )
 
@@ -16,6 +20,7 @@ type VideoService interface {
 	CreateVideo(ctx context.Context, params sqlc.CreateVideoParams) (*sqlc.Video, error)
 	UpdateVideo(ctx context.Context, id int64, params sqlc.UpdateVideoParams) (*sqlc.Video, error)
 	DeleteVideo(ctx context.Context, id int64) error
+	GetConfig() config.AppConfig
 }
 
 // VideoQuerier はビデオ操作に必要なクエリメソッドのインターフェース
@@ -30,11 +35,19 @@ type VideoQuerier interface {
 
 type videoService struct {
 	queries VideoQuerier
+	Config  config.AppConfig
 }
 
 // NewVideoService はVideoServiceを作成する
-func NewVideoService(queries VideoQuerier) VideoService {
-	return &videoService{queries: queries}
+func NewVideoService(queries VideoQuerier, cfg config.AppConfig) VideoService {
+	return &videoService{
+		queries: queries,
+		Config:  cfg,
+	}
+}
+
+func (s *videoService) GetConfig() config.AppConfig {
+	return s.Config
 }
 
 func (s *videoService) ListVideos(ctx context.Context, limit, offset int32) ([]sqlc.Video, int64, error) {
@@ -92,8 +105,29 @@ func (s *videoService) UpdateVideo(ctx context.Context, id int64, params sqlc.Up
 }
 
 func (s *videoService) DeleteVideo(ctx context.Context, id int64) error {
+	// ビデオ情報を取得する
+	video, err := s.queries.GetVideo(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed to get video: %w", err)
+	}
+
+	// DBからビデオレコードを削除する
 	if err := s.queries.DeleteVideo(ctx, id); err != nil {
 		return fmt.Errorf("failed to delete video: %w", err)
 	}
+
+	// 動画ファイルを削除する
+	videoFilePath := filepath.Join(s.Config.VideoDir, video.Filename)
+	if err := os.Remove(videoFilePath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to delete video file: %w", err)
+	}
+
+	// サムネイルファイルを削除する
+	thumbnailFilename := strings.TrimSuffix(video.Filename, ".webm") + ".jpg"
+	thumbnailPath := filepath.Join(s.Config.VideoDir, thumbnailFilename)
+	if err := os.Remove(thumbnailPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to delete thumbnail file: %w", err)
+	}
+
 	return nil
 }
