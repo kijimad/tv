@@ -17,7 +17,6 @@ type CompletionCallback func(success bool)
 // VideoProcessor は動画の後処理を管理する
 type VideoProcessor struct {
 	config config.AppConfig
-	client VideoClient
 	jobs   chan ProcessingJob
 }
 
@@ -29,10 +28,9 @@ type ProcessingJob struct {
 }
 
 // NewVideoProcessor は新しいVideoProcessorを作成する
-func NewVideoProcessor(cfg config.AppConfig, client VideoClient) VideoProcessor {
+func NewVideoProcessor(cfg config.AppConfig) VideoProcessor {
 	p := VideoProcessor{
 		config: cfg,
-		client: client,
 		jobs:   make(chan ProcessingJob, 100),
 	}
 	go p.worker()
@@ -75,10 +73,6 @@ func (p VideoProcessor) processVideo(videoID int64, filename string) bool {
 	// WebMに変換する
 	if err := p.convertToWebM(tempPath, outputPath); err != nil {
 		log.Printf("Failed to convert video %d to WebM: %v", videoID, err)
-		// 変換失敗をAPIに通知する
-		if _, err := p.client.FailVideo(videoID); err != nil {
-			log.Printf("Failed to mark video %d as failed: %v", videoID, err)
-		}
 		return false
 	}
 
@@ -88,13 +82,6 @@ func (p VideoProcessor) processVideo(videoID int64, filename string) bool {
 	}
 
 	log.Printf("Post-processing completed for video %d: %s", videoID, filename)
-
-	// 変換完了をAPIに通知する
-	if _, err := p.client.CompleteVideo(videoID); err != nil {
-		log.Printf("Failed to mark video %d as complete: %v", videoID, err)
-		return false
-	}
-
 	return true
 }
 

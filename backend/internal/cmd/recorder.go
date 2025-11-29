@@ -44,7 +44,7 @@ func runRecorder(ctx context.Context) error {
 
 	emacsStatusProvider := recorder.NewEmacsStatusProvider()
 	viewerClient := recorder.NewViewerClient(cfg)
-	processor := recorder.NewVideoProcessor(cfg, viewerClient)
+	processor := recorder.NewVideoProcessor(cfg)
 	ffmpegRecorder := recorder.NewFFmpegRecorder(cfg)
 	monitor := recorder.NewMonitor(ffmpegRecorder, emacsStatusProvider, viewerClient, processor)
 
