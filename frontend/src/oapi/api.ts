@@ -24,32 +24,6 @@ import type { RequestArgs } from './base';
 import { BASE_PATH, COLLECTION_FORMATS, BaseAPI, RequiredError, operationServerMap } from './base';
 
 /**
- * 状態遷移エラーレスポンス
- * @export
- * @interface InvalidStateTransitionError
- */
-export interface InvalidStateTransitionError {
-    /**
-     * 
-     * @type {string}
-     * @memberof InvalidStateTransitionError
-     */
-    'error': InvalidStateTransitionErrorErrorEnum;
-    /**
-     * 
-     * @type {string}
-     * @memberof InvalidStateTransitionError
-     */
-    'message': string;
-}
-
-export const InvalidStateTransitionErrorErrorEnum = {
-    InvalidStateTransition: 'invalid_state_transition'
-} as const;
-
-export type InvalidStateTransitionErrorErrorEnum = typeof InvalidStateTransitionErrorErrorEnum[keyof typeof InvalidStateTransitionErrorErrorEnum];
-
-/**
  * エラーレスポンス
  * @export
  * @interface ModelError
@@ -143,12 +117,6 @@ export interface Video {
      */
     'finishedAt'?: string;
     /**
-     * 処理ステータス
-     * @type {string}
-     * @memberof Video
-     */
-    'processingStatus': VideoProcessingStatusEnum;
-    /**
      * 作成日時
      * @type {string}
      * @memberof Video
@@ -161,125 +129,8 @@ export interface Video {
      */
     'updatedAt': string;
 }
-
-export const VideoProcessingStatusEnum = {
-    Recording: 'recording',
-    Pending: 'pending',
-    Processing: 'processing',
-    Ready: 'ready',
-    Archived: 'archived',
-    Failed: 'failed',
-    Cancelled: 'cancelled'
-} as const;
-
-export type VideoProcessingStatusEnum = typeof VideoProcessingStatusEnum[keyof typeof VideoProcessingStatusEnum];
-
 /**
- * 変換完了リクエスト
- * @export
- * @interface VideoCompleteRequest
- */
-export interface VideoCompleteRequest {
-    /**
-     * ファイルサイズ(バイト)
-     * @type {number}
-     * @memberof VideoCompleteRequest
-     */
-    'fileSize': number;
-    /**
-     * 長さ(秒)
-     * @type {number}
-     * @memberof VideoCompleteRequest
-     */
-    'durationSeconds': number;
-    /**
-     * 動画コーデック
-     * @type {string}
-     * @memberof VideoCompleteRequest
-     */
-    'videoCodec'?: string;
-    /**
-     * 音声コーデック
-     * @type {string}
-     * @memberof VideoCompleteRequest
-     */
-    'audioCodec'?: string;
-    /**
-     * 解像度
-     * @type {string}
-     * @memberof VideoCompleteRequest
-     */
-    'resolution'?: string;
-}
-/**
- * 完了情報
- * @export
- * @interface VideoCompletion
- */
-export interface VideoCompletion {
-    /**
-     * ID
-     * @type {number}
-     * @memberof VideoCompletion
-     */
-    'id': number;
-    /**
-     * ビデオID
-     * @type {number}
-     * @memberof VideoCompletion
-     */
-    'videoId': number;
-    /**
-     * ファイルパス
-     * @type {string}
-     * @memberof VideoCompletion
-     */
-    'filePath': string;
-    /**
-     * ファイルサイズ(バイト)
-     * @type {number}
-     * @memberof VideoCompletion
-     */
-    'fileSize': number;
-    /**
-     * 長さ(秒)
-     * @type {number}
-     * @memberof VideoCompletion
-     */
-    'durationSeconds': number;
-    /**
-     * サムネイルパス
-     * @type {string}
-     * @memberof VideoCompletion
-     */
-    'thumbnailPath'?: string;
-    /**
-     * 動画コーデック
-     * @type {string}
-     * @memberof VideoCompletion
-     */
-    'videoCodec'?: string;
-    /**
-     * 音声コーデック
-     * @type {string}
-     * @memberof VideoCompletion
-     */
-    'audioCodec'?: string;
-    /**
-     * 解像度
-     * @type {string}
-     * @memberof VideoCompletion
-     */
-    'resolution'?: string;
-    /**
-     * 完了時刻
-     * @type {string}
-     * @memberof VideoCompletion
-     */
-    'readyAt': string;
-}
-/**
- * ビデオ作成リクエスト（録画開始）
+ * ビデオ作成リクエスト
  * @export
  * @interface VideoCreate
  */
@@ -296,38 +147,19 @@ export interface VideoCreate {
      * @memberof VideoCreate
      */
     'filename': string;
-}
-/**
- * 変換失敗リクエスト
- * @export
- * @interface VideoFailRequest
- */
-export interface VideoFailRequest {
     /**
-     * エラーメッセージ
+     * 
      * @type {string}
-     * @memberof VideoFailRequest
+     * @memberof VideoCreate
      */
-    'errorMessage': string;
+    'startedAt': string;
     /**
-     * エラー種別
+     * 
      * @type {string}
-     * @memberof VideoFailRequest
+     * @memberof VideoCreate
      */
-    'errorType'?: VideoFailRequestErrorTypeEnum;
+    'finishedAt': string;
 }
-
-export const VideoFailRequestErrorTypeEnum = {
-    ConversionFailed: 'conversion_failed',
-    ThumbnailFailed: 'thumbnail_failed',
-    FileNotFound: 'file_not_found',
-    InvalidFile: 'invalid_file',
-    DiskFull: 'disk_full',
-    Timeout: 'timeout'
-} as const;
-
-export type VideoFailRequestErrorTypeEnum = typeof VideoFailRequestErrorTypeEnum[keyof typeof VideoFailRequestErrorTypeEnum];
-
 /**
  * ビデオページレスポンス
  * @export
@@ -346,132 +178,6 @@ export interface VideoPage {
      * @memberof VideoPage
      */
     'data': Array<Video>;
-}
-/**
- * 変換処理情報
- * @export
- * @interface VideoProcessing
- */
-export interface VideoProcessing {
-    /**
-     * ID
-     * @type {number}
-     * @memberof VideoProcessing
-     */
-    'id': number;
-    /**
-     * ビデオID
-     * @type {number}
-     * @memberof VideoProcessing
-     */
-    'videoId': number;
-    /**
-     * ジョブステータス
-     * @type {string}
-     * @memberof VideoProcessing
-     */
-    'jobStatus': VideoProcessingJobStatusEnum;
-    /**
-     * 一時ファイルパス
-     * @type {string}
-     * @memberof VideoProcessing
-     */
-    'tempFilePath': string;
-    /**
-     * 出力ファイルパス
-     * @type {string}
-     * @memberof VideoProcessing
-     */
-    'outputFilePath': string;
-    /**
-     * サムネイルパス
-     * @type {string}
-     * @memberof VideoProcessing
-     */
-    'thumbnailPath'?: string;
-    /**
-     * 進捗 (0-100)
-     * @type {number}
-     * @memberof VideoProcessing
-     */
-    'progress': number;
-    /**
-     * 再試行回数
-     * @type {number}
-     * @memberof VideoProcessing
-     */
-    'retryCount': number;
-    /**
-     * 最後のエラー
-     * @type {string}
-     * @memberof VideoProcessing
-     */
-    'lastError'?: string;
-}
-
-export const VideoProcessingJobStatusEnum = {
-    Pending: 'pending',
-    Processing: 'processing',
-    Failed: 'failed'
-} as const;
-
-export type VideoProcessingJobStatusEnum = typeof VideoProcessingJobStatusEnum[keyof typeof VideoProcessingJobStatusEnum];
-
-/**
- * 録画中情報
- * @export
- * @interface VideoRecording
- */
-export interface VideoRecording {
-    /**
-     * ID
-     * @type {number}
-     * @memberof VideoRecording
-     */
-    'id': number;
-    /**
-     * ビデオID
-     * @type {number}
-     * @memberof VideoRecording
-     */
-    'videoId': number;
-    /**
-     * 一時ファイルパス
-     * @type {string}
-     * @memberof VideoRecording
-     */
-    'tempFilePath': string;
-    /**
-     * recorderプロセスPID
-     * @type {number}
-     * @memberof VideoRecording
-     */
-    'recorderPid'?: number;
-    /**
-     * 開始時刻
-     * @type {string}
-     * @memberof VideoRecording
-     */
-    'startedAt': string;
-}
-/**
- * 録画停止リクエスト
- * @export
- * @interface VideoStopRequest
- */
-export interface VideoStopRequest {
-    /**
-     * 正常終了かどうか
-     * @type {boolean}
-     * @memberof VideoStopRequest
-     */
-    'success': boolean;
-    /**
-     * 終了時刻（successがtrueの場合に必須）
-     * @type {string}
-     * @memberof VideoStopRequest
-     */
-    'finishedAt'?: string;
 }
 /**
  * ビデオ更新リクエスト
@@ -504,32 +210,6 @@ export interface VideoUpdate {
      */
     'filename'?: string;
 }
-/**
- * 
- * @export
- * @interface VideosCompleteDefaultResponse
- */
-export interface VideosCompleteDefaultResponse {
-    /**
-     * 
-     * @type {string}
-     * @memberof VideosCompleteDefaultResponse
-     */
-    'error': VideosCompleteDefaultResponseErrorEnum;
-    /**
-     * 
-     * @type {string}
-     * @memberof VideosCompleteDefaultResponse
-     */
-    'message': string;
-}
-
-export const VideosCompleteDefaultResponseErrorEnum = {
-    InvalidStateTransition: 'invalid_state_transition'
-} as const;
-
-export type VideosCompleteDefaultResponseErrorEnum = typeof VideosCompleteDefaultResponseErrorEnum[keyof typeof VideosCompleteDefaultResponseErrorEnum];
-
 
 /**
  * DefaultApi - axios parameter creator
@@ -538,69 +218,7 @@ export type VideosCompleteDefaultResponseErrorEnum = typeof VideosCompleteDefaul
 export const DefaultApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * 現在の録画状態取得
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        statusGet: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            const localVarPath = `/api/v1/status`;
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * 変換完了（processing → ready）
-         * @param {number} id 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        videosComplete: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'id' is not null or undefined
-            assertParamExists('videosComplete', 'id', id)
-            const localVarPath = `/api/v1/videos/{id}/complete`
-                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * ビデオ作成（録画開始）
+         * ビデオ作成
          * @param {VideoCreate} videoCreate 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -653,39 +271,6 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             }
 
             const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * 変換失敗（processing → failed）
-         * @param {number} id 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        videosFail: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'id' is not null or undefined
-            assertParamExists('videosFail', 'id', id)
-            const localVarPath = `/api/v1/videos/{id}/fail`
-                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
 
@@ -770,11 +355,10 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
          * ビデオ一覧取得
          * @param {number} [page] ページ番号
          * @param {number} [size] 1ページあたりの最大取得件数
-         * @param {VideosListStatusEnum} [status] ステータスで絞り込み
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        videosList: async (page?: number, size?: number, status?: VideosListStatusEnum, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        videosList: async (page?: number, size?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v1/videos`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -794,109 +378,6 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             if (size !== undefined) {
                 localVarQueryParameter['size'] = size;
             }
-
-            if (status !== undefined) {
-                localVarQueryParameter['status'] = status;
-            }
-
-
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * 変換開始（pending → processing）
-         * @param {number} id 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        videosProcess: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'id' is not null or undefined
-            assertParamExists('videosProcess', 'id', id)
-            const localVarPath = `/api/v1/videos/{id}/process`
-                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * 再試行（failed → pending）
-         * @param {number} id 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        videosRetry: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'id' is not null or undefined
-            assertParamExists('videosRetry', 'id', id)
-            const localVarPath = `/api/v1/videos/{id}/retry`
-                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-
-    
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * 録画停止（recording → pending）
-         * @param {number} id 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        videosStop: async (id: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'id' is not null or undefined
-            assertParamExists('videosStop', 'id', id)
-            const localVarPath = `/api/v1/videos/{id}/stop`
-                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
 
 
     
@@ -992,30 +473,7 @@ export const DefaultApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = DefaultApiAxiosParamCreator(configuration)
     return {
         /**
-         * 現在の録画状態取得
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async statusGet(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RecordingStatus>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.statusGet(options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['DefaultApi.statusGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * 変換完了（processing → ready）
-         * @param {number} id 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async videosComplete(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Video>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.videosComplete(id, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['DefaultApi.videosComplete']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * ビデオ作成（録画開始）
+         * ビデオ作成
          * @param {VideoCreate} videoCreate 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -1036,18 +494,6 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.videosDelete(id, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.videosDelete']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * 変換失敗（processing → failed）
-         * @param {number} id 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async videosFail(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Video>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.videosFail(id, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['DefaultApi.videosFail']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -1078,50 +524,13 @@ export const DefaultApiFp = function(configuration?: Configuration) {
          * ビデオ一覧取得
          * @param {number} [page] ページ番号
          * @param {number} [size] 1ページあたりの最大取得件数
-         * @param {VideosListStatusEnum} [status] ステータスで絞り込み
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async videosList(page?: number, size?: number, status?: VideosListStatusEnum, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<VideoPage>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.videosList(page, size, status, options);
+        async videosList(page?: number, size?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<VideoPage>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.videosList(page, size, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.videosList']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * 変換開始（pending → processing）
-         * @param {number} id 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async videosProcess(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Video>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.videosProcess(id, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['DefaultApi.videosProcess']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * 再試行（failed → pending）
-         * @param {number} id 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async videosRetry(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Video>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.videosRetry(id, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['DefaultApi.videosRetry']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * 録画停止（recording → pending）
-         * @param {number} id 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async videosStop(id: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Video>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.videosStop(id, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['DefaultApi.videosStop']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -1160,24 +569,7 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
     const localVarFp = DefaultApiFp(configuration)
     return {
         /**
-         * 現在の録画状態取得
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        statusGet(options?: RawAxiosRequestConfig): AxiosPromise<RecordingStatus> {
-            return localVarFp.statusGet(options).then((request) => request(axios, basePath));
-        },
-        /**
-         * 変換完了（processing → ready）
-         * @param {number} id 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        videosComplete(id: number, options?: RawAxiosRequestConfig): AxiosPromise<Video> {
-            return localVarFp.videosComplete(id, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * ビデオ作成（録画開始）
+         * ビデオ作成
          * @param {VideoCreate} videoCreate 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
@@ -1193,15 +585,6 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
          */
         videosDelete(id: number, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.videosDelete(id, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * 変換失敗（processing → failed）
-         * @param {number} id 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        videosFail(id: number, options?: RawAxiosRequestConfig): AxiosPromise<Video> {
-            return localVarFp.videosFail(id, options).then((request) => request(axios, basePath));
         },
         /**
          * ビデオファイル配信
@@ -1225,39 +608,11 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
          * ビデオ一覧取得
          * @param {number} [page] ページ番号
          * @param {number} [size] 1ページあたりの最大取得件数
-         * @param {VideosListStatusEnum} [status] ステータスで絞り込み
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        videosList(page?: number, size?: number, status?: VideosListStatusEnum, options?: RawAxiosRequestConfig): AxiosPromise<VideoPage> {
-            return localVarFp.videosList(page, size, status, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * 変換開始（pending → processing）
-         * @param {number} id 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        videosProcess(id: number, options?: RawAxiosRequestConfig): AxiosPromise<Video> {
-            return localVarFp.videosProcess(id, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * 再試行（failed → pending）
-         * @param {number} id 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        videosRetry(id: number, options?: RawAxiosRequestConfig): AxiosPromise<Video> {
-            return localVarFp.videosRetry(id, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * 録画停止（recording → pending）
-         * @param {number} id 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        videosStop(id: number, options?: RawAxiosRequestConfig): AxiosPromise<Video> {
-            return localVarFp.videosStop(id, options).then((request) => request(axios, basePath));
+        videosList(page?: number, size?: number, options?: RawAxiosRequestConfig): AxiosPromise<VideoPage> {
+            return localVarFp.videosList(page, size, options).then((request) => request(axios, basePath));
         },
         /**
          * サムネイル画像取得
@@ -1289,28 +644,7 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
  */
 export class DefaultApi extends BaseAPI {
     /**
-     * 現在の録画状態取得
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApi
-     */
-    public statusGet(options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).statusGet(options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * 変換完了（processing → ready）
-     * @param {number} id 
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApi
-     */
-    public videosComplete(id: number, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).videosComplete(id, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * ビデオ作成（録画開始）
+     * ビデオ作成
      * @param {VideoCreate} videoCreate 
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
@@ -1329,17 +663,6 @@ export class DefaultApi extends BaseAPI {
      */
     public videosDelete(id: number, options?: RawAxiosRequestConfig) {
         return DefaultApiFp(this.configuration).videosDelete(id, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * 変換失敗（processing → failed）
-     * @param {number} id 
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApi
-     */
-    public videosFail(id: number, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).videosFail(id, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -1368,46 +691,12 @@ export class DefaultApi extends BaseAPI {
      * ビデオ一覧取得
      * @param {number} [page] ページ番号
      * @param {number} [size] 1ページあたりの最大取得件数
-     * @param {VideosListStatusEnum} [status] ステータスで絞り込み
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof DefaultApi
      */
-    public videosList(page?: number, size?: number, status?: VideosListStatusEnum, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).videosList(page, size, status, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * 変換開始（pending → processing）
-     * @param {number} id 
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApi
-     */
-    public videosProcess(id: number, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).videosProcess(id, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * 再試行（failed → pending）
-     * @param {number} id 
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApi
-     */
-    public videosRetry(id: number, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).videosRetry(id, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * 録画停止（recording → pending）
-     * @param {number} id 
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     * @memberof DefaultApi
-     */
-    public videosStop(id: number, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).videosStop(id, options).then((request) => request(this.axios, this.basePath));
+    public videosList(page?: number, size?: number, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).videosList(page, size, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -1434,18 +723,5 @@ export class DefaultApi extends BaseAPI {
     }
 }
 
-/**
- * @export
- */
-export const VideosListStatusEnum = {
-    Recording: 'recording',
-    Pending: 'pending',
-    Processing: 'processing',
-    Ready: 'ready',
-    Archived: 'archived',
-    Failed: 'failed',
-    Cancelled: 'cancelled'
-} as const;
-export type VideosListStatusEnum = typeof VideosListStatusEnum[keyof typeof VideosListStatusEnum];
 
 

@@ -15,6 +15,23 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+// corsMiddleware はCORSヘッダーを追加するミドルウェア
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		// プリフライトリクエストの処理
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 // CmdRecorder is the recorder subcommand
 var CmdRecorder = &cli.Command{
 	Name:  "recorder",
@@ -53,9 +70,12 @@ func runRecorder(ctx context.Context) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/status", statusHandler.GetRecordingStatus)
 
+	// CORSミドルウェアを追加する
+	corsHandler := corsMiddleware(mux)
+
 	statusServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.StatusPort),
-		Handler: mux,
+		Handler: corsHandler,
 	}
 
 	go func() {

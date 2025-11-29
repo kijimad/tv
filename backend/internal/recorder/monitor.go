@@ -29,9 +29,11 @@ const (
 
 // RecordingInfo は現在の録画情報を表す
 type RecordingInfo struct {
-	Status   RecordingStatus `json:"status"`
-	Filename string          `json:"filename"`
-	Title    string          `json:"title,omitempty"`
+	Status     RecordingStatus `json:"status"`
+	Filename   string          `json:"filename"`
+	Title      string          `json:"title,omitempty"`
+	StartedAt  time.Time       `json:"startedAt,omitempty"`
+	FinishedAt time.Time       `json:"finishedAt,omitempty"`
 }
 
 // Monitor はポモドーロの状態を監視して録画を制御する
@@ -104,6 +106,7 @@ func (m *Monitor) Run(ctx context.Context, states <-chan bool) {
 			}
 			if isActive && !wasActive {
 				log.Println("Pomodoro started, beginning recording")
+				startedAt := time.Now().UTC()
 				filename, title, err := m.session.Start()
 				status := StatusRecording
 				if err != nil {
@@ -111,12 +114,14 @@ func (m *Monitor) Run(ctx context.Context, states <-chan bool) {
 					status = StatusFailed
 				}
 				m.setRecordingInfo(RecordingInfo{
-					Status:   status,
-					Filename: filename,
-					Title:    title,
+					Status:    status,
+					Filename:  filename,
+					Title:     title,
+					StartedAt: startedAt,
 				})
 			} else if !isActive && wasActive {
 				log.Println("Pomodoro stopped, stopping recording")
+				finishedAt := time.Now().UTC()
 				filename, err := m.session.Stop()
 				if err != nil {
 					log.Printf("Error stopping recording: %v", err)
@@ -124,9 +129,10 @@ func (m *Monitor) Run(ctx context.Context, states <-chan bool) {
 					// 変換処理を開始する
 					if info, ok := m.getRecordingInfo(filename); ok {
 						info.Status = StatusProcessing
+						info.FinishedAt = finishedAt
 						m.setRecordingInfo(info)
-						go func(filename, title string) {
-							success := m.processor.processVideo(filename, title)
+						go func(filename, title string, startedAt, finishedAt time.Time) {
+							success := m.processor.processVideo(filename, title, startedAt, finishedAt)
 							if info, ok := m.getRecordingInfo(filename); ok {
 								if success {
 									info.Status = StatusSuccess
@@ -135,7 +141,7 @@ func (m *Monitor) Run(ctx context.Context, states <-chan bool) {
 								}
 								m.setRecordingInfo(info)
 							}
-						}(info.Filename, info.Title)
+						}(info.Filename, info.Title, info.StartedAt, info.FinishedAt)
 					}
 				}
 			}

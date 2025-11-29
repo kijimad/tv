@@ -1,5 +1,6 @@
 import { Container, Heading } from "@chakra-ui/react";
 import VideoList from "../components/video/VideoList";
+import RecordingStatusList from "../components/recording/RecordingStatusList";
 
 export default function Dashboard() {
   return (
@@ -7,6 +8,7 @@ export default function Dashboard() {
       <Heading size="xl" mb={6}>
         一覧
       </Heading>
+      <RecordingStatusList />
       <VideoList />
     </Container>
   );

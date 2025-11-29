@@ -19,14 +19,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	statusRecording  = "recording"
-	statusPending    = "pending"
-	statusProcessing = "processing"
-	statusReady      = "ready"
-	statusFailed     = "failed"
-)
-
 func setupVideoService(t *testing.T) (service.VideoService, *sqlc.Queries, func()) {
 	t.Helper()
 	testDB, cleanup := db.SetupTestDB(t)
@@ -37,236 +29,6 @@ func setupVideoService(t *testing.T) (service.VideoService, *sqlc.Queries, func(
 	clk := &clock.MockClock{FixedTime: time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)}
 	svc := service.NewVideoService(queries, cfg, clk)
 	return svc, queries, cleanup
-}
-
-func TestVideoService_StopVideo(t *testing.T) {
-	t.Parallel()
-
-	t.Run("recording状態からpendingに遷移できる", func(t *testing.T) {
-		t.Parallel()
-		svc, queries, cleanup := setupVideoService(t)
-		defer cleanup()
-		ctx := context.Background()
-
-		// recording状態のビデオを作成する
-		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
-			vf.ProcessingStatus = statusRecording
-		}).Create(ctx, queries)
-		require.NoError(t, err)
-
-		// StopVideoを実行する
-		updated, err := svc.StopVideo(ctx, video.ID)
-		require.NoError(t, err)
-
-		// 状態がpendingに変わっていることを確認する
-		assert.Equal(t, "pending", updated.ProcessingStatus)
-		assert.True(t, updated.FinishedAt.Valid)
-		assert.True(t, updated.FinishedAt.Time.Equal(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)))
-	})
-
-	t.Run("recording以外の状態の時はエラーを返す", func(t *testing.T) {
-		t.Parallel()
-		svc, queries, cleanup := setupVideoService(t)
-		defer cleanup()
-		ctx := context.Background()
-
-		// pending状態のビデオを作成する
-		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
-			vf.ProcessingStatus = statusPending
-		}).Create(ctx, queries)
-		require.NoError(t, err)
-
-		// StopVideoを実行する
-		_, err = svc.StopVideo(ctx, video.ID)
-
-		// エラーが返ることを確認する
-		assert.ErrorIs(t, err, service.ErrInvalidStateTransition)
-	})
-
-	t.Run("存在しないIDの時はエラーを返す", func(t *testing.T) {
-		t.Parallel()
-		svc, _, cleanup := setupVideoService(t)
-		defer cleanup()
-		ctx := context.Background()
-
-		// 存在しないIDでStopVideoを実行する
-		_, err := svc.StopVideo(ctx, 99999)
-
-		// エラーが返ることを確認する
-		assert.Error(t, err)
-	})
-}
-
-func TestVideoService_ProcessVideo(t *testing.T) {
-	t.Parallel()
-
-	t.Run("pending状態からprocessingに遷移できる", func(t *testing.T) {
-		t.Parallel()
-		svc, queries, cleanup := setupVideoService(t)
-		defer cleanup()
-		ctx := context.Background()
-
-		// pending状態のビデオを作成する
-		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
-			vf.ProcessingStatus = statusPending
-		}).Create(ctx, queries)
-		require.NoError(t, err)
-
-		// ProcessVideoを実行する
-		updated, err := svc.ProcessVideo(ctx, video.ID)
-		require.NoError(t, err)
-
-		// 状態がprocessingに変わっていることを確認する
-		assert.Equal(t, "processing", updated.ProcessingStatus)
-	})
-
-	t.Run("pending以外の状態の時はエラーを返す", func(t *testing.T) {
-		t.Parallel()
-		svc, queries, cleanup := setupVideoService(t)
-		defer cleanup()
-		ctx := context.Background()
-
-		// recording状態のビデオを作成する
-		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
-			vf.ProcessingStatus = statusRecording
-		}).Create(ctx, queries)
-		require.NoError(t, err)
-
-		// ProcessVideoを実行する
-		_, err = svc.ProcessVideo(ctx, video.ID)
-
-		// エラーが返ることを確認する
-		assert.ErrorIs(t, err, service.ErrInvalidStateTransition)
-	})
-}
-
-func TestVideoService_CompleteVideo(t *testing.T) {
-	t.Parallel()
-
-	t.Run("processing状態からreadyに遷移できる", func(t *testing.T) {
-		t.Parallel()
-		svc, queries, cleanup := setupVideoService(t)
-		defer cleanup()
-		ctx := context.Background()
-
-		// processing状態のビデオを作成する
-		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
-			vf.ProcessingStatus = statusProcessing
-		}).Create(ctx, queries)
-		require.NoError(t, err)
-
-		// CompleteVideoを実行する
-		updated, err := svc.CompleteVideo(ctx, video.ID)
-		require.NoError(t, err)
-
-		// 状態がreadyに変わっていることを確認する
-		assert.Equal(t, "ready", updated.ProcessingStatus)
-	})
-
-	t.Run("processing以外の状態の時はエラーを返す", func(t *testing.T) {
-		t.Parallel()
-		svc, queries, cleanup := setupVideoService(t)
-		defer cleanup()
-		ctx := context.Background()
-
-		// pending状態のビデオを作成する
-		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
-			vf.ProcessingStatus = statusPending
-		}).Create(ctx, queries)
-		require.NoError(t, err)
-
-		// CompleteVideoを実行する
-		_, err = svc.CompleteVideo(ctx, video.ID)
-
-		// エラーが返ることを確認する
-		assert.ErrorIs(t, err, service.ErrInvalidStateTransition)
-	})
-}
-
-func TestVideoService_FailVideo(t *testing.T) {
-	t.Parallel()
-
-	t.Run("processing状態からfailedに遷移できる", func(t *testing.T) {
-		t.Parallel()
-		svc, queries, cleanup := setupVideoService(t)
-		defer cleanup()
-		ctx := context.Background()
-
-		// processing状態のビデオを作成する
-		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
-			vf.ProcessingStatus = statusProcessing
-		}).Create(ctx, queries)
-		require.NoError(t, err)
-
-		// FailVideoを実行する
-		updated, err := svc.FailVideo(ctx, video.ID)
-		require.NoError(t, err)
-
-		// 状態がfailedに変わっていることを確認する
-		assert.Equal(t, "failed", updated.ProcessingStatus)
-	})
-
-	t.Run("processing以外の状態の時はエラーを返す", func(t *testing.T) {
-		t.Parallel()
-		svc, queries, cleanup := setupVideoService(t)
-		defer cleanup()
-		ctx := context.Background()
-
-		// ready状態のビデオを作成する
-		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
-			vf.ProcessingStatus = statusReady
-		}).Create(ctx, queries)
-		require.NoError(t, err)
-
-		// FailVideoを実行する
-		_, err = svc.FailVideo(ctx, video.ID)
-
-		// エラーが返ることを確認する
-		assert.ErrorIs(t, err, service.ErrInvalidStateTransition)
-	})
-}
-
-func TestVideoService_RetryVideo(t *testing.T) {
-	t.Parallel()
-
-	t.Run("failed状態からpendingに遷移できる", func(t *testing.T) {
-		t.Parallel()
-		svc, queries, cleanup := setupVideoService(t)
-		defer cleanup()
-		ctx := context.Background()
-
-		// failed状態のビデオを作成する
-		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
-			vf.ProcessingStatus = statusFailed
-		}).Create(ctx, queries)
-		require.NoError(t, err)
-
-		// RetryVideoを実行する
-		updated, err := svc.RetryVideo(ctx, video.ID)
-		require.NoError(t, err)
-
-		// 状態がpendingに変わっていることを確認する
-		assert.Equal(t, "pending", updated.ProcessingStatus)
-	})
-
-	t.Run("failed以外の状態の時はエラーを返す", func(t *testing.T) {
-		t.Parallel()
-		svc, queries, cleanup := setupVideoService(t)
-		defer cleanup()
-		ctx := context.Background()
-
-		// ready状態のビデオを作成する
-		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
-			vf.ProcessingStatus = statusReady
-		}).Create(ctx, queries)
-		require.NoError(t, err)
-
-		// RetryVideoを実行する
-		_, err = svc.RetryVideo(ctx, video.ID)
-
-		// エラーが返ることを確認する
-		assert.ErrorIs(t, err, service.ErrInvalidStateTransition)
-	})
 }
 
 func TestVideoService_ListVideos(t *testing.T) {
@@ -365,46 +127,6 @@ func TestVideoService_GetVideo(t *testing.T) {
 	})
 }
 
-func TestVideoService_GetRecordingVideo(t *testing.T) {
-	t.Parallel()
-
-	t.Run("録画中のビデオを取得できる", func(t *testing.T) {
-		t.Parallel()
-		svc, queries, cleanup := setupVideoService(t)
-		defer cleanup()
-		ctx := context.Background()
-
-		// recording状態のビデオを作成する
-		created, err := factory.NewVideo(func(vf *factory.VideoFactory) {
-			vf.ProcessingStatus = statusRecording
-		}).Create(ctx, queries)
-		require.NoError(t, err)
-
-		// 録画中のビデオを取得する
-		video, err := svc.GetRecordingVideo(ctx)
-		require.NoError(t, err)
-		require.NotNil(t, video)
-
-		// 内容を確認する
-		assert.Equal(t, created.ID, video.ID)
-		assert.Equal(t, "recording", video.ProcessingStatus)
-	})
-
-	t.Run("録画中のビデオがない時はnilを返す", func(t *testing.T) {
-		t.Parallel()
-		svc, _, cleanup := setupVideoService(t)
-		defer cleanup()
-		ctx := context.Background()
-
-		// 録画中のビデオを取得する
-		video, err := svc.GetRecordingVideo(ctx)
-		require.NoError(t, err)
-
-		// nilが返ることを確認する
-		assert.Nil(t, video)
-	})
-}
-
 func TestVideoService_CreateVideo(t *testing.T) {
 	t.Parallel()
 
@@ -416,10 +138,9 @@ func TestVideoService_CreateVideo(t *testing.T) {
 
 		// ビデオを作成する
 		params := sqlc.CreateVideoParams{
-			Title:            "New Video",
-			Filename:         "new.webm",
-			StartedAt:        time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC),
-			ProcessingStatus: "recording",
+			Title:     "New Video",
+			Filename:  "new.webm",
+			StartedAt: time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC),
 		}
 		video, err := svc.CreateVideo(ctx, params)
 		require.NoError(t, err)
@@ -427,7 +148,6 @@ func TestVideoService_CreateVideo(t *testing.T) {
 		// 内容を確認する
 		assert.Equal(t, "New Video", video.Title)
 		assert.Equal(t, "new.webm", video.Filename)
-		assert.Equal(t, "recording", video.ProcessingStatus)
 	})
 }
 
@@ -489,23 +209,20 @@ func TestVideoService_DeleteOldVideoFiles(t *testing.T) {
 		// MockClockの現在時刻を取得する
 		now := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
 
-		// 31日前のready状態の動画を作成する
+		// 31日前の動画を作成する
 		oldVideo, err := factory.NewVideo(func(vf *factory.VideoFactory) {
-			vf.ProcessingStatus = statusReady
 			vf.StartedAt = now.AddDate(0, 0, -31)
 		}).Create(ctx, queries)
 		require.NoError(t, err)
 
-		// 29日前のready状態の動画を作成する
+		// 29日前の動画を作成する
 		recentVideo, err := factory.NewVideo(func(vf *factory.VideoFactory) {
-			vf.ProcessingStatus = statusReady
 			vf.StartedAt = now.AddDate(0, 0, -29)
 		}).Create(ctx, queries)
 		require.NoError(t, err)
 
-		// pending状態の古い動画を作成する（削除されないはず）
+		// 古い動画を作成する
 		pendingVideo, err := factory.NewVideo(func(vf *factory.VideoFactory) {
-			vf.ProcessingStatus = statusPending
 			vf.StartedAt = now.AddDate(0, 0, -31)
 		}).Create(ctx, queries)
 		require.NoError(t, err)
@@ -577,9 +294,8 @@ func TestVideoService_DeleteOldVideoFiles(t *testing.T) {
 		// MockClockの現在時刻を取得する
 		now := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
 
-		// 最近のready状態の動画を作成する
+		// 最近の動画を作成する
 		_, err := factory.NewVideo(func(vf *factory.VideoFactory) {
-			vf.ProcessingStatus = statusReady
 			vf.StartedAt = now.AddDate(0, 0, -10)
 		}).Create(ctx, queries)
 		require.NoError(t, err)

@@ -12,7 +12,7 @@ type AppConfig struct {
 	APIEndpoint  string `env:"TV_API_ENDPOINT" envDefault:"http://localhost:8080"`
 	PollInterval int    `env:"TV_POLL_INTERVAL" envDefault:"2"`
 	OutputDir    string `env:"TV_OUTPUT_DIR" envDefault:"./outputs"`
-	StatusPort   int    `env:"TV_STATUS_PORT" envDefault:"8090"`
+	StatusPort   int    `env:"TV_STATUS_PORT" envDefault:"8091"`
 }
 
 // Load は環境変数から設定を読み込む

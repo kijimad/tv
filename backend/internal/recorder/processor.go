@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/kijimaD/tv/internal/oapi"
 	"github.com/kijimaD/tv/internal/recorder/config"
@@ -27,7 +28,7 @@ func NewVideoProcessor(cfg config.AppConfig, client VideoClient) *VideoProcessor
 }
 
 // processVideo は動画の変換処理を実行し、完了後にビデオを作成する
-func (p *VideoProcessor) processVideo(filename, title string) bool {
+func (p *VideoProcessor) processVideo(filename, title string, startedAt, finishedAt time.Time) bool {
 	outputPath := filepath.Join(p.config.OutputDir, filename)
 	tempPath := strings.TrimSuffix(outputPath, ".webm") + ".temp.mp4"
 
@@ -53,8 +54,10 @@ func (p *VideoProcessor) processVideo(filename, title string) bool {
 
 	// ビデオを作成する
 	video, err := p.client.CreateVideo(oapi.VideoCreate{
-		Filename: filename,
-		Title:    title,
+		Filename:   filename,
+		Title:      title,
+		StartedAt:  startedAt,
+		FinishedAt: finishedAt,
 	})
 	if err != nil {
 		log.Printf("Failed to create video for %s: %v", filename, err)

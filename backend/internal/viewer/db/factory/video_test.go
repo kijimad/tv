@@ -18,7 +18,6 @@ func TestNewVideo(t *testing.T) {
 		assert.NotEmpty(t, f.Title)
 		assert.NotEmpty(t, f.Filename)
 		assert.False(t, f.StartedAt.IsZero())
-		assert.NotEmpty(t, f.ProcessingStatus)
 	})
 
 	t.Run("オーバーライドでカスタム値を設定できる", func(t *testing.T) {
@@ -39,13 +38,11 @@ func TestNewVideo(t *testing.T) {
 			vf.Title = "Test Video"
 			vf.Filename = "test.webm"
 			vf.StartedAt = startTime
-			vf.ProcessingStatus = "recording"
 		})
 
 		assert.Equal(t, "Test Video", f.Title)
 		assert.Equal(t, "test.webm", f.Filename)
 		assert.True(t, f.StartedAt.Equal(startTime))
-		assert.Equal(t, "recording", f.ProcessingStatus)
 	})
 }
 
