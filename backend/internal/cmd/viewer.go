@@ -40,8 +40,7 @@ func runViewer() error {
 
 	// 依存関係を注入
 	videoService := service.NewVideoService(queries, cfg, clock.RealClock{})
-	sessionService := service.NewSessionService(queries, cfg, clock.RealClock{})
-	videoHandler := handler.NewVideoHandler(videoService, sessionService)
+	videoHandler := handler.NewVideoHandler(videoService)
 
 	r := gin.Default()
 
@@ -59,7 +58,8 @@ func runViewer() error {
 	}
 	r.Use(validateMiddleware)
 
-	oapi.RegisterHandlers(r, videoHandler)
+	strictHandler := oapi.NewStrictHandler(videoHandler, nil)
+	oapi.RegisterHandlers(r, strictHandler)
 
 	return r.Run(cfg.Address)
 }

@@ -4,40 +4,20 @@
 
 | Name | Columns | Comment | Type |
 | ---- | ------- | ------- | ---- |
-| [public.sessions](public.sessions.md) | 8 | 録画セッション情報 | BASE TABLE |
-| [public.video_sessions](public.video_sessions.md) | 5 | 動画とセッションの関連付け | BASE TABLE |
-| [public.videos](public.videos.md) | 7 | 動画情報 | BASE TABLE |
+| [public.videos](public.videos.md) | 8 | 動画情報 | BASE TABLE |
 
 ## Relations
 
 ```mermaid
 erDiagram
 
-"public.video_sessions" }o--|| "public.videos" : "FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE"
-"public.video_sessions" }o--|| "public.sessions" : "FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE"
 
-"public.sessions" {
-  timestamp_without_time_zone created_at
-  varchar_255_ filename
-  timestamp_without_time_zone finished_at
-  bigint id
-  timestamp_without_time_zone started_at
-  varchar_20_ status
-  varchar_255_ title
-  timestamp_without_time_zone updated_at
-}
-"public.video_sessions" {
-  timestamp_without_time_zone created_at
-  bigint id
-  bigint session_id FK
-  timestamp_without_time_zone updated_at
-  bigint video_id FK
-}
 "public.videos" {
   timestamp_without_time_zone created_at
   text filename
   timestamp_without_time_zone finished_at
   bigint id
+  varchar_20_ processing_status
   timestamp_without_time_zone started_at
   text title
   timestamp_without_time_zone updated_at

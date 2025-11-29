@@ -14,24 +14,26 @@ func TestSetupTestDB(t *testing.T) {
 	t.Parallel()
 	t.Run("異なるインスタンスを得られる", func(t *testing.T) {
 		t.Parallel()
-		queries1, cleanup1 := SetupTestDB(t)
+		db1, cleanup1 := SetupTestDB(t)
 		defer cleanup1()
 
-		queries2, cleanup2 := SetupTestDB(t)
+		db2, cleanup2 := SetupTestDB(t)
 		defer cleanup2()
 
-		// 両方のqueriesが取得できることを確認
-		require.NotNil(t, queries1)
-		require.NotNil(t, queries2)
+		// 両方のDBが取得できることを確認
+		require.NotNil(t, db1)
+		require.NotNil(t, db2)
 
 		// 異なるインスタンスであることを確認
-		assert.NotEqual(t, queries1, queries2)
+		assert.NotEqual(t, db1, db2)
 	})
 
 	t.Run("テーブル構造が正しくコピーされる", func(t *testing.T) {
 		t.Parallel()
-		queries, cleanup := SetupTestDB(t)
+		testDB, cleanup := SetupTestDB(t)
 		defer cleanup()
+
+		queries := sqlc.New(testDB)
 
 		// テーブルが存在することを確認するため、簡単なクエリを実行
 		ctx := context.Background()
@@ -46,8 +48,10 @@ func TestSetupTestDB(t *testing.T) {
 	t.Run("スキーマが独立している", func(t *testing.T) {
 		t.Run("parallel1", func(t *testing.T) {
 			t.Parallel()
-			queries, cleanup := SetupTestDB(t)
+			testDB, cleanup := SetupTestDB(t)
 			defer cleanup()
+
+			queries := sqlc.New(testDB)
 
 			ctx := context.Background()
 			// 1件作成
@@ -66,8 +70,10 @@ func TestSetupTestDB(t *testing.T) {
 
 		t.Run("parallel2", func(t *testing.T) {
 			t.Parallel()
-			queries, cleanup := SetupTestDB(t)
+			testDB, cleanup := SetupTestDB(t)
 			defer cleanup()
+
+			queries := sqlc.New(testDB)
 
 			ctx := context.Background()
 			// 2件作成
@@ -90,7 +96,9 @@ func TestSetupTestDB(t *testing.T) {
 
 	t.Run("cleanup実行後はDB接続がクローズされる", func(t *testing.T) {
 		t.Parallel()
-		queries, cleanup := SetupTestDB(t)
+		testDB, cleanup := SetupTestDB(t)
+
+		queries := sqlc.New(testDB)
 
 		// クローズ前はクエリが正常に実行できる
 		ctx := context.Background()

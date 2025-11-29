@@ -42,9 +42,10 @@ func runRecorder(ctx context.Context) error {
 	}()
 
 	emacsStatusProvider := recorder.NewEmacsStatusProvider()
-	ffmpegRecorder := recorder.NewFFmpegRecorder(cfg)
 	viewerClient := recorder.NewViewerClient(cfg)
-	monitor := recorder.NewMonitor(ffmpegRecorder, emacsStatusProvider, viewerClient)
+	processor := recorder.NewVideoProcessor(cfg, viewerClient)
+	ffmpegRecorder := recorder.NewFFmpegRecorder(cfg)
+	monitor := recorder.NewMonitor(ffmpegRecorder, emacsStatusProvider, viewerClient, processor)
 
 	states := make(chan bool)
 	pollInterval := time.Duration(cfg.PollInterval) * time.Second

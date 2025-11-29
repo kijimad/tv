@@ -23,7 +23,7 @@ linters:
     - paralleltest   # テストの並列実行（t.Parallel()）推奨
     - tparallel      # t.Parallel()の不適切な使用検出
     - depguard       # 依存関係制御（禁止パッケージの使用防止）
-    - gochecknoinits # init関数の使用禁止。非明示的でわかりにくいので
+    - gochecknoinits # init関数の使用禁止。非明示的でわかりにくい、テストしにくいので
 
   settings:
     depguard:

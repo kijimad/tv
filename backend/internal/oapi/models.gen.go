@@ -7,23 +7,63 @@ import (
 	"time"
 )
 
-// Defines values for SessionStatus.
+// Defines values for InvalidStateTransitionErrorError.
 const (
-	SessionStatusCompleted SessionStatus = "completed"
-	SessionStatusFailed    SessionStatus = "failed"
-	SessionStatusRecording SessionStatus = "recording"
+	InvalidStateTransition InvalidStateTransitionErrorError = "invalid_state_transition"
 )
 
-// Defines values for SessionUpdateStatus.
+// Defines values for VideoProcessingStatus.
 const (
-	SessionUpdateStatusCompleted SessionUpdateStatus = "completed"
-	SessionUpdateStatusFailed    SessionUpdateStatus = "failed"
+	VideoProcessingStatusArchived   VideoProcessingStatus = "archived"
+	VideoProcessingStatusCancelled  VideoProcessingStatus = "cancelled"
+	VideoProcessingStatusFailed     VideoProcessingStatus = "failed"
+	VideoProcessingStatusPending    VideoProcessingStatus = "pending"
+	VideoProcessingStatusProcessing VideoProcessingStatus = "processing"
+	VideoProcessingStatusReady      VideoProcessingStatus = "ready"
+	VideoProcessingStatusRecording  VideoProcessingStatus = "recording"
+)
+
+// Defines values for VideoFailRequestErrorType.
+const (
+	ConversionFailed VideoFailRequestErrorType = "conversion_failed"
+	DiskFull         VideoFailRequestErrorType = "disk_full"
+	FileNotFound     VideoFailRequestErrorType = "file_not_found"
+	InvalidFile      VideoFailRequestErrorType = "invalid_file"
+	ThumbnailFailed  VideoFailRequestErrorType = "thumbnail_failed"
+	Timeout          VideoFailRequestErrorType = "timeout"
+)
+
+// Defines values for VideoProcessingJobStatus.
+const (
+	VideoProcessingJobStatusFailed     VideoProcessingJobStatus = "failed"
+	VideoProcessingJobStatusPending    VideoProcessingJobStatus = "pending"
+	VideoProcessingJobStatusProcessing VideoProcessingJobStatus = "processing"
+)
+
+// Defines values for VideosListParamsStatus.
+const (
+	Archived   VideosListParamsStatus = "archived"
+	Cancelled  VideosListParamsStatus = "cancelled"
+	Failed     VideosListParamsStatus = "failed"
+	Pending    VideosListParamsStatus = "pending"
+	Processing VideosListParamsStatus = "processing"
+	Ready      VideosListParamsStatus = "ready"
+	Recording  VideosListParamsStatus = "recording"
 )
 
 // Error エラーレスポンス
 type Error struct {
 	Message string `json:"message"`
 }
+
+// InvalidStateTransitionError 状態遷移エラーレスポンス
+type InvalidStateTransitionError struct {
+	Error   InvalidStateTransitionErrorError `json:"error"`
+	Message string                           `json:"message"`
+}
+
+// InvalidStateTransitionErrorError defines model for InvalidStateTransitionError.Error.
+type InvalidStateTransitionErrorError string
 
 // Pager レスポンスのページネーション情報。
 // ページに含まれる対象の数は以下で求められる。
@@ -44,59 +84,12 @@ type Pager struct {
 
 // RecordingStatus 録画ステータスレスポンス
 type RecordingStatus struct {
-	// CurrentSession 現在のセッション
-	CurrentSession *Session `json:"currentSession,omitempty"`
+	// CurrentVideo 現在録画中のビデオ
+	CurrentVideo *Video `json:"currentVideo,omitempty"`
 
 	// Recording 録画中かどうか
 	Recording bool `json:"recording"`
 }
-
-// Session 録画セッション
-type Session struct {
-	// CreatedAt 作成日時
-	CreatedAt *time.Time `json:"createdAt,omitempty"`
-
-	// Filename ファイル名
-	Filename string `json:"filename"`
-
-	// FinishedAt 録画終了時刻
-	FinishedAt *time.Time `json:"finishedAt,omitempty"`
-
-	// Id セッションID
-	Id *int64 `json:"id,omitempty"`
-
-	// StartedAt 録画開始時刻
-	StartedAt *time.Time `json:"startedAt,omitempty"`
-
-	// Status ステータス
-	Status SessionStatus `json:"status"`
-
-	// Title タイトル
-	Title *string `json:"title,omitempty"`
-
-	// UpdatedAt 更新日時
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
-
-	// VideoId 関連ビデオID
-	VideoId *int64 `json:"videoId,omitempty"`
-}
-
-// SessionStatus ステータス
-type SessionStatus string
-
-// SessionCreate セッション作成リクエスト
-type SessionCreate struct {
-	Filename string  `json:"filename"`
-	Title    *string `json:"title,omitempty"`
-}
-
-// SessionUpdate セッション更新リクエスト
-type SessionUpdate struct {
-	Status *SessionUpdateStatus `json:"status,omitempty"`
-}
-
-// SessionUpdateStatus defines model for SessionUpdate.Status.
-type SessionUpdateStatus string
 
 // Video 録画ビデオ
 type Video struct {
@@ -107,13 +100,13 @@ type Video struct {
 	Filename string `json:"filename"`
 
 	// FinishedAt 録画終了時刻(UTC)
-	FinishedAt time.Time `json:"finishedAt"`
+	FinishedAt *time.Time `json:"finishedAt,omitempty"`
 
 	// Id ビデオID
 	Id *int64 `json:"id,omitempty"`
 
-	// SessionId セッションID
-	SessionId *int64 `json:"sessionId,omitempty"`
+	// ProcessingStatus 処理ステータス
+	ProcessingStatus VideoProcessingStatus `json:"processingStatus"`
 
 	// StartedAt 録画開始時刻(UTC)
 	StartedAt time.Time `json:"startedAt"`
@@ -125,14 +118,77 @@ type Video struct {
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }
 
-// VideoCreate ビデオ作成リクエスト
-type VideoCreate struct {
-	Filename   string    `json:"filename"`
-	FinishedAt time.Time `json:"finishedAt"`
-	SessionId  *int64    `json:"sessionId,omitempty"`
-	StartedAt  time.Time `json:"startedAt"`
-	Title      string    `json:"title"`
+// VideoProcessingStatus 処理ステータス
+type VideoProcessingStatus string
+
+// VideoCompleteRequest 変換完了リクエスト
+type VideoCompleteRequest struct {
+	// AudioCodec 音声コーデック
+	AudioCodec *string `json:"audioCodec,omitempty"`
+
+	// DurationSeconds 長さ(秒)
+	DurationSeconds int32 `json:"durationSeconds"`
+
+	// FileSize ファイルサイズ(バイト)
+	FileSize int64 `json:"fileSize"`
+
+	// Resolution 解像度
+	Resolution *string `json:"resolution,omitempty"`
+
+	// VideoCodec 動画コーデック
+	VideoCodec *string `json:"videoCodec,omitempty"`
 }
+
+// VideoCompletion 完了情報
+type VideoCompletion struct {
+	// AudioCodec 音声コーデック
+	AudioCodec *string `json:"audioCodec,omitempty"`
+
+	// DurationSeconds 長さ(秒)
+	DurationSeconds int32 `json:"durationSeconds"`
+
+	// FilePath ファイルパス
+	FilePath string `json:"filePath"`
+
+	// FileSize ファイルサイズ(バイト)
+	FileSize int64 `json:"fileSize"`
+
+	// Id ID
+	Id *int64 `json:"id,omitempty"`
+
+	// ReadyAt 完了時刻
+	ReadyAt time.Time `json:"readyAt"`
+
+	// Resolution 解像度
+	Resolution *string `json:"resolution,omitempty"`
+
+	// ThumbnailPath サムネイルパス
+	ThumbnailPath *string `json:"thumbnailPath,omitempty"`
+
+	// VideoCodec 動画コーデック
+	VideoCodec *string `json:"videoCodec,omitempty"`
+
+	// VideoId ビデオID
+	VideoId int64 `json:"videoId"`
+}
+
+// VideoCreate ビデオ作成リクエスト（録画開始）
+type VideoCreate struct {
+	Filename string `json:"filename"`
+	Title    string `json:"title"`
+}
+
+// VideoFailRequest 変換失敗リクエスト
+type VideoFailRequest struct {
+	// ErrorMessage エラーメッセージ
+	ErrorMessage string `json:"errorMessage"`
+
+	// ErrorType エラー種別
+	ErrorType *VideoFailRequestErrorType `json:"errorType,omitempty"`
+}
+
+// VideoFailRequestErrorType エラー種別
+type VideoFailRequestErrorType string
 
 // VideoPage ビデオページレスポンス
 type VideoPage struct {
@@ -145,6 +201,66 @@ type VideoPage struct {
 	// min(size, totalCount - size * (page - 1))
 	// ```
 	Pager Pager `json:"pager"`
+}
+
+// VideoProcessing 変換処理情報
+type VideoProcessing struct {
+	// Id ID
+	Id *int64 `json:"id,omitempty"`
+
+	// JobStatus ジョブステータス
+	JobStatus VideoProcessingJobStatus `json:"jobStatus"`
+
+	// LastError 最後のエラー
+	LastError *string `json:"lastError,omitempty"`
+
+	// OutputFilePath 出力ファイルパス
+	OutputFilePath string `json:"outputFilePath"`
+
+	// Progress 進捗 (0-100)
+	Progress int32 `json:"progress"`
+
+	// RetryCount 再試行回数
+	RetryCount int32 `json:"retryCount"`
+
+	// TempFilePath 一時ファイルパス
+	TempFilePath string `json:"tempFilePath"`
+
+	// ThumbnailPath サムネイルパス
+	ThumbnailPath *string `json:"thumbnailPath,omitempty"`
+
+	// VideoId ビデオID
+	VideoId int64 `json:"videoId"`
+}
+
+// VideoProcessingJobStatus ジョブステータス
+type VideoProcessingJobStatus string
+
+// VideoRecording 録画中情報
+type VideoRecording struct {
+	// Id ID
+	Id *int64 `json:"id,omitempty"`
+
+	// RecorderPid recorderプロセスPID
+	RecorderPid *int32 `json:"recorderPid,omitempty"`
+
+	// StartedAt 開始時刻
+	StartedAt time.Time `json:"startedAt"`
+
+	// TempFilePath 一時ファイルパス
+	TempFilePath string `json:"tempFilePath"`
+
+	// VideoId ビデオID
+	VideoId int64 `json:"videoId"`
+}
+
+// VideoStopRequest 録画停止リクエスト
+type VideoStopRequest struct {
+	// FinishedAt 終了時刻（successがtrueの場合に必須）
+	FinishedAt *time.Time `json:"finishedAt,omitempty"`
+
+	// Success 正常終了かどうか
+	Success bool `json:"success"`
 }
 
 // VideoUpdate ビデオ更新リクエスト
@@ -162,13 +278,13 @@ type VideosListParams struct {
 
 	// Size 1ページあたりの最大取得件数
 	Size *int32 `form:"size,omitempty" json:"size,omitempty"`
+
+	// Status ステータスで絞り込み
+	Status *VideosListParamsStatus `form:"status,omitempty" json:"status,omitempty"`
 }
 
-// SessionsCreateJSONRequestBody defines body for SessionsCreate for application/json ContentType.
-type SessionsCreateJSONRequestBody = SessionCreate
-
-// SessionsUpdateJSONRequestBody defines body for SessionsUpdate for application/json ContentType.
-type SessionsUpdateJSONRequestBody = SessionUpdate
+// VideosListParamsStatus defines parameters for VideosList.
+type VideosListParamsStatus string
 
 // VideosCreateJSONRequestBody defines body for VideosCreate for application/json ContentType.
 type VideosCreateJSONRequestBody = VideoCreate

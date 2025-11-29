@@ -12,20 +12,20 @@ import (
 
 // VideoFactory はVideoのテストデータを作成するファクトリ
 type VideoFactory struct {
-	Title      string
-	Filename   string
-	StartedAt  time.Time
-	FinishedAt time.Time
+	Title            string
+	Filename         string
+	StartedAt        time.Time
+	ProcessingStatus string
 }
 
 // NewVideo はデフォルト値でVideoFactoryを作成する
 func NewVideo(overrides ...func(*VideoFactory)) *VideoFactory {
 	now := time.Now()
 	f := &VideoFactory{
-		Title:      faker.Sentence(),
-		Filename:   fmt.Sprintf("%s.mp4", faker.UUIDHyphenated()),
-		StartedAt:  now,
-		FinishedAt: now.Add(time.Hour),
+		Title:            faker.Sentence(),
+		Filename:         fmt.Sprintf("%s.webm", faker.UUIDHyphenated()),
+		StartedAt:        now,
+		ProcessingStatus: "ready",
 	}
 	for _, override := range overrides {
 		override(f)
@@ -36,10 +36,10 @@ func NewVideo(overrides ...func(*VideoFactory)) *VideoFactory {
 // Build はCreateVideoParamsを生成する
 func (f *VideoFactory) Build() sqlc.CreateVideoParams {
 	return sqlc.CreateVideoParams{
-		Title:      f.Title,
-		Filename:   f.Filename,
-		StartedAt:  f.StartedAt,
-		FinishedAt: f.FinishedAt,
+		Title:            f.Title,
+		Filename:         f.Filename,
+		StartedAt:        f.StartedAt,
+		ProcessingStatus: f.ProcessingStatus,
 	}
 }
 

@@ -4,6 +4,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,18 +26,28 @@ type VideoService interface {
 	Baser
 	ListVideos(ctx context.Context, limit, offset int32) ([]sqlc.Video, int64, error)
 	GetVideo(ctx context.Context, id int64) (*sqlc.Video, error)
+	GetRecordingVideo(ctx context.Context) (*sqlc.Video, error)
 	CreateVideo(ctx context.Context, params sqlc.CreateVideoParams) (*sqlc.Video, error)
 	UpdateVideo(ctx context.Context, id int64, params sqlc.UpdateVideoParams) (*sqlc.Video, error)
 	DeleteVideo(ctx context.Context, id int64) error
+	// 状態遷移メソッド
+	StopVideo(ctx context.Context, id int64) (*sqlc.Video, error)
+	ProcessVideo(ctx context.Context, id int64) (*sqlc.Video, error)
+	CompleteVideo(ctx context.Context, id int64) (*sqlc.Video, error)
+	FailVideo(ctx context.Context, id int64) (*sqlc.Video, error)
+	RetryVideo(ctx context.Context, id int64) (*sqlc.Video, error)
 }
 
 // VideoQuerier はビデオ操作に必要なクエリメソッドのインターフェース
 type VideoQuerier interface {
 	CreateVideo(ctx context.Context, params sqlc.CreateVideoParams) (sqlc.Video, error)
 	GetVideo(ctx context.Context, id int64) (sqlc.Video, error)
+	GetRecordingVideo(ctx context.Context) (sqlc.Video, error)
 	ListVideos(ctx context.Context, params sqlc.ListVideosParams) ([]sqlc.Video, error)
 	CountVideos(ctx context.Context) (int64, error)
 	UpdateVideo(ctx context.Context, params sqlc.UpdateVideoParams) (sqlc.Video, error)
+	UpdateVideoStatus(ctx context.Context, params sqlc.UpdateVideoStatusParams) (sqlc.Video, error)
+	UpdateVideoStatusWithFinishedAt(ctx context.Context, params sqlc.UpdateVideoStatusWithFinishedAtParams) (sqlc.Video, error)
 	DeleteVideo(ctx context.Context, id int64) error
 }
 
@@ -78,12 +89,18 @@ func (s *videoService) GetVideo(ctx context.Context, id int64) (*sqlc.Video, err
 	return &video, nil
 }
 
-func (s *videoService) CreateVideo(ctx context.Context, params sqlc.CreateVideoParams) (*sqlc.Video, error) {
-	// 時系列の整合性チェック
-	if params.StartedAt.After(params.FinishedAt) {
-		return nil, ErrInvalidTimeRange
+func (s *videoService) GetRecordingVideo(ctx context.Context) (*sqlc.Video, error) {
+	video, err := s.queries.GetRecordingVideo(ctx)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get recording video: %w", err)
 	}
+	return &video, nil
+}
 
+func (s *videoService) CreateVideo(ctx context.Context, params sqlc.CreateVideoParams) (*sqlc.Video, error) {
 	video, err := s.queries.CreateVideo(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create video: %w", err)
@@ -133,4 +150,106 @@ func (s *videoService) DeleteVideo(ctx context.Context, id int64) error {
 	}
 
 	return nil
+}
+
+// StopVideo は録画を停止する（recording → pending）
+func (s *videoService) StopVideo(ctx context.Context, id int64) (*sqlc.Video, error) {
+	video, err := s.queries.GetVideo(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get video: %w", err)
+	}
+	if video.ProcessingStatus != "recording" {
+		return nil, ErrInvalidStateTransition
+	}
+
+	updated, err := s.queries.UpdateVideoStatusWithFinishedAt(ctx, sqlc.UpdateVideoStatusWithFinishedAtParams{
+		ID:               id,
+		ProcessingStatus: "pending",
+		FinishedAt:       sql.NullTime{Time: s.GetClock().Now(), Valid: true},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to stop video: %w", err)
+	}
+
+	return &updated, nil
+}
+
+// ProcessVideo は変換を開始する（pending → processing）
+func (s *videoService) ProcessVideo(ctx context.Context, id int64) (*sqlc.Video, error) {
+	video, err := s.queries.GetVideo(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get video: %w", err)
+	}
+	if video.ProcessingStatus != "pending" {
+		return nil, ErrInvalidStateTransition
+	}
+
+	updated, err := s.queries.UpdateVideoStatus(ctx, sqlc.UpdateVideoStatusParams{
+		ID:               id,
+		ProcessingStatus: "processing",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to process video: %w", err)
+	}
+	return &updated, nil
+}
+
+// CompleteVideo は変換を完了する（processing → ready）
+func (s *videoService) CompleteVideo(ctx context.Context, id int64) (*sqlc.Video, error) {
+	video, err := s.queries.GetVideo(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get video: %w", err)
+	}
+	if video.ProcessingStatus != "processing" {
+		return nil, ErrInvalidStateTransition
+	}
+
+	updated, err := s.queries.UpdateVideoStatus(ctx, sqlc.UpdateVideoStatusParams{
+		ID:               id,
+		ProcessingStatus: "ready",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to complete video: %w", err)
+	}
+	return &updated, nil
+}
+
+// FailVideo は変換失敗を記録する（processing → failed）
+func (s *videoService) FailVideo(ctx context.Context, id int64) (*sqlc.Video, error) {
+	video, err := s.queries.GetVideo(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get video: %w", err)
+	}
+	if video.ProcessingStatus != "processing" {
+		return nil, ErrInvalidStateTransition
+	}
+
+	updated, err := s.queries.UpdateVideoStatus(ctx, sqlc.UpdateVideoStatusParams{
+		ID:               id,
+		ProcessingStatus: "failed",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fail video: %w", err)
+	}
+	return &updated, nil
+}
+
+// RetryVideo は再試行する（failed → pending）
+func (s *videoService) RetryVideo(ctx context.Context, id int64) (*sqlc.Video, error) {
+	video, err := s.queries.GetVideo(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get video: %w", err)
+	}
+	if video.ProcessingStatus != "failed" {
+		return nil, ErrInvalidStateTransition
+	}
+
+	updated, err := s.queries.UpdateVideoStatus(ctx, sqlc.UpdateVideoStatusParams{
+		ID:               id,
+		ProcessingStatus: "pending",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to retry video: %w", err)
+	}
+	return &updated, nil
 }

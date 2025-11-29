@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 	_ "github.com/lib/pq" // PostgreSQLドライバを登録
 	"github.com/stretchr/testify/require"
 )
@@ -42,7 +41,7 @@ const (
 //   - packageB (test_template_789_012) ^once
 //     c                                |
 //     d                                v
-func SetupTestDB(t *testing.T) (*sqlc.Queries, func()) {
+func SetupTestDB(t *testing.T) (*sql.DB, func()) {
 	t.Helper()
 
 	// テンプレートDB作成とスキーマダンプ（プロセス内で1回だけ）
@@ -106,7 +105,6 @@ func SetupTestDB(t *testing.T) (*sqlc.Queries, func()) {
 	_, err = testDB.Exec(schemaDumpSQL)
 	require.NoError(t, err, "スキーマの作成に失敗しました")
 
-	queries := sqlc.New(testDB)
 	cleanup := func() {
 		_ = testDB.Close()
 
@@ -114,7 +112,7 @@ func SetupTestDB(t *testing.T) (*sqlc.Queries, func()) {
 		_, _ = adminDBConn.Exec("DROP DATABASE IF EXISTS " + testDBName)
 	}
 
-	return queries, cleanup
+	return testDB, cleanup
 }
 
 // dumpSchemaWithPgDump はDockerコンテナ内のpg_dumpコマンドを使ってスキーマをダンプする

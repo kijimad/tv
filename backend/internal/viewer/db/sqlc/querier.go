@@ -10,16 +10,16 @@ import (
 
 type Querier interface {
 	CountVideos(ctx context.Context) (int64, error)
-	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
+	CountVideosByStatus(ctx context.Context, processingStatus string) (int64, error)
 	CreateVideo(ctx context.Context, arg CreateVideoParams) (Video, error)
-	CreateVideoFromSession(ctx context.Context, id int64) (Video, error)
-	CreateVideoSession(ctx context.Context, arg CreateVideoSessionParams) (VideoSession, error)
 	DeleteVideo(ctx context.Context, id int64) error
-	GetCurrentRecordingSession(ctx context.Context) (Session, error)
+	GetRecordingVideo(ctx context.Context) (Video, error)
 	GetVideo(ctx context.Context, id int64) (Video, error)
 	ListVideos(ctx context.Context, arg ListVideosParams) ([]Video, error)
-	UpdateSessionStatus(ctx context.Context, arg UpdateSessionStatusParams) (Session, error)
+	ListVideosByStatus(ctx context.Context, arg ListVideosByStatusParams) ([]Video, error)
 	UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error)
+	UpdateVideoStatus(ctx context.Context, arg UpdateVideoStatusParams) (Video, error)
+	UpdateVideoStatusWithFinishedAt(ctx context.Context, arg UpdateVideoStatusWithFinishedAtParams) (Video, error)
 }
 
 var _ Querier = (*Queries)(nil)

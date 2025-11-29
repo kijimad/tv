@@ -1,360 +1,475 @@
-package service
+package service_test
 
 import (
 	"context"
 	"database/sql"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/kijimaD/tv/internal/viewer/clock"
 	"github.com/kijimaD/tv/internal/viewer/config"
+	"github.com/kijimaD/tv/internal/viewer/db"
+	"github.com/kijimaD/tv/internal/viewer/db/factory"
 	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
+	"github.com/kijimaD/tv/internal/viewer/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// mockQueries はsqlc.Queriesのモック
-type mockVideoQueries struct {
-	createVideoFunc func(ctx context.Context, params sqlc.CreateVideoParams) (sqlc.Video, error)
-	getVideoFunc    func(ctx context.Context, id int64) (sqlc.Video, error)
-	listVideosFunc  func(ctx context.Context, params sqlc.ListVideosParams) ([]sqlc.Video, error)
-	countVideosFunc func(ctx context.Context) (int64, error)
-	updateVideoFunc func(ctx context.Context, params sqlc.UpdateVideoParams) (sqlc.Video, error)
-	deleteVideoFunc func(ctx context.Context, id int64) error
-}
+const (
+	statusRecording  = "recording"
+	statusPending    = "pending"
+	statusProcessing = "processing"
+	statusReady      = "ready"
+	statusFailed     = "failed"
+)
 
-func (m *mockVideoQueries) CreateVideo(ctx context.Context, params sqlc.CreateVideoParams) (sqlc.Video, error) {
-	if m.createVideoFunc != nil {
-		return m.createVideoFunc(ctx, params)
+func setupVideoService(t *testing.T) (service.VideoService, *sqlc.Queries, func()) {
+	t.Helper()
+	testDB, cleanup := db.SetupTestDB(t)
+	queries := sqlc.New(testDB)
+	cfg := config.AppConfig{
+		VideoDir: "/tmp/test_videos",
 	}
-	return sqlc.Video{}, nil
+	clk := &clock.MockClock{FixedTime: time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)}
+	svc := service.NewVideoService(queries, cfg, clk)
+	return svc, queries, cleanup
 }
 
-func (m *mockVideoQueries) GetVideo(ctx context.Context, id int64) (sqlc.Video, error) {
-	if m.getVideoFunc != nil {
-		return m.getVideoFunc(ctx, id)
-	}
-	return sqlc.Video{}, nil
-}
-
-func (m *mockVideoQueries) ListVideos(ctx context.Context, params sqlc.ListVideosParams) ([]sqlc.Video, error) {
-	if m.listVideosFunc != nil {
-		return m.listVideosFunc(ctx, params)
-	}
-	return []sqlc.Video{}, nil
-}
-
-func (m *mockVideoQueries) CountVideos(ctx context.Context) (int64, error) {
-	if m.countVideosFunc != nil {
-		return m.countVideosFunc(ctx)
-	}
-	return 0, nil
-}
-
-func (m *mockVideoQueries) UpdateVideo(ctx context.Context, params sqlc.UpdateVideoParams) (sqlc.Video, error) {
-	if m.updateVideoFunc != nil {
-		return m.updateVideoFunc(ctx, params)
-	}
-	return sqlc.Video{}, nil
-}
-
-func (m *mockVideoQueries) DeleteVideo(ctx context.Context, id int64) error {
-	if m.deleteVideoFunc != nil {
-		return m.deleteVideoFunc(ctx, id)
-	}
-	return nil
-}
-
-// sqlc.Queriesインターフェースを満たすために他のメソッドも実装する必要がある
-func (m *mockVideoQueries) CreateSession(_ context.Context, _ sqlc.CreateSessionParams) (sqlc.Session, error) {
-	return sqlc.Session{}, nil
-}
-
-func (m *mockVideoQueries) UpdateSessionStatus(_ context.Context, _ sqlc.UpdateSessionStatusParams) (sqlc.Session, error) {
-	return sqlc.Session{}, nil
-}
-
-func (m *mockVideoQueries) GetCurrentRecordingSession(_ context.Context) (sqlc.Session, error) {
-	return sqlc.Session{}, nil
-}
-
-func (m *mockVideoQueries) CreateVideoFromSession(_ context.Context, _ int64) (sqlc.Video, error) {
-	return sqlc.Video{}, nil
-}
-
-func (m *mockVideoQueries) CreateVideoSession(_ context.Context, _ sqlc.CreateVideoSessionParams) (sqlc.VideoSession, error) {
-	return sqlc.VideoSession{}, nil
-}
-
-func TestVideoService_CreateVideo(t *testing.T) {
+func TestVideoService_StopVideo(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
 
-	t.Run("ビデオを作成できる", func(t *testing.T) {
+	t.Run("recording状態からpendingに遷移できる", func(t *testing.T) {
 		t.Parallel()
-		now := time.Now()
-		finishedAt := now.Add(time.Hour)
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
 
-		mock := &mockVideoQueries{
-			createVideoFunc: func(_ context.Context, params sqlc.CreateVideoParams) (sqlc.Video, error) {
-				return sqlc.Video{
-					ID:         1,
-					Title:      params.Title,
-					Filename:   params.Filename,
-					StartedAt:  params.StartedAt,
-					FinishedAt: params.FinishedAt,
-					CreatedAt:  now,
-					UpdatedAt:  now,
-				}, nil
-			},
-		}
-
-		svc := NewVideoService(mock, config.AppConfig{}, clock.RealClock{})
-		video, err := svc.CreateVideo(ctx, sqlc.CreateVideoParams{
-			Title:      "テストビデオ",
-			Filename:   "test.mp4",
-			StartedAt:  now,
-			FinishedAt: finishedAt,
-		})
-
+		// recording状態のビデオを作成する
+		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.ProcessingStatus = statusRecording
+		}).Create(ctx, queries)
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), video.ID)
-		assert.Equal(t, "テストビデオ", video.Title)
-		assert.Equal(t, "test.mp4", video.Filename)
+
+		// StopVideoを実行する
+		updated, err := svc.StopVideo(ctx, video.ID)
+		require.NoError(t, err)
+
+		// 状態がpendingに変わっていることを確認する
+		assert.Equal(t, "pending", updated.ProcessingStatus)
+		assert.True(t, updated.FinishedAt.Valid)
+		assert.True(t, updated.FinishedAt.Time.Equal(time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)))
 	})
 
-	t.Run("started_atがfinished_atより後の場合エラーを返す", func(t *testing.T) {
+	t.Run("recording以外の状態の時はエラーを返す", func(t *testing.T) {
 		t.Parallel()
-		now := time.Now()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
 
-		mock := &mockVideoQueries{}
-		svc := NewVideoService(mock, config.AppConfig{}, clock.RealClock{})
+		// pending状態のビデオを作成する
+		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.ProcessingStatus = statusPending
+		}).Create(ctx, queries)
+		require.NoError(t, err)
 
-		_, err := svc.CreateVideo(ctx, sqlc.CreateVideoParams{
-			Title:      "不正なビデオ",
-			Filename:   "invalid.mp4",
-			StartedAt:  now,
-			FinishedAt: now.Add(-time.Hour),
-		})
+		// StopVideoを実行する
+		_, err = svc.StopVideo(ctx, video.ID)
 
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "started_at must be before finished_at")
+		// エラーが返ることを確認する
+		assert.ErrorIs(t, err, service.ErrInvalidStateTransition)
+	})
+
+	t.Run("存在しないIDの時はエラーを返す", func(t *testing.T) {
+		t.Parallel()
+		svc, _, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// 存在しないIDでStopVideoを実行する
+		_, err := svc.StopVideo(ctx, 99999)
+
+		// エラーが返ることを確認する
+		assert.Error(t, err)
 	})
 }
 
-func TestVideoService_UpdateVideo(t *testing.T) {
+func TestVideoService_ProcessVideo(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
 
-	t.Run("ビデオを更新できる", func(t *testing.T) {
+	t.Run("pending状態からprocessingに遷移できる", func(t *testing.T) {
 		t.Parallel()
-		now := time.Now()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
 
-		mock := &mockVideoQueries{
-			updateVideoFunc: func(_ context.Context, params sqlc.UpdateVideoParams) (sqlc.Video, error) {
-				return sqlc.Video{
-					ID:         params.ID,
-					Title:      params.Title.String,
-					Filename:   "test.mp4",
-					StartedAt:  now,
-					FinishedAt: now.Add(time.Hour),
-					CreatedAt:  now,
-					UpdatedAt:  now,
-				}, nil
-			},
-		}
-
-		svc := NewVideoService(mock, config.AppConfig{}, clock.RealClock{})
-		newTitle := "更新されたタイトル"
-		video, err := svc.UpdateVideo(ctx, 1, sqlc.UpdateVideoParams{
-			ID:    1,
-			Title: sql.NullString{String: newTitle, Valid: true},
-		})
-
+		// pending状態のビデオを作成する
+		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.ProcessingStatus = statusPending
+		}).Create(ctx, queries)
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), video.ID)
-		assert.Equal(t, newTitle, video.Title)
+
+		// ProcessVideoを実行する
+		updated, err := svc.ProcessVideo(ctx, video.ID)
+		require.NoError(t, err)
+
+		// 状態がprocessingに変わっていることを確認する
+		assert.Equal(t, "processing", updated.ProcessingStatus)
 	})
 
-	t.Run("started_atがfinished_atより後の場合エラーを返す", func(t *testing.T) {
+	t.Run("pending以外の状態の時はエラーを返す", func(t *testing.T) {
 		t.Parallel()
-		now := time.Now()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
 
-		mock := &mockVideoQueries{}
-		svc := NewVideoService(mock, config.AppConfig{}, clock.RealClock{})
+		// recording状態のビデオを作成する
+		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.ProcessingStatus = statusRecording
+		}).Create(ctx, queries)
+		require.NoError(t, err)
 
-		_, err := svc.UpdateVideo(ctx, 1, sqlc.UpdateVideoParams{
-			ID:         1,
-			StartedAt:  sql.NullTime{Time: now, Valid: true},
-			FinishedAt: sql.NullTime{Time: now.Add(-time.Hour), Valid: true},
-		})
+		// ProcessVideoを実行する
+		_, err = svc.ProcessVideo(ctx, video.ID)
 
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "started_at must be before finished_at")
+		// エラーが返ることを確認する
+		assert.ErrorIs(t, err, service.ErrInvalidStateTransition)
 	})
 }
 
-func TestVideoService_GetVideo(t *testing.T) {
+func TestVideoService_CompleteVideo(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
 
-	t.Run("ビデオを取得できる", func(t *testing.T) {
+	t.Run("processing状態からreadyに遷移できる", func(t *testing.T) {
 		t.Parallel()
-		now := time.Now()
-		expectedVideo := sqlc.Video{
-			ID:         1,
-			Title:      "テストビデオ",
-			Filename:   "test.mp4",
-			StartedAt:  now,
-			FinishedAt: now.Add(time.Hour),
-			CreatedAt:  now,
-			UpdatedAt:  now,
-		}
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
 
-		mock := &mockVideoQueries{
-			getVideoFunc: func(_ context.Context, _ int64) (sqlc.Video, error) {
-				return expectedVideo, nil
-			},
-		}
-
-		svc := NewVideoService(mock, config.AppConfig{}, clock.RealClock{})
-		video, err := svc.GetVideo(ctx, 1)
-
+		// processing状態のビデオを作成する
+		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.ProcessingStatus = statusProcessing
+		}).Create(ctx, queries)
 		require.NoError(t, err)
-		assert.Equal(t, expectedVideo.ID, video.ID)
-		assert.Equal(t, expectedVideo.Title, video.Title)
+
+		// CompleteVideoを実行する
+		updated, err := svc.CompleteVideo(ctx, video.ID)
+		require.NoError(t, err)
+
+		// 状態がreadyに変わっていることを確認する
+		assert.Equal(t, "ready", updated.ProcessingStatus)
+	})
+
+	t.Run("processing以外の状態の時はエラーを返す", func(t *testing.T) {
+		t.Parallel()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// pending状態のビデオを作成する
+		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.ProcessingStatus = statusPending
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// CompleteVideoを実行する
+		_, err = svc.CompleteVideo(ctx, video.ID)
+
+		// エラーが返ることを確認する
+		assert.ErrorIs(t, err, service.ErrInvalidStateTransition)
+	})
+}
+
+func TestVideoService_FailVideo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("processing状態からfailedに遷移できる", func(t *testing.T) {
+		t.Parallel()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// processing状態のビデオを作成する
+		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.ProcessingStatus = statusProcessing
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// FailVideoを実行する
+		updated, err := svc.FailVideo(ctx, video.ID)
+		require.NoError(t, err)
+
+		// 状態がfailedに変わっていることを確認する
+		assert.Equal(t, "failed", updated.ProcessingStatus)
+	})
+
+	t.Run("processing以外の状態の時はエラーを返す", func(t *testing.T) {
+		t.Parallel()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// ready状態のビデオを作成する
+		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.ProcessingStatus = statusReady
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// FailVideoを実行する
+		_, err = svc.FailVideo(ctx, video.ID)
+
+		// エラーが返ることを確認する
+		assert.ErrorIs(t, err, service.ErrInvalidStateTransition)
+	})
+}
+
+func TestVideoService_RetryVideo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("failed状態からpendingに遷移できる", func(t *testing.T) {
+		t.Parallel()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// failed状態のビデオを作成する
+		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.ProcessingStatus = statusFailed
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// RetryVideoを実行する
+		updated, err := svc.RetryVideo(ctx, video.ID)
+		require.NoError(t, err)
+
+		// 状態がpendingに変わっていることを確認する
+		assert.Equal(t, "pending", updated.ProcessingStatus)
+	})
+
+	t.Run("failed以外の状態の時はエラーを返す", func(t *testing.T) {
+		t.Parallel()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// ready状態のビデオを作成する
+		video, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.ProcessingStatus = statusReady
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// RetryVideoを実行する
+		_, err = svc.RetryVideo(ctx, video.ID)
+
+		// エラーが返ることを確認する
+		assert.ErrorIs(t, err, service.ErrInvalidStateTransition)
 	})
 }
 
 func TestVideoService_ListVideos(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
 
 	t.Run("ビデオ一覧を取得できる", func(t *testing.T) {
 		t.Parallel()
-		now := time.Now()
-		expectedVideos := []sqlc.Video{
-			{
-				ID:         1,
-				Title:      "ビデオ1",
-				Filename:   "test1.mp4",
-				StartedAt:  now,
-				FinishedAt: now.Add(time.Hour),
-				CreatedAt:  now,
-				UpdatedAt:  now,
-			},
-			{
-				ID:         2,
-				Title:      "ビデオ2",
-				Filename:   "test2.mp4",
-				StartedAt:  now,
-				FinishedAt: now.Add(time.Hour),
-				CreatedAt:  now,
-				UpdatedAt:  now,
-			},
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// 3件のビデオを作成する
+		_, err := factory.NewVideo().Create(ctx, queries)
+		require.NoError(t, err)
+		_, err = factory.NewVideo().Create(ctx, queries)
+		require.NoError(t, err)
+		_, err = factory.NewVideo().Create(ctx, queries)
+		require.NoError(t, err)
+
+		// 一覧を取得する
+		videos, totalCount, err := svc.ListVideos(ctx, 10, 0)
+		require.NoError(t, err)
+
+		// 3件取得できることを確認する
+		assert.Len(t, videos, 3)
+		assert.Equal(t, int64(3), totalCount)
+	})
+
+	t.Run("ページネーションが機能する", func(t *testing.T) {
+		t.Parallel()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// 5件のビデオを作成する
+		for i := 0; i < 5; i++ {
+			_, err := factory.NewVideo().Create(ctx, queries)
+			require.NoError(t, err)
 		}
 
-		mock := &mockVideoQueries{
-			listVideosFunc: func(_ context.Context, _ sqlc.ListVideosParams) ([]sqlc.Video, error) {
-				return expectedVideos, nil
-			},
-			countVideosFunc: func(_ context.Context) (int64, error) {
-				return 5, nil
-			},
-		}
-
-		svc := NewVideoService(mock, config.AppConfig{}, clock.RealClock{})
-		videos, total, err := svc.ListVideos(ctx, 10, 0)
-
+		// limit=2, offset=0で取得する
+		videos, totalCount, err := svc.ListVideos(ctx, 2, 0)
 		require.NoError(t, err)
 		assert.Len(t, videos, 2)
-		assert.Equal(t, int64(5), total)
-		assert.Equal(t, "ビデオ1", videos[0].Title)
-		assert.Equal(t, "ビデオ2", videos[1].Title)
+		assert.Equal(t, int64(5), totalCount)
+
+		// limit=2, offset=2で取得する
+		videos, totalCount, err = svc.ListVideos(ctx, 2, 2)
+		require.NoError(t, err)
+		assert.Len(t, videos, 2)
+		assert.Equal(t, int64(5), totalCount)
+
+		// limit=2, offset=4で取得する
+		videos, totalCount, err = svc.ListVideos(ctx, 2, 4)
+		require.NoError(t, err)
+		assert.Len(t, videos, 1)
+		assert.Equal(t, int64(5), totalCount)
 	})
 }
 
-func TestVideoService_DeleteVideo(t *testing.T) {
+func TestVideoService_GetVideo(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
 
-	t.Run("ビデオとファイルを削除できる", func(t *testing.T) {
+	t.Run("ビデオ詳細を取得できる", func(t *testing.T) {
 		t.Parallel()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
 
-		// テスト用の一時ディレクトリを作成する
-		tempDir := t.TempDir()
-
-		// テスト用の動画ファイルとサムネイルを作成する
-		videoFilename := "test_video.webm"
-		videoPath := filepath.Join(tempDir, videoFilename)
-		thumbnailPath := filepath.Join(tempDir, "test_video.jpg")
-
-		err := os.WriteFile(videoPath, []byte("test video content"), 0644)
-		require.NoError(t, err)
-		err = os.WriteFile(thumbnailPath, []byte("test thumbnail content"), 0644)
+		// ビデオを作成する
+		created, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.Title = "Test Video"
+		}).Create(ctx, queries)
 		require.NoError(t, err)
 
-		now := time.Now()
-		mock := &mockVideoQueries{
-			getVideoFunc: func(_ context.Context, id int64) (sqlc.Video, error) {
-				return sqlc.Video{
-					ID:         id,
-					Title:      "テストビデオ",
-					Filename:   videoFilename,
-					StartedAt:  now,
-					FinishedAt: now.Add(time.Hour),
-					CreatedAt:  now,
-					UpdatedAt:  now,
-				}, nil
-			},
-			deleteVideoFunc: func(_ context.Context, _ int64) error {
-				return nil
-			},
-		}
-
-		svc := NewVideoService(mock, config.AppConfig{VideoDir: tempDir}, clock.RealClock{})
-		err = svc.DeleteVideo(ctx, 1)
-
+		// 詳細を取得する
+		video, err := svc.GetVideo(ctx, created.ID)
 		require.NoError(t, err)
 
-		// ファイルが削除されたことを確認する
-		_, err = os.Stat(videoPath)
-		assert.True(t, os.IsNotExist(err), "動画ファイルが削除されていない")
-
-		_, err = os.Stat(thumbnailPath)
-		assert.True(t, os.IsNotExist(err), "サムネイルファイルが削除されていない")
+		// 内容を確認する
+		assert.Equal(t, "Test Video", video.Title)
+		assert.Equal(t, created.ID, video.ID)
 	})
 
-	t.Run("ファイルが存在しない場合でも削除できる", func(t *testing.T) {
+	t.Run("存在しないIDの時はエラーを返す", func(t *testing.T) {
 		t.Parallel()
+		svc, _, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
 
-		// テスト用の一時ディレクトリを作成する
-		tempDir := t.TempDir()
+		// 存在しないIDで取得する
+		_, err := svc.GetVideo(ctx, 99999)
 
-		now := time.Now()
-		mock := &mockVideoQueries{
-			getVideoFunc: func(_ context.Context, id int64) (sqlc.Video, error) {
-				return sqlc.Video{
-					ID:         id,
-					Title:      "テストビデオ",
-					Filename:   "nonexistent.webm",
-					StartedAt:  now,
-					FinishedAt: now.Add(time.Hour),
-					CreatedAt:  now,
-					UpdatedAt:  now,
-				}, nil
-			},
-			deleteVideoFunc: func(_ context.Context, _ int64) error {
-				return nil
-			},
-		}
+		// エラーが返ることを確認する
+		assert.Error(t, err)
+	})
+}
 
-		svc := NewVideoService(mock, config.AppConfig{VideoDir: tempDir}, clock.RealClock{})
-		err := svc.DeleteVideo(ctx, 1)
+func TestVideoService_GetRecordingVideo(t *testing.T) {
+	t.Parallel()
 
-		// ファイルが存在しなくてもエラーにならない
+	t.Run("録画中のビデオを取得できる", func(t *testing.T) {
+		t.Parallel()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// recording状態のビデオを作成する
+		created, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.ProcessingStatus = statusRecording
+		}).Create(ctx, queries)
 		require.NoError(t, err)
+
+		// 録画中のビデオを取得する
+		video, err := svc.GetRecordingVideo(ctx)
+		require.NoError(t, err)
+		require.NotNil(t, video)
+
+		// 内容を確認する
+		assert.Equal(t, created.ID, video.ID)
+		assert.Equal(t, "recording", video.ProcessingStatus)
+	})
+
+	t.Run("録画中のビデオがない時はnilを返す", func(t *testing.T) {
+		t.Parallel()
+		svc, _, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// 録画中のビデオを取得する
+		video, err := svc.GetRecordingVideo(ctx)
+		require.NoError(t, err)
+
+		// nilが返ることを確認する
+		assert.Nil(t, video)
+	})
+}
+
+func TestVideoService_CreateVideo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ビデオを作成できる", func(t *testing.T) {
+		t.Parallel()
+		svc, _, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// ビデオを作成する
+		params := sqlc.CreateVideoParams{
+			Title:            "New Video",
+			Filename:         "new.webm",
+			StartedAt:        time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC),
+			ProcessingStatus: "recording",
+		}
+		video, err := svc.CreateVideo(ctx, params)
+		require.NoError(t, err)
+
+		// 内容を確認する
+		assert.Equal(t, "New Video", video.Title)
+		assert.Equal(t, "new.webm", video.Filename)
+		assert.Equal(t, "recording", video.ProcessingStatus)
+	})
+}
+
+func TestVideoService_UpdateVideo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ビデオを更新できる", func(t *testing.T) {
+		t.Parallel()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// ビデオを作成する
+		created, err := factory.NewVideo().Create(ctx, queries)
+		require.NoError(t, err)
+
+		// 更新する
+		params := sqlc.UpdateVideoParams{
+			Title: sql.NullString{String: "Updated Title", Valid: true},
+		}
+		updated, err := svc.UpdateVideo(ctx, created.ID, params)
+		require.NoError(t, err)
+
+		// 内容を確認する
+		assert.Equal(t, "Updated Title", updated.Title)
+	})
+
+	t.Run("startedAtがfinishedAtより後の時はエラーを返す", func(t *testing.T) {
+		t.Parallel()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// ビデオを作成する
+		created, err := factory.NewVideo().Create(ctx, queries)
+		require.NoError(t, err)
+
+		// 無効な時刻範囲で更新する
+		params := sqlc.UpdateVideoParams{
+			StartedAt:  sql.NullTime{Time: time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC), Valid: true},
+			FinishedAt: sql.NullTime{Time: time.Date(2024, 1, 1, 11, 0, 0, 0, time.UTC), Valid: true},
+		}
+		_, err = svc.UpdateVideo(ctx, created.ID, params)
+
+		// エラーが返ることを確認する
+		assert.ErrorIs(t, err, service.ErrInvalidTimeRange)
 	})
 }

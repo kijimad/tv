@@ -9,31 +9,13 @@ import (
 	"time"
 )
 
-type Session struct {
-	ID         int64        `json:"id"`
-	Filename   string       `json:"filename"`
-	Title      string       `json:"title"`
-	Status     string       `json:"status"`
-	StartedAt  time.Time    `json:"started_at"`
-	FinishedAt sql.NullTime `json:"finished_at"`
-	CreatedAt  time.Time    `json:"created_at"`
-	UpdatedAt  time.Time    `json:"updated_at"`
-}
-
 type Video struct {
-	ID         int64     `json:"id"`
-	StartedAt  time.Time `json:"started_at"`
-	FinishedAt time.Time `json:"finished_at"`
-	Title      string    `json:"title"`
-	Filename   string    `json:"filename"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
-}
-
-type VideoSession struct {
-	ID        int64     `json:"id"`
-	VideoID   int64     `json:"video_id"`
-	SessionID int64     `json:"session_id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID               int64        `json:"id"`
+	StartedAt        time.Time    `json:"started_at"`
+	FinishedAt       sql.NullTime `json:"finished_at"`
+	Title            string       `json:"title"`
+	Filename         string       `json:"filename"`
+	CreatedAt        time.Time    `json:"created_at"`
+	UpdatedAt        time.Time    `json:"updated_at"`
+	ProcessingStatus string       `json:"processing_status"`
 }

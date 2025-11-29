@@ -2,14 +2,16 @@
 package handler
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/kijimaD/tv/internal/oapi"
 	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 	"github.com/kijimaD/tv/internal/viewer/service"
@@ -17,201 +19,209 @@ import (
 
 // VideoHandler は動画ハンドラ
 type VideoHandler struct {
-	videoSvc   service.VideoService
-	sessionSvc service.SessionService
+	videoSvc service.VideoService
 }
 
 // NewVideoHandler はVideoHandlerを作成する
-func NewVideoHandler(videoSvc service.VideoService, sessionSvc service.SessionService) *VideoHandler {
+func NewVideoHandler(videoSvc service.VideoService) *VideoHandler {
 	return &VideoHandler{
-		videoSvc:   videoSvc,
-		sessionSvc: sessionSvc,
+		videoSvc: videoSvc,
 	}
 }
 
 // VideosList はビデオ一覧を取得する
-func (h *VideoHandler) VideosList(c *gin.Context, params oapi.VideosListParams) {
+func (h *VideoHandler) VideosList(ctx context.Context, request oapi.VideosListRequestObject) (oapi.VideosListResponseObject, error) {
 	page := int32(1)
 	size := int32(30)
-	if params.Page != nil {
-		page = *params.Page
+	if request.Params.Page != nil {
+		page = *request.Params.Page
 	}
-	if params.Size != nil {
-		size = *params.Size
+	if request.Params.Size != nil {
+		size = *request.Params.Size
 	}
 
 	// page/sizeをoffset/limitに変換する
 	offset := (page - 1) * size
 	limit := size
 
-	videos, totalCount, err := h.videoSvc.ListVideos(c.Request.Context(), limit, offset)
+	videos, totalCount, err := h.videoSvc.ListVideos(ctx, limit, offset)
 	if err != nil {
-		statusCode, message := errorResponse(err)
-		c.JSON(statusCode, oapi.Error{
-			Message: message,
-		})
-		return
+		return nil, err
 	}
 
-	response := oapi.VideoPage{
+	return oapi.VideosList200JSONResponse{
 		Pager: oapi.Pager{
 			Page:       page,
 			Size:       size,
 			TotalCount: int32(totalCount),
 		},
 		Data: toAPIVideos(videos),
-	}
-	c.JSON(http.StatusOK, response)
+	}, nil
 }
 
 // VideosCreate はビデオを作成する
-func (h *VideoHandler) VideosCreate(c *gin.Context) {
-	var req oapi.VideoCreate
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, oapi.Error{
-			Message: err.Error(),
-		})
-		return
-	}
-
-	video, err := h.videoSvc.CreateVideo(c.Request.Context(), sqlc.CreateVideoParams{
-		Title:      req.Title,
-		Filename:   req.Filename,
-		StartedAt:  req.StartedAt,
-		FinishedAt: req.FinishedAt,
+func (h *VideoHandler) VideosCreate(ctx context.Context, request oapi.VideosCreateRequestObject) (oapi.VideosCreateResponseObject, error) {
+	video, err := h.videoSvc.CreateVideo(ctx, sqlc.CreateVideoParams{
+		Title:            request.Body.Title,
+		Filename:         request.Body.Filename,
+		StartedAt:        h.videoSvc.GetClock().Now(),
+		ProcessingStatus: "recording",
 	})
 	if err != nil {
-		statusCode, message := errorResponse(err)
-		c.JSON(statusCode, oapi.Error{
-			Message: message,
-		})
-		return
+		return nil, err
 	}
 
-	c.JSON(http.StatusCreated, toAPIVideo(*video))
+	return oapi.VideosCreate201JSONResponse(toAPIVideo(*video)), nil
 }
 
 // VideosGet はビデオ詳細を取得する
-func (h *VideoHandler) VideosGet(c *gin.Context, id int64) {
-	video, err := h.videoSvc.GetVideo(c.Request.Context(), id)
+func (h *VideoHandler) VideosGet(ctx context.Context, request oapi.VideosGetRequestObject) (oapi.VideosGetResponseObject, error) {
+	video, err := h.videoSvc.GetVideo(ctx, request.Id)
 	if err != nil {
-		statusCode, message := errorResponse(err)
-		c.JSON(statusCode, oapi.Error{
-			Message: message,
-		})
-		return
+		return nil, err
 	}
 
-	c.JSON(http.StatusOK, toAPIVideo(*video))
+	return oapi.VideosGet200JSONResponse(toAPIVideo(*video)), nil
 }
 
 // VideosUpdate はビデオを更新する
-func (h *VideoHandler) VideosUpdate(c *gin.Context, id int64) {
-	var req oapi.VideoUpdate
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, oapi.Error{
-			Message: err.Error(),
-		})
-		return
-	}
-
+func (h *VideoHandler) VideosUpdate(ctx context.Context, request oapi.VideosUpdateRequestObject) (oapi.VideosUpdateResponseObject, error) {
 	params := sqlc.UpdateVideoParams{
-		ID: id,
+		ID: request.Id,
 	}
-	if req.Title != nil {
-		params.Title = sql.NullString{String: *req.Title, Valid: true}
+	if request.Body.Title != nil {
+		params.Title = sql.NullString{String: *request.Body.Title, Valid: true}
 	}
-	if req.Filename != nil {
-		params.Filename = sql.NullString{String: *req.Filename, Valid: true}
+	if request.Body.Filename != nil {
+		params.Filename = sql.NullString{String: *request.Body.Filename, Valid: true}
 	}
-	if req.StartedAt != nil {
-		params.StartedAt = sql.NullTime{Time: *req.StartedAt, Valid: true}
+	if request.Body.StartedAt != nil {
+		params.StartedAt = sql.NullTime{Time: *request.Body.StartedAt, Valid: true}
 	}
-	if req.FinishedAt != nil {
-		params.FinishedAt = sql.NullTime{Time: *req.FinishedAt, Valid: true}
+	if request.Body.FinishedAt != nil {
+		params.FinishedAt = sql.NullTime{Time: *request.Body.FinishedAt, Valid: true}
 	}
 
-	video, err := h.videoSvc.UpdateVideo(c.Request.Context(), id, params)
+	video, err := h.videoSvc.UpdateVideo(ctx, request.Id, params)
 	if err != nil {
-		statusCode, message := errorResponse(err)
-		c.JSON(statusCode, oapi.Error{
-			Message: message,
-		})
-		return
+		return nil, err
 	}
 
-	c.JSON(http.StatusOK, toAPIVideo(*video))
+	return oapi.VideosUpdate200JSONResponse(toAPIVideo(*video)), nil
 }
 
 // VideosDelete はビデオを削除する
-func (h *VideoHandler) VideosDelete(c *gin.Context, id int64) {
-	if err := h.videoSvc.DeleteVideo(c.Request.Context(), id); err != nil {
-		statusCode, message := errorResponse(err)
-		c.JSON(statusCode, oapi.Error{
-			Message: message,
-		})
-		return
+func (h *VideoHandler) VideosDelete(ctx context.Context, request oapi.VideosDeleteRequestObject) (oapi.VideosDeleteResponseObject, error) {
+	if err := h.videoSvc.DeleteVideo(ctx, request.Id); err != nil {
+		return nil, err
 	}
 
-	c.Status(http.StatusNoContent)
+	return oapi.VideosDelete204Response{}, nil
 }
 
 // VideosFile は動画ファイルを配信する
-func (h *VideoHandler) VideosFile(c *gin.Context, id int64) {
+func (h *VideoHandler) VideosFile(ctx context.Context, request oapi.VideosFileRequestObject) (oapi.VideosFileResponseObject, error) {
 	// ビデオ情報を取得する
-	video, err := h.videoSvc.GetVideo(c.Request.Context(), id)
+	video, err := h.videoSvc.GetVideo(ctx, request.Id)
 	if err != nil {
-		statusCode, message := errorResponse(err)
-		c.JSON(statusCode, oapi.Error{
-			Message: message,
-		})
-		return
+		return nil, err
 	}
 
 	// ファイル名を検証する（パストラバーサル対策）
 	if err := validateFilename(video.Filename); err != nil {
-		c.JSON(http.StatusBadRequest, oapi.Error{
-			Message: err.Error(),
-		})
-		return
+		return nil, err
 	}
 
 	// ファイルパスを構築する
 	filePath := filepath.Join(h.videoSvc.GetConfig().VideoDir, video.Filename)
 
-	// Content-Typeを設定して配信する
-	c.Header("Content-Type", "video/webm")
-	c.File(filePath)
+	return &videosFileResponse{filePath: filePath}, nil
 }
 
 // VideosThumbnail はサムネイル画像を配信する
-func (h *VideoHandler) VideosThumbnail(c *gin.Context, id int64) {
+func (h *VideoHandler) VideosThumbnail(ctx context.Context, request oapi.VideosThumbnailRequestObject) (oapi.VideosThumbnailResponseObject, error) {
 	// ビデオ情報を取得する
-	video, err := h.videoSvc.GetVideo(c.Request.Context(), id)
+	video, err := h.videoSvc.GetVideo(ctx, request.Id)
 	if err != nil {
-		statusCode, message := errorResponse(err)
-		c.JSON(statusCode, oapi.Error{
-			Message: message,
-		})
-		return
+		return nil, err
 	}
 
 	// ファイル名を検証する（パストラバーサル対策）
 	if err := validateFilename(video.Filename); err != nil {
-		c.JSON(http.StatusBadRequest, oapi.Error{
-			Message: err.Error(),
-		})
-		return
+		return nil, err
 	}
 
 	// サムネイルパスを生成する
 	thumbnailFilename := strings.TrimSuffix(video.Filename, ".webm") + ".jpg"
 	thumbnailPath := filepath.Join(h.videoSvc.GetConfig().VideoDir, thumbnailFilename)
 
-	// Content-Typeを設定して配信する
-	c.Header("Content-Type", "image/jpeg")
-	c.Header("Cache-Control", "public, max-age=31536000")
-	c.File(thumbnailPath)
+	return &videosThumbnailResponse{filePath: thumbnailPath}, nil
+}
+
+// StatusGet は現在の録画状態を取得する
+func (h *VideoHandler) StatusGet(ctx context.Context, _ oapi.StatusGetRequestObject) (oapi.StatusGetResponseObject, error) {
+	video, err := h.videoSvc.GetRecordingVideo(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if video == nil {
+		return oapi.StatusGet200JSONResponse{
+			Recording:    false,
+			CurrentVideo: nil,
+		}, nil
+	}
+
+	apiVideo := toAPIVideo(*video)
+	return oapi.StatusGet200JSONResponse{
+		Recording:    true,
+		CurrentVideo: &apiVideo,
+	}, nil
+}
+
+// VideosStop は録画を停止する（recording → pending）
+func (h *VideoHandler) VideosStop(ctx context.Context, request oapi.VideosStopRequestObject) (oapi.VideosStopResponseObject, error) {
+	video, err := h.videoSvc.StopVideo(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return oapi.VideosStop200JSONResponse(toAPIVideo(*video)), nil
+}
+
+// VideosProcess は変換を開始する（pending → processing）
+func (h *VideoHandler) VideosProcess(ctx context.Context, request oapi.VideosProcessRequestObject) (oapi.VideosProcessResponseObject, error) {
+	video, err := h.videoSvc.ProcessVideo(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return oapi.VideosProcess200JSONResponse(toAPIVideo(*video)), nil
+}
+
+// VideosComplete は変換を完了する（processing → ready）
+func (h *VideoHandler) VideosComplete(ctx context.Context, request oapi.VideosCompleteRequestObject) (oapi.VideosCompleteResponseObject, error) {
+	video, err := h.videoSvc.CompleteVideo(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return oapi.VideosComplete200JSONResponse(toAPIVideo(*video)), nil
+}
+
+// VideosFail は変換失敗を記録する（processing → failed）
+func (h *VideoHandler) VideosFail(ctx context.Context, request oapi.VideosFailRequestObject) (oapi.VideosFailResponseObject, error) {
+	video, err := h.videoSvc.FailVideo(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return oapi.VideosFail200JSONResponse(toAPIVideo(*video)), nil
+}
+
+// VideosRetry は再試行する（failed → pending）
+func (h *VideoHandler) VideosRetry(ctx context.Context, request oapi.VideosRetryRequestObject) (oapi.VideosRetryResponseObject, error) {
+	video, err := h.videoSvc.RetryVideo(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	return oapi.VideosRetry200JSONResponse(toAPIVideo(*video)), nil
 }
 
 // validateFilename はファイル名を検証する（パストラバーサル対策）
@@ -230,14 +240,19 @@ func validateFilename(filename string) error {
 // toAPIVideo はsqlc.Videoをoapi.Videoに変換する
 func toAPIVideo(v sqlc.Video) oapi.Video {
 	id := v.ID
+	var finishedAt *time.Time
+	if v.FinishedAt.Valid {
+		finishedAt = &v.FinishedAt.Time
+	}
 	return oapi.Video{
-		Id:         &id,
-		Title:      v.Title,
-		Filename:   v.Filename,
-		StartedAt:  v.StartedAt,
-		FinishedAt: v.FinishedAt,
-		CreatedAt:  &v.CreatedAt,
-		UpdatedAt:  &v.UpdatedAt,
+		Id:               &id,
+		Title:            v.Title,
+		Filename:         v.Filename,
+		StartedAt:        v.StartedAt,
+		FinishedAt:       finishedAt,
+		ProcessingStatus: oapi.VideoProcessingStatus(v.ProcessingStatus),
+		CreatedAt:        &v.CreatedAt,
+		UpdatedAt:        &v.UpdatedAt,
 	}
 }
 
@@ -249,113 +264,62 @@ func toAPIVideos(videos []sqlc.Video) []oapi.Video {
 	return result
 }
 
-// SessionsCreate はセッションを作成する
-func (h *VideoHandler) SessionsCreate(c *gin.Context) {
-	var req oapi.SessionCreate
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, oapi.Error{
-			Message: err.Error(),
-		})
-		return
-	}
-
-	title := ""
-	if req.Title != nil {
-		title = *req.Title
-	}
-
-	session, err := h.sessionSvc.CreateSession(c.Request.Context(), sqlc.CreateSessionParams{
-		Filename: req.Filename,
-		Title:    title,
-	})
-	if err != nil {
-		statusCode, message := errorResponse(err)
-		c.JSON(statusCode, oapi.Error{
-			Message: message,
-		})
-		return
-	}
-
-	c.JSON(http.StatusCreated, toAPISession(*session, nil))
+// videosFileResponse はファイル配信のレスポンス
+type videosFileResponse struct {
+	filePath string
 }
 
-// SessionsUpdate はセッションを更新する
-func (h *VideoHandler) SessionsUpdate(c *gin.Context, id int64) {
-	var req oapi.SessionUpdate
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, oapi.Error{
-			Message: err.Error(),
-		})
-		return
-	}
-
-	if req.Status == nil {
-		c.JSON(http.StatusBadRequest, oapi.Error{
-			Message: "status is required",
-		})
-		return
-	}
-
-	result, err := h.sessionSvc.UpdateSessionStatus(c.Request.Context(), id, string(*req.Status))
+func (r *videosFileResponse) VisitVideosFileResponse(w http.ResponseWriter) error {
+	// ファイルを開く
+	file, err := os.Open(r.filePath)
 	if err != nil {
-		statusCode, message := errorResponse(err)
-		c.JSON(statusCode, oapi.Error{
-			Message: message,
-		})
-		return
+		return fmt.Errorf("failed to open video file: %w", err)
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+
+	// ファイル情報を取得する
+	stat, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to stat video file: %w", err)
 	}
 
-	c.JSON(http.StatusOK, toAPISession(result.Session, result.VideoID))
+	// Content-Typeとサイズを設定する
+	w.Header().Set("Content-Type", "video/webm")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", stat.Size()))
+
+	// ファイルを配信する
+	_, err = io.Copy(w, file)
+	return err
 }
 
-// StatusGet は現在の録画状態を取得する
-func (h *VideoHandler) StatusGet(c *gin.Context) {
-	session, err := h.sessionSvc.GetCurrentRecordingSession(c.Request.Context())
-	if err != nil {
-		statusCode, message := errorResponse(err)
-		c.JSON(statusCode, oapi.Error{
-			Message: message,
-		})
-		return
-	}
-
-	if session == nil {
-		c.JSON(http.StatusOK, oapi.RecordingStatus{
-			Recording:      false,
-			CurrentSession: nil,
-		})
-		return
-	}
-
-	currentSession := toAPISession(*session, nil)
-	c.JSON(http.StatusOK, oapi.RecordingStatus{
-		Recording:      true,
-		CurrentSession: &currentSession,
-	})
+// videosThumbnailResponse はサムネイル配信のレスポンス
+type videosThumbnailResponse struct {
+	filePath string
 }
 
-// toAPISession はsqlc.Sessionをoapi.Sessionに変換する
-func toAPISession(s sqlc.Session, videoID *int64) oapi.Session {
-	id := s.ID
-	createdAt := s.CreatedAt
-	updatedAt := s.UpdatedAt
-	startedAt := s.StartedAt
-	var finishedAt *time.Time
-	if s.FinishedAt.Valid {
-		finishedAt = &s.FinishedAt.Time
+func (r *videosThumbnailResponse) VisitVideosThumbnailResponse(w http.ResponseWriter) error {
+	// ファイルを開く
+	file, err := os.Open(r.filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open thumbnail file: %w", err)
+	}
+	defer func() {
+		_ = file.Close()
+	}()
+
+	// ファイル情報を取得する
+	stat, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to stat thumbnail file: %w", err)
 	}
 
-	status := oapi.SessionStatus(s.Status)
+	// Content-Typeとサイズを設定する
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", stat.Size()))
 
-	return oapi.Session{
-		Id:         &id,
-		Filename:   s.Filename,
-		Title:      &s.Title,
-		Status:     status,
-		StartedAt:  &startedAt,
-		FinishedAt: finishedAt,
-		CreatedAt:  &createdAt,
-		UpdatedAt:  &updatedAt,
-		VideoId:    videoID,
-	}
+	// ファイルを配信する
+	_, err = io.Copy(w, file)
+	return err
 }

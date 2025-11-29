@@ -19,6 +19,7 @@ describe("VideoCard", () => {
     finishedAt: "2025-11-17T11:00:00Z",
     createdAt: "2025-11-17T10:00:00Z",
     updatedAt: "2025-11-17T10:00:00Z",
+    processingStatus: "ready",
   };
 
   test("動画情報を表示できる", () => {

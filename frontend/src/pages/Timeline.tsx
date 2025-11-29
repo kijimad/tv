@@ -113,7 +113,8 @@ export default function Timeline() {
   };
 
   // 動画の長さ（分）を計算する
-  const getDurationMinutes = (startedAt: string, finishedAt: string) => {
+  const getDurationMinutes = (startedAt: string, finishedAt?: string) => {
+    if (!finishedAt) return 0;
     const start = new Date(startedAt);
     const end = new Date(finishedAt);
     return Math.floor((end.getTime() - start.getTime()) / 1000 / 60);

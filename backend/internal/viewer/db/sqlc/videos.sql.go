@@ -22,28 +22,40 @@ func (q *Queries) CountVideos(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+const countVideosByStatus = `-- name: CountVideosByStatus :one
+SELECT COUNT(*) FROM videos
+WHERE processing_status = $1
+`
+
+func (q *Queries) CountVideosByStatus(ctx context.Context, processingStatus string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countVideosByStatus, processingStatus)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createVideo = `-- name: CreateVideo :one
 INSERT INTO videos (
-    started_at, finished_at, title, filename
+    title, filename, started_at, processing_status
 ) VALUES (
     $1, $2, $3, $4
 )
-RETURNING id, started_at, finished_at, title, filename, created_at, updated_at
+RETURNING id, started_at, finished_at, title, filename, created_at, updated_at, processing_status
 `
 
 type CreateVideoParams struct {
-	StartedAt  time.Time `json:"started_at"`
-	FinishedAt time.Time `json:"finished_at"`
-	Title      string    `json:"title"`
-	Filename   string    `json:"filename"`
+	Title            string    `json:"title"`
+	Filename         string    `json:"filename"`
+	StartedAt        time.Time `json:"started_at"`
+	ProcessingStatus string    `json:"processing_status"`
 }
 
 func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video, error) {
 	row := q.db.QueryRowContext(ctx, createVideo,
-		arg.StartedAt,
-		arg.FinishedAt,
 		arg.Title,
 		arg.Filename,
+		arg.StartedAt,
+		arg.ProcessingStatus,
 	)
 	var i Video
 	err := row.Scan(
@@ -54,30 +66,7 @@ func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video
 		&i.Filename,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const createVideoFromSession = `-- name: CreateVideoFromSession :one
-INSERT INTO videos (filename, title, started_at, finished_at)
-SELECT filename, title, started_at, COALESCE(finished_at, NOW())
-FROM sessions
-WHERE sessions.id = $1
-  AND finished_at IS NOT NULL
-RETURNING id, started_at, finished_at, title, filename, created_at, updated_at
-`
-
-func (q *Queries) CreateVideoFromSession(ctx context.Context, id int64) (Video, error) {
-	row := q.db.QueryRowContext(ctx, createVideoFromSession, id)
-	var i Video
-	err := row.Scan(
-		&i.ID,
-		&i.StartedAt,
-		&i.FinishedAt,
-		&i.Title,
-		&i.Filename,
-		&i.CreatedAt,
-		&i.UpdatedAt,
+		&i.ProcessingStatus,
 	)
 	return i, err
 }
@@ -92,8 +81,30 @@ func (q *Queries) DeleteVideo(ctx context.Context, id int64) error {
 	return err
 }
 
+const getRecordingVideo = `-- name: GetRecordingVideo :one
+SELECT id, started_at, finished_at, title, filename, created_at, updated_at, processing_status FROM videos
+WHERE processing_status = 'recording'
+LIMIT 1
+`
+
+func (q *Queries) GetRecordingVideo(ctx context.Context) (Video, error) {
+	row := q.db.QueryRowContext(ctx, getRecordingVideo)
+	var i Video
+	err := row.Scan(
+		&i.ID,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.Title,
+		&i.Filename,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProcessingStatus,
+	)
+	return i, err
+}
+
 const getVideo = `-- name: GetVideo :one
-SELECT id, started_at, finished_at, title, filename, created_at, updated_at FROM videos
+SELECT id, started_at, finished_at, title, filename, created_at, updated_at, processing_status FROM videos
 WHERE id = $1 LIMIT 1
 `
 
@@ -108,12 +119,13 @@ func (q *Queries) GetVideo(ctx context.Context, id int64) (Video, error) {
 		&i.Filename,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ProcessingStatus,
 	)
 	return i, err
 }
 
 const listVideos = `-- name: ListVideos :many
-SELECT id, started_at, finished_at, title, filename, created_at, updated_at FROM videos
+SELECT id, started_at, finished_at, title, filename, created_at, updated_at, processing_status FROM videos
 ORDER BY started_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -140,6 +152,52 @@ func (q *Queries) ListVideos(ctx context.Context, arg ListVideosParams) ([]Video
 			&i.Filename,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ProcessingStatus,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listVideosByStatus = `-- name: ListVideosByStatus :many
+SELECT id, started_at, finished_at, title, filename, created_at, updated_at, processing_status FROM videos
+WHERE processing_status = $1
+ORDER BY started_at DESC
+LIMIT $2 OFFSET $3
+`
+
+type ListVideosByStatusParams struct {
+	ProcessingStatus string `json:"processing_status"`
+	Limit            int32  `json:"limit"`
+	Offset           int32  `json:"offset"`
+}
+
+func (q *Queries) ListVideosByStatus(ctx context.Context, arg ListVideosByStatusParams) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, listVideosByStatus, arg.ProcessingStatus, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Video{}
+	for rows.Next() {
+		var i Video
+		if err := rows.Scan(
+			&i.ID,
+			&i.StartedAt,
+			&i.FinishedAt,
+			&i.Title,
+			&i.Filename,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ProcessingStatus,
 		); err != nil {
 			return nil, err
 		}
@@ -161,17 +219,19 @@ SET
     filename = COALESCE($2, filename),
     started_at = COALESCE($3, started_at),
     finished_at = COALESCE($4, finished_at),
+    processing_status = COALESCE($5, processing_status),
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $5
-RETURNING id, started_at, finished_at, title, filename, created_at, updated_at
+WHERE id = $6
+RETURNING id, started_at, finished_at, title, filename, created_at, updated_at, processing_status
 `
 
 type UpdateVideoParams struct {
-	Title      sql.NullString `json:"title"`
-	Filename   sql.NullString `json:"filename"`
-	StartedAt  sql.NullTime   `json:"started_at"`
-	FinishedAt sql.NullTime   `json:"finished_at"`
-	ID         int64          `json:"id"`
+	Title            sql.NullString `json:"title"`
+	Filename         sql.NullString `json:"filename"`
+	StartedAt        sql.NullTime   `json:"started_at"`
+	FinishedAt       sql.NullTime   `json:"finished_at"`
+	ProcessingStatus sql.NullString `json:"processing_status"`
+	ID               int64          `json:"id"`
 }
 
 func (q *Queries) UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error) {
@@ -180,6 +240,7 @@ func (q *Queries) UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video
 		arg.Filename,
 		arg.StartedAt,
 		arg.FinishedAt,
+		arg.ProcessingStatus,
 		arg.ID,
 	)
 	var i Video
@@ -191,6 +252,69 @@ func (q *Queries) UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video
 		&i.Filename,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ProcessingStatus,
+	)
+	return i, err
+}
+
+const updateVideoStatus = `-- name: UpdateVideoStatus :one
+UPDATE videos
+SET
+    processing_status = $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, started_at, finished_at, title, filename, created_at, updated_at, processing_status
+`
+
+type UpdateVideoStatusParams struct {
+	ID               int64  `json:"id"`
+	ProcessingStatus string `json:"processing_status"`
+}
+
+func (q *Queries) UpdateVideoStatus(ctx context.Context, arg UpdateVideoStatusParams) (Video, error) {
+	row := q.db.QueryRowContext(ctx, updateVideoStatus, arg.ID, arg.ProcessingStatus)
+	var i Video
+	err := row.Scan(
+		&i.ID,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.Title,
+		&i.Filename,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProcessingStatus,
+	)
+	return i, err
+}
+
+const updateVideoStatusWithFinishedAt = `-- name: UpdateVideoStatusWithFinishedAt :one
+UPDATE videos
+SET
+    processing_status = $2,
+    finished_at = $3,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, started_at, finished_at, title, filename, created_at, updated_at, processing_status
+`
+
+type UpdateVideoStatusWithFinishedAtParams struct {
+	ID               int64        `json:"id"`
+	ProcessingStatus string       `json:"processing_status"`
+	FinishedAt       sql.NullTime `json:"finished_at"`
+}
+
+func (q *Queries) UpdateVideoStatusWithFinishedAt(ctx context.Context, arg UpdateVideoStatusWithFinishedAtParams) (Video, error) {
+	row := q.db.QueryRowContext(ctx, updateVideoStatusWithFinishedAt, arg.ID, arg.ProcessingStatus, arg.FinishedAt)
+	var i Video
+	err := row.Scan(
+		&i.ID,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.Title,
+		&i.Filename,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ProcessingStatus,
 	)
 	return i, err
 }

@@ -12,9 +12,9 @@ type Monitor struct {
 }
 
 // NewMonitor は新しいMonitorを作成する
-func NewMonitor(recorder Recorder, statusProvider StatusProvider, client SessionClient) *Monitor {
+func NewMonitor(recorder Recorder, statusProvider StatusProvider, client VideoClient, processor VideoProcessor) *Monitor {
 	return &Monitor{
-		session: NewRecordingSession(recorder, statusProvider, client),
+		session: NewRecordingSession(recorder, statusProvider, client, processor),
 	}
 }
 
