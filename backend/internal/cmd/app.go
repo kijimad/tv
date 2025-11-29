@@ -18,6 +18,7 @@ func NewMainApp() *cli.Command {
 			CmdRecorder,
 			CmdViewer,
 			CmdMigrate,
+			CmdCleaner,
 		},
 	}
 

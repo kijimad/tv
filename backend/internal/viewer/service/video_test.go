@@ -3,6 +3,9 @@ package service_test
 import (
 	"context"
 	"database/sql"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -471,5 +474,121 @@ func TestVideoService_UpdateVideo(t *testing.T) {
 
 		// エラーが返ることを確認する
 		assert.ErrorIs(t, err, service.ErrInvalidTimeRange)
+	})
+}
+
+func TestVideoService_DeleteOldVideoFiles(t *testing.T) {
+	t.Parallel()
+
+	t.Run("30日以上経過した動画ファイルを削除できる", func(t *testing.T) {
+		t.Parallel()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// MockClockの現在時刻を取得する
+		now := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+
+		// 31日前のready状態の動画を作成する
+		oldVideo, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.ProcessingStatus = statusReady
+			vf.StartedAt = now.AddDate(0, 0, -31)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// 29日前のready状態の動画を作成する
+		recentVideo, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.ProcessingStatus = statusReady
+			vf.StartedAt = now.AddDate(0, 0, -29)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// pending状態の古い動画を作成する（削除されないはず）
+		pendingVideo, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.ProcessingStatus = statusPending
+			vf.StartedAt = now.AddDate(0, 0, -31)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// ビデオディレクトリを作成する
+		cfg := svc.GetConfig()
+		err = os.MkdirAll(cfg.VideoDir, 0755)
+		require.NoError(t, err)
+
+		// 動画ファイルとサムネイルを作成する
+		oldVideoPath := filepath.Join(cfg.VideoDir, oldVideo.Filename)
+		oldThumbnailPath := filepath.Join(cfg.VideoDir, strings.TrimSuffix(oldVideo.Filename, ".webm")+".jpg")
+		recentVideoPath := filepath.Join(cfg.VideoDir, recentVideo.Filename)
+		recentThumbnailPath := filepath.Join(cfg.VideoDir, strings.TrimSuffix(recentVideo.Filename, ".webm")+".jpg")
+
+		err = os.WriteFile(oldVideoPath, []byte("old video"), 0644)
+		require.NoError(t, err)
+		err = os.WriteFile(oldThumbnailPath, []byte("old thumbnail"), 0644)
+		require.NoError(t, err)
+		err = os.WriteFile(recentVideoPath, []byte("recent video"), 0644)
+		require.NoError(t, err)
+		err = os.WriteFile(recentThumbnailPath, []byte("recent thumbnail"), 0644)
+		require.NoError(t, err)
+
+		// ファイルが存在することを確認する
+		_, err = os.Stat(oldVideoPath)
+		assert.NoError(t, err)
+		_, err = os.Stat(oldThumbnailPath)
+		assert.NoError(t, err)
+		_, err = os.Stat(recentVideoPath)
+		assert.NoError(t, err)
+		_, err = os.Stat(recentThumbnailPath)
+		assert.NoError(t, err)
+
+		// ファイル削除実行する
+		count, err := svc.DeleteOldVideoFiles(ctx, 30)
+		require.NoError(t, err)
+
+		// 1件削除されたことを確認する
+		assert.Equal(t, 1, count)
+
+		// レコードは残っていることを確認する
+		_, err = queries.GetVideo(ctx, oldVideo.ID)
+		assert.NoError(t, err)
+		_, err = queries.GetVideo(ctx, recentVideo.ID)
+		assert.NoError(t, err)
+		_, err = queries.GetVideo(ctx, pendingVideo.ID)
+		assert.NoError(t, err)
+
+		// 古い動画のファイルが削除されたことを確認する
+		_, err = os.Stat(oldVideoPath)
+		assert.True(t, os.IsNotExist(err), "old video file should be deleted")
+		_, err = os.Stat(oldThumbnailPath)
+		assert.True(t, os.IsNotExist(err), "old thumbnail file should be deleted")
+
+		// 最近の動画のファイルは残っていることを確認する
+		_, err = os.Stat(recentVideoPath)
+		assert.NoError(t, err, "recent video file should exist")
+		_, err = os.Stat(recentThumbnailPath)
+		assert.NoError(t, err, "recent thumbnail file should exist")
+	})
+
+	t.Run("削除対象がない時は0を返す", func(t *testing.T) {
+		t.Parallel()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// MockClockの現在時刻を取得する
+		now := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+
+		// 最近のready状態の動画を作成する
+		_, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.ProcessingStatus = statusReady
+			vf.StartedAt = now.AddDate(0, 0, -10)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// ファイル削除実行する
+		count, err := svc.DeleteOldVideoFiles(ctx, 30)
+		require.NoError(t, err)
+
+		// 0件削除されたことを確認する
+		assert.Equal(t, 0, count)
 	})
 }

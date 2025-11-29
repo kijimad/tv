@@ -6,9 +6,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/kijimaD/tv/internal/viewer/clock"
 	"github.com/kijimaD/tv/internal/viewer/config"
@@ -36,6 +38,9 @@ type VideoService interface {
 	CompleteVideo(ctx context.Context, id int64) (*sqlc.Video, error)
 	FailVideo(ctx context.Context, id int64) (*sqlc.Video, error)
 	RetryVideo(ctx context.Context, id int64) (*sqlc.Video, error)
+	// ファイル削除メソッド
+	DeleteVideoFile(ctx context.Context, id int64) error
+	DeleteOldVideoFiles(ctx context.Context, olderThanDays int) (int, error)
 }
 
 // VideoQuerier はビデオ操作に必要なクエリメソッドのインターフェース
@@ -44,6 +49,7 @@ type VideoQuerier interface {
 	GetVideo(ctx context.Context, id int64) (sqlc.Video, error)
 	GetRecordingVideo(ctx context.Context) (sqlc.Video, error)
 	ListVideos(ctx context.Context, params sqlc.ListVideosParams) ([]sqlc.Video, error)
+	ListReadyVideosOlderThan(ctx context.Context, startedAt time.Time) ([]sqlc.Video, error)
 	CountVideos(ctx context.Context) (int64, error)
 	UpdateVideo(ctx context.Context, params sqlc.UpdateVideoParams) (sqlc.Video, error)
 	UpdateVideoStatus(ctx context.Context, params sqlc.UpdateVideoStatusParams) (sqlc.Video, error)
@@ -252,4 +258,51 @@ func (s *videoService) RetryVideo(ctx context.Context, id int64) (*sqlc.Video, e
 		return nil, fmt.Errorf("failed to retry video: %w", err)
 	}
 	return &updated, nil
+}
+
+// DeleteVideoFile は動画ファイルとサムネイルを削除する（レコードは残す）
+func (s *videoService) DeleteVideoFile(ctx context.Context, id int64) error {
+	video, err := s.queries.GetVideo(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed to get video: %w", err)
+	}
+
+	// ファイルパスを構築する
+	filePath := filepath.Join(s.GetConfig().VideoDir, video.Filename)
+	thumbnailFilename := strings.TrimSuffix(video.Filename, ".webm") + ".jpg"
+	thumbnailPath := filepath.Join(s.GetConfig().VideoDir, thumbnailFilename)
+
+	// 動画ファイルを削除する
+	if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to remove video file: %w", err)
+	}
+
+	// サムネイルを削除する
+	if err := os.Remove(thumbnailPath); err != nil && !os.IsNotExist(err) {
+		// サムネイルがなくてもログだけ出してエラーにしない
+		log.Printf("failed to remove thumbnail: %v", err)
+	}
+
+	return nil
+}
+
+// DeleteOldVideoFiles は指定日数以上経過したready状態の動画ファイルを削除する
+func (s *videoService) DeleteOldVideoFiles(ctx context.Context, olderThanDays int) (int, error) {
+	threshold := s.GetClock().Now().AddDate(0, 0, -olderThanDays)
+
+	videos, err := s.queries.ListReadyVideosOlderThan(ctx, threshold)
+	if err != nil {
+		return 0, fmt.Errorf("failed to list old videos: %w", err)
+	}
+
+	deleted := 0
+	for _, video := range videos {
+		if err := s.DeleteVideoFile(ctx, video.ID); err != nil {
+			log.Printf("failed to delete video file %d: %v", video.ID, err)
+			continue
+		}
+		deleted++
+	}
+
+	return deleted, nil
 }

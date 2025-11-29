@@ -6,6 +6,7 @@ package sqlc
 
 import (
 	"context"
+	"time"
 )
 
 type Querier interface {
@@ -15,6 +16,7 @@ type Querier interface {
 	DeleteVideo(ctx context.Context, id int64) error
 	GetRecordingVideo(ctx context.Context) (Video, error)
 	GetVideo(ctx context.Context, id int64) (Video, error)
+	ListReadyVideosOlderThan(ctx context.Context, startedAt time.Time) ([]Video, error)
 	ListVideos(ctx context.Context, arg ListVideosParams) ([]Video, error)
 	ListVideosByStatus(ctx context.Context, arg ListVideosByStatusParams) ([]Video, error)
 	UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error)

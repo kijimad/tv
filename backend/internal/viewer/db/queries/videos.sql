@@ -65,3 +65,9 @@ WHERE id = $1;
 SELECT * FROM videos
 WHERE processing_status = 'recording'
 LIMIT 1;
+
+-- name: ListReadyVideosOlderThan :many
+SELECT * FROM videos
+WHERE processing_status = 'ready'
+  AND started_at < $1
+ORDER BY started_at ASC;

@@ -124,6 +124,45 @@ func (q *Queries) GetVideo(ctx context.Context, id int64) (Video, error) {
 	return i, err
 }
 
+const listReadyVideosOlderThan = `-- name: ListReadyVideosOlderThan :many
+SELECT id, started_at, finished_at, title, filename, created_at, updated_at, processing_status FROM videos
+WHERE processing_status = 'ready'
+  AND started_at < $1
+ORDER BY started_at ASC
+`
+
+func (q *Queries) ListReadyVideosOlderThan(ctx context.Context, startedAt time.Time) ([]Video, error) {
+	rows, err := q.db.QueryContext(ctx, listReadyVideosOlderThan, startedAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Video{}
+	for rows.Next() {
+		var i Video
+		if err := rows.Scan(
+			&i.ID,
+			&i.StartedAt,
+			&i.FinishedAt,
+			&i.Title,
+			&i.Filename,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ProcessingStatus,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listVideos = `-- name: ListVideos :many
 SELECT id, started_at, finished_at, title, filename, created_at, updated_at, processing_status FROM videos
 ORDER BY started_at DESC
