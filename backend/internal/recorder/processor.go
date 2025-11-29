@@ -8,47 +8,60 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/kijimaD/tv/internal/oapi"
 	"github.com/kijimaD/tv/internal/recorder/config"
 )
 
 // VideoProcessor は動画の後処理を管理する
 type VideoProcessor struct {
 	config config.AppConfig
+	client VideoClient
 }
 
 // NewVideoProcessor は新しいVideoProcessorを作成する
-func NewVideoProcessor(cfg config.AppConfig) *VideoProcessor {
+func NewVideoProcessor(cfg config.AppConfig, client VideoClient) *VideoProcessor {
 	return &VideoProcessor{
 		config: cfg,
+		client: client,
 	}
 }
 
-// processVideo は動画の変換処理を実行する
-func (p *VideoProcessor) processVideo(videoID int64, filename string) bool {
+// processVideo は動画の変換処理を実行し、完了後にビデオを作成する
+func (p *VideoProcessor) processVideo(filename, title string) bool {
 	outputPath := filepath.Join(p.config.OutputDir, filename)
 	tempPath := strings.TrimSuffix(outputPath, ".webm") + ".temp.mp4"
 
-	log.Printf("Starting post-processing for video %d: %s", videoID, filename)
+	log.Printf("Starting post-processing for: %s", filename)
 
 	// サムネイルを生成する
 	thumbnailPath := strings.TrimSuffix(outputPath, ".webm") + ".jpg"
 	if err := p.generateThumbnail(tempPath, thumbnailPath); err != nil {
-		log.Printf("Failed to generate thumbnail for video %d: %v", videoID, err)
+		log.Printf("Failed to generate thumbnail for %s: %v", filename, err)
 		// サムネイル生成に失敗しても続行する
 	}
 
 	// WebMに変換する
 	if err := p.convertToWebM(tempPath, outputPath); err != nil {
-		log.Printf("Failed to convert video %d to WebM: %v", videoID, err)
+		log.Printf("Failed to convert %s to WebM: %v", filename, err)
 		return false
 	}
 
 	// 一時ファイルを削除する
 	if err := os.Remove(tempPath); err != nil {
-		log.Printf("Failed to remove temp file for video %d: %v", videoID, err)
+		log.Printf("Failed to remove temp file for %s: %v", filename, err)
 	}
 
-	log.Printf("Post-processing completed for video %d: %s", videoID, filename)
+	// ビデオを作成する
+	video, err := p.client.CreateVideo(oapi.VideoCreate{
+		Filename: filename,
+		Title:    title,
+	})
+	if err != nil {
+		log.Printf("Failed to create video for %s: %v", filename, err)
+		return false
+	}
+
+	log.Printf("Post-processing completed (video %d): %s", *video.Id, filename)
 	return true
 }
 

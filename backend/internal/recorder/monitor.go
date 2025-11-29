@@ -3,6 +3,7 @@ package recorder
 import (
 	"context"
 	"log"
+	"sort"
 	"sync"
 	"time"
 )
@@ -29,41 +30,58 @@ const (
 // RecordingInfo は現在の録画情報を表す
 type RecordingInfo struct {
 	Status   RecordingStatus `json:"status"`
-	Filename string          `json:"filename,omitempty"`
+	Filename string          `json:"filename"`
 	Title    string          `json:"title,omitempty"`
 }
 
 // Monitor はポモドーロの状態を監視して録画を制御する
 type Monitor struct {
-	session       *RecordingSession
-	processor     *VideoProcessor
-	recordingInfo RecordingInfo
-	mu            sync.RWMutex
+	session   *RecordingSession
+	processor *VideoProcessor
+	jobs      map[string]RecordingInfo // filename -> RecordingInfo
+	mu        sync.RWMutex
 }
 
 // NewMonitor は新しいMonitorを作成する
-func NewMonitor(recorder Recorder, statusProvider StatusProvider, client VideoClient, processor *VideoProcessor) *Monitor {
+func NewMonitor(recorder Recorder, statusProvider StatusProvider, processor *VideoProcessor) *Monitor {
 	return &Monitor{
-		session:   NewRecordingSession(recorder, statusProvider, client),
+		session:   NewRecordingSession(recorder, statusProvider),
 		processor: processor,
-		recordingInfo: RecordingInfo{
-			Status: StatusIdle,
-		},
+		jobs:      make(map[string]RecordingInfo),
 	}
 }
 
-// GetRecordingInfo は現在の録画情報を返す
-func (m *Monitor) GetRecordingInfo() RecordingInfo {
+// GetAllRecordingInfos は全ての録画情報を新しい順に返す
+func (m *Monitor) GetAllRecordingInfos() []RecordingInfo {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return m.recordingInfo
+
+	result := make([]RecordingInfo, 0, len(m.jobs))
+	for _, info := range m.jobs {
+		result = append(result, info)
+	}
+
+	// Filenameの降順でソートする（新しい順）
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Filename > result[j].Filename
+	})
+
+	return result
+}
+
+// getRecordingInfo は指定されたfilenameの録画情報を返す
+func (m *Monitor) getRecordingInfo(filename string) (RecordingInfo, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	info, ok := m.jobs[filename]
+	return info, ok
 }
 
 // setRecordingInfo は録画情報を更新する
 func (m *Monitor) setRecordingInfo(info RecordingInfo) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.recordingInfo = info
+	m.jobs[info.Filename] = info
 }
 
 // Run はポモドーロの状態監視と録画を開始する
@@ -71,7 +89,6 @@ func (m *Monitor) Run(ctx context.Context, states <-chan bool) {
 	defer func() {
 		log.Println("Cleanup: stopping recording")
 		_, _ = m.session.Stop()
-		m.setRecordingInfo(RecordingInfo{Status: StatusIdle})
 	}()
 
 	wasActive := false
@@ -87,34 +104,39 @@ func (m *Monitor) Run(ctx context.Context, states <-chan bool) {
 			}
 			if isActive && !wasActive {
 				log.Println("Pomodoro started, beginning recording")
-				info, err := m.session.Start()
+				filename, title, err := m.session.Start()
+				status := StatusRecording
 				if err != nil {
 					log.Printf("Error starting recording: %v", err)
-					m.setRecordingInfo(RecordingInfo{Status: StatusFailed})
-				} else {
-					m.setRecordingInfo(info)
+					status = StatusFailed
 				}
+				m.setRecordingInfo(RecordingInfo{
+					Status:   status,
+					Filename: filename,
+					Title:    title,
+				})
 			} else if !isActive && wasActive {
 				log.Println("Pomodoro stopped, stopping recording")
-				stopped, err := m.session.Stop()
+				filename, err := m.session.Stop()
 				if err != nil {
 					log.Printf("Error stopping recording: %v", err)
-					m.setRecordingInfo(RecordingInfo{Status: StatusFailed})
-				} else if stopped != nil {
+				} else if filename != "" {
 					// 変換処理を開始する
-					info := m.GetRecordingInfo()
-					info.Status = StatusProcessing
-					m.setRecordingInfo(info)
-					go func(videoID int64, filename string) {
-						success := m.processor.processVideo(videoID, filename)
-						info := m.GetRecordingInfo()
-						if success {
-							info.Status = StatusSuccess
-						} else {
-							info.Status = StatusFailed
-						}
+					if info, ok := m.getRecordingInfo(filename); ok {
+						info.Status = StatusProcessing
 						m.setRecordingInfo(info)
-					}(stopped.VideoID, stopped.Filename)
+						go func(filename, title string) {
+							success := m.processor.processVideo(filename, title)
+							if info, ok := m.getRecordingInfo(filename); ok {
+								if success {
+									info.Status = StatusSuccess
+								} else {
+									info.Status = StatusFailed
+								}
+								m.setRecordingInfo(info)
+							}
+						}(info.Filename, info.Title)
+					}
 				}
 			}
 

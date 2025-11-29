@@ -44,9 +44,9 @@ func runRecorder(ctx context.Context) error {
 
 	emacsStatusProvider := recorder.NewEmacsStatusProvider()
 	viewerClient := recorder.NewViewerClient(cfg)
-	processor := recorder.NewVideoProcessor(cfg)
+	processor := recorder.NewVideoProcessor(cfg, viewerClient)
 	ffmpegRecorder := recorder.NewFFmpegRecorder(cfg)
-	monitor := recorder.NewMonitor(ffmpegRecorder, emacsStatusProvider, viewerClient, processor)
+	monitor := recorder.NewMonitor(ffmpegRecorder, emacsStatusProvider, processor)
 
 	// HTTPステータスサーバーを起動する
 	statusHandler := recorder.NewStatusHandler(monitor)
