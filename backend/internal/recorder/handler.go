@@ -5,21 +5,26 @@ import (
 	"net/http"
 )
 
-// StatusHandler はRecordingSessionの状態を提供するHTTPハンドラー
+// RecordingInfoProvider は録画情報を提供する
+type RecordingInfoProvider interface {
+	GetRecordingInfo() RecordingInfo
+}
+
+// StatusHandler はRecordingInfoProviderの状態を提供するHTTPハンドラー
 type StatusHandler struct {
-	session *RecordingSession
+	provider RecordingInfoProvider
 }
 
 // NewStatusHandler は新しいStatusHandlerを作成する
-func NewStatusHandler(session *RecordingSession) *StatusHandler {
+func NewStatusHandler(provider RecordingInfoProvider) *StatusHandler {
 	return &StatusHandler{
-		session: session,
+		provider: provider,
 	}
 }
 
 // GetRecordingStatus は録画状態をJSONで返す
 func (h *StatusHandler) GetRecordingStatus(w http.ResponseWriter, _ *http.Request) {
-	info := h.session.GetRecordingInfo()
+	info := h.provider.GetRecordingInfo()
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(info); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

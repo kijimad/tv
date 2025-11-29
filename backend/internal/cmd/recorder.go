@@ -49,7 +49,7 @@ func runRecorder(ctx context.Context) error {
 	monitor := recorder.NewMonitor(ffmpegRecorder, emacsStatusProvider, viewerClient, processor)
 
 	// HTTPステータスサーバーを起動する
-	statusHandler := recorder.NewStatusHandler(monitor.Session())
+	statusHandler := recorder.NewStatusHandler(monitor)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/status", statusHandler.GetRecordingStatus)
 
