@@ -12,6 +12,7 @@ type AppConfig struct {
 	APIEndpoint  string `env:"TV_API_ENDPOINT" envDefault:"http://localhost:8080"`
 	PollInterval int    `env:"TV_POLL_INTERVAL" envDefault:"2"`
 	OutputDir    string `env:"TV_OUTPUT_DIR" envDefault:"./outputs"`
+	StatusPort   int    `env:"TV_STATUS_PORT" envDefault:"8090"`
 }
 
 // Load は環境変数から設定を読み込む
@@ -38,6 +39,9 @@ func validate(cfg AppConfig) error {
 	}
 	if cfg.OutputDir == "" {
 		return fmt.Errorf("output directory is required")
+	}
+	if cfg.StatusPort <= 0 || cfg.StatusPort > 65535 {
+		return fmt.Errorf("invalid status port: %d", cfg.StatusPort)
 	}
 	return nil
 }

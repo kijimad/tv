@@ -18,6 +18,11 @@ func NewMonitor(recorder Recorder, statusProvider StatusProvider, client VideoCl
 	}
 }
 
+// Session はRecordingSessionを返す
+func (m *Monitor) Session() *RecordingSession {
+	return m.session
+}
+
 // Run はポモドーロの状態監視と録画を開始する
 func (m *Monitor) Run(ctx context.Context, states <-chan bool) {
 	defer func() {

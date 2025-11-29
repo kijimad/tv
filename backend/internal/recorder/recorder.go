@@ -2,10 +2,28 @@ package recorder
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/kijimaD/tv/internal/oapi"
 )
+
+// RecordingStatus は録画の状態を表す
+type RecordingStatus string
+
+// RecordingStatusの定数定義
+const (
+	StatusIdle       RecordingStatus = "idle"
+	StatusRecording  RecordingStatus = "recording"
+	StatusProcessing RecordingStatus = "processing"
+)
+
+// RecordingInfo は現在の録画情報を表す
+type RecordingInfo struct {
+	Status   RecordingStatus `json:"status"`
+	Filename string          `json:"filename,omitempty"`
+	Title    string          `json:"title,omitempty"`
+}
 
 // StatusProvider はポモドーロの状態と情報を提供する
 type StatusProvider interface {
@@ -37,6 +55,8 @@ type RecordingSession struct {
 	statusProvider StatusProvider
 	client         VideoClient
 	processor      VideoProcessor
+	recordingInfo  RecordingInfo
+	mu             sync.RWMutex
 }
 
 // NewRecordingSession は新しいRecordingSessionを作成する
@@ -46,7 +66,24 @@ func NewRecordingSession(recorder Recorder, statusProvider StatusProvider, clien
 		statusProvider: statusProvider,
 		client:         client,
 		processor:      processor,
+		recordingInfo: RecordingInfo{
+			Status: StatusIdle,
+		},
 	}
+}
+
+// GetRecordingInfo は現在の録画情報を返す
+func (s *RecordingSession) GetRecordingInfo() RecordingInfo {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.recordingInfo
+}
+
+// setRecordingInfo は録画情報を更新する
+func (s *RecordingSession) setRecordingInfo(info RecordingInfo) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.recordingInfo = info
 }
 
 // Start は録画を開始し、ビデオを作成する
@@ -75,6 +112,13 @@ func (s *RecordingSession) Start() error {
 		})
 		return fmt.Errorf("failed to start recording: %w", err)
 	}
+
+	// ステータスを更新する
+	s.setRecordingInfo(RecordingInfo{
+		Status:   StatusRecording,
+		Filename: filename,
+		Title:    title,
+	})
 
 	return nil
 }
@@ -106,23 +150,34 @@ func (s *RecordingSession) Stop() error {
 		_, _ = s.client.StopVideo(s.currentVideoID, oapi.VideoStopRequest{
 			Success: false,
 		})
+		// ステータスをアイドルに戻す
+		s.setRecordingInfo(RecordingInfo{Status: StatusIdle})
 		return fmt.Errorf("failed to stop recording: %w", err)
 	}
 
 	// 待ちステータスにする（recording → pending）
 	_, err := s.client.StopVideo(s.currentVideoID, oapi.VideoStopRequest{})
 	if err != nil {
+		s.setRecordingInfo(RecordingInfo{Status: StatusIdle})
 		return fmt.Errorf("failed to stop video: %w", err)
 	}
 
 	// 変換開始ステータスにする（pending → processing）
 	_, err = s.client.ProcessVideo(s.currentVideoID)
 	if err != nil {
+		s.setRecordingInfo(RecordingInfo{Status: StatusIdle})
 		return fmt.Errorf("failed to process video: %w", err)
 	}
 
-	// 後処理をVideoProcessorに依頼する
-	s.processor.Process(videoID, filename)
+	// ステータスを処理中に更新する
+	info := s.GetRecordingInfo()
+	info.Status = StatusProcessing
+	s.setRecordingInfo(info)
+
+	// 後処理をVideoProcessorに依頼する（完了時にステータスをアイドルに戻す）
+	s.processor.Process(videoID, filename, func(_ bool) {
+		s.setRecordingInfo(RecordingInfo{Status: StatusIdle})
+	})
 
 	s.currentVideoID = 0
 	return nil

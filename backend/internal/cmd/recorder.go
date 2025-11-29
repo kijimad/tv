@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -46,6 +47,31 @@ func runRecorder(ctx context.Context) error {
 	processor := recorder.NewVideoProcessor(cfg, viewerClient)
 	ffmpegRecorder := recorder.NewFFmpegRecorder(cfg)
 	monitor := recorder.NewMonitor(ffmpegRecorder, emacsStatusProvider, viewerClient, processor)
+
+	// HTTPステータスサーバーを起動する
+	statusHandler := recorder.NewStatusHandler(monitor.Session())
+	mux := http.NewServeMux()
+	mux.HandleFunc("/status", statusHandler.GetRecordingStatus)
+
+	statusServer := &http.Server{
+		Addr:    fmt.Sprintf(":%d", cfg.StatusPort),
+		Handler: mux,
+	}
+
+	go func() {
+		log.Printf("Starting status server on port %d", cfg.StatusPort)
+		if err := statusServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("Status server error: %v", err)
+		}
+	}()
+
+	defer func() {
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := statusServer.Shutdown(shutdownCtx); err != nil {
+			log.Printf("Status server shutdown error: %v", err)
+		}
+	}()
 
 	states := make(chan bool)
 	pollInterval := time.Duration(cfg.PollInterval) * time.Second

@@ -11,6 +11,9 @@ import (
 	"github.com/kijimaD/tv/internal/recorder/config"
 )
 
+// CompletionCallback は処理完了時に呼び出されるコールバック
+type CompletionCallback func(success bool)
+
 // VideoProcessor は動画の後処理を管理する
 type VideoProcessor struct {
 	config config.AppConfig
@@ -22,6 +25,7 @@ type VideoProcessor struct {
 type ProcessingJob struct {
 	VideoID  int64
 	Filename string
+	Callback CompletionCallback
 }
 
 // NewVideoProcessor は新しいVideoProcessorを作成する
@@ -36,22 +40,26 @@ func NewVideoProcessor(cfg config.AppConfig, client VideoClient) VideoProcessor 
 }
 
 // Process は動画の後処理を開始する
-func (p VideoProcessor) Process(videoID int64, filename string) {
+func (p VideoProcessor) Process(videoID int64, filename string, callback CompletionCallback) {
 	p.jobs <- ProcessingJob{
 		VideoID:  videoID,
 		Filename: filename,
+		Callback: callback,
 	}
 }
 
 // worker はジョブキューを処理する
 func (p VideoProcessor) worker() {
 	for job := range p.jobs {
-		p.processVideo(job.VideoID, job.Filename)
+		success := p.processVideo(job.VideoID, job.Filename)
+		if job.Callback != nil {
+			job.Callback(success)
+		}
 	}
 }
 
 // processVideo は動画の変換処理を実行する
-func (p VideoProcessor) processVideo(videoID int64, filename string) {
+func (p VideoProcessor) processVideo(videoID int64, filename string) bool {
 	outputPath := filepath.Join(p.config.OutputDir, filename)
 	tempPath := strings.TrimSuffix(outputPath, ".webm") + ".temp.mp4"
 
@@ -71,7 +79,7 @@ func (p VideoProcessor) processVideo(videoID int64, filename string) {
 		if _, err := p.client.FailVideo(videoID); err != nil {
 			log.Printf("Failed to mark video %d as failed: %v", videoID, err)
 		}
-		return
+		return false
 	}
 
 	// 一時ファイルを削除する
@@ -84,7 +92,10 @@ func (p VideoProcessor) processVideo(videoID int64, filename string) {
 	// 変換完了をAPIに通知する
 	if _, err := p.client.CompleteVideo(videoID); err != nil {
 		log.Printf("Failed to mark video %d as complete: %v", videoID, err)
+		return false
 	}
+
+	return true
 }
 
 // convertToWebM はMP4ファイルをWebMに変換する
