@@ -206,5 +206,7 @@ interface StatisticsAPI {
     @query period: "day" | "week" | "month",
     /** 取得件数 */
     @query @minValue(1) @maxValue(100) limit?: int32 = 5,
+    /** 基準日(UTC) */
+    @query baseDate?: utcDateTime,
   ): PeriodStatistics | Error;
 }

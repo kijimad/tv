@@ -4,11 +4,15 @@ import { AxiosError } from "axios";
 
 const api = new DefaultApi();
 
-export function useStatistics(period: StatisticsAPIGetPeriodEnum) {
+export function useStatistics(
+  period: StatisticsAPIGetPeriodEnum,
+  baseDate?: string,
+  limit?: number,
+) {
   return useQuery({
-    queryKey: ["statistics", period],
+    queryKey: ["statistics", period, baseDate, limit],
     queryFn: async () => {
-      const response = await api.statisticsAPIGet(period);
+      const response = await api.statisticsAPIGet(period, limit, baseDate);
       return response.data;
     },
     retry: (failureCount, error) => {

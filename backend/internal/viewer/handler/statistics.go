@@ -23,8 +23,12 @@ func NewStatisticsHandler(statisticsSvc service.StatisticsService) *StatisticsHa
 // StatisticsAPIGet は統計を取得する
 func (h *StatisticsHandler) StatisticsAPIGet(ctx context.Context, request oapi.StatisticsAPIGetRequestObject) (oapi.StatisticsAPIGetResponseObject, error) {
 	period := service.Period(request.Params.Period)
-	// TODO: 将来的にはクエリパラメータで基準日を受け取れるようにする
+
+	// baseDateのデフォルト値は現在日時
 	baseDate := time.Now()
+	if request.Params.BaseDate != nil {
+		baseDate = *request.Params.BaseDate
+	}
 
 	// limitのデフォルト値は5
 	limit := int32(5)

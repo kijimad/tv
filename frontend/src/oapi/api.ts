@@ -264,10 +264,11 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
          * 統計取得
          * @param {StatisticsAPIGetPeriodEnum} period 期間
          * @param {number} [limit] 取得件数
+         * @param {string} [baseDate] 基準日(UTC)
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        statisticsAPIGet: async (period: StatisticsAPIGetPeriodEnum, limit?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        statisticsAPIGet: async (period: StatisticsAPIGetPeriodEnum, limit?: number, baseDate?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'period' is not null or undefined
             assertParamExists('statisticsAPIGet', 'period', period)
             const localVarPath = `/api/v1/statistics`;
@@ -288,6 +289,12 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
 
             if (limit !== undefined) {
                 localVarQueryParameter['limit'] = limit;
+            }
+
+            if (baseDate !== undefined) {
+                localVarQueryParameter['baseDate'] = (baseDate as any instanceof Date) ?
+                    (baseDate as any).toISOString() :
+                    baseDate;
             }
 
 
@@ -560,11 +567,12 @@ export const DefaultApiFp = function(configuration?: Configuration) {
          * 統計取得
          * @param {StatisticsAPIGetPeriodEnum} period 期間
          * @param {number} [limit] 取得件数
+         * @param {string} [baseDate] 基準日(UTC)
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async statisticsAPIGet(period: StatisticsAPIGetPeriodEnum, limit?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PeriodStatistics>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.statisticsAPIGet(period, limit, options);
+        async statisticsAPIGet(period: StatisticsAPIGetPeriodEnum, limit?: number, baseDate?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PeriodStatistics>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.statisticsAPIGet(period, limit, baseDate, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.statisticsAPIGet']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -669,11 +677,12 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
          * 統計取得
          * @param {StatisticsAPIGetPeriodEnum} period 期間
          * @param {number} [limit] 取得件数
+         * @param {string} [baseDate] 基準日(UTC)
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        statisticsAPIGet(period: StatisticsAPIGetPeriodEnum, limit?: number, options?: RawAxiosRequestConfig): AxiosPromise<PeriodStatistics> {
-            return localVarFp.statisticsAPIGet(period, limit, options).then((request) => request(axios, basePath));
+        statisticsAPIGet(period: StatisticsAPIGetPeriodEnum, limit?: number, baseDate?: string, options?: RawAxiosRequestConfig): AxiosPromise<PeriodStatistics> {
+            return localVarFp.statisticsAPIGet(period, limit, baseDate, options).then((request) => request(axios, basePath));
         },
         /**
          * ビデオ作成
@@ -754,12 +763,13 @@ export class DefaultApi extends BaseAPI {
      * 統計取得
      * @param {StatisticsAPIGetPeriodEnum} period 期間
      * @param {number} [limit] 取得件数
+     * @param {string} [baseDate] 基準日(UTC)
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof DefaultApi
      */
-    public statisticsAPIGet(period: StatisticsAPIGetPeriodEnum, limit?: number, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).statisticsAPIGet(period, limit, options).then((request) => request(this.axios, this.basePath));
+    public statisticsAPIGet(period: StatisticsAPIGetPeriodEnum, limit?: number, baseDate?: string, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).statisticsAPIGet(period, limit, baseDate, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

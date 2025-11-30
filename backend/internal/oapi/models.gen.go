@@ -124,6 +124,9 @@ type StatisticsAPIGetParams struct {
 
 	// Limit 取得件数
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// BaseDate 基準日(UTC)
+	BaseDate *time.Time `form:"baseDate,omitempty" json:"baseDate,omitempty"`
 }
 
 // StatisticsAPIGetParamsPeriod defines parameters for StatisticsAPIGet.

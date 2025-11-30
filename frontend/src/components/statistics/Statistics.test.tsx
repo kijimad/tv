@@ -7,7 +7,8 @@ import Statistics from "./Statistics";
 // useStatisticsをモックする
 const mockUseStatistics = vi.fn();
 vi.mock("../../hooks/useStatistics", () => ({
-  useStatistics: (period: string) => mockUseStatistics(period),
+  useStatistics: (period: string, baseDate?: string, limit?: number) =>
+    mockUseStatistics(period, baseDate, limit),
 }));
 
 describe("Statistics", () => {

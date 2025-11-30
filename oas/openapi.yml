@@ -31,6 +31,13 @@ paths:
             maximum: 100
             default: 5
           explode: false
+        - name: baseDate
+          in: query
+          required: false
+          description: 基準日(UTC)
+          schema:
+            type: string
+            format: date-time
       responses:
         '200':
           description: The request has succeeded.
