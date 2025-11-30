@@ -8,11 +8,11 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
+| audio_activity_ratio | double precision | 0 | false |  |  |  |
 | created_at | timestamp without time zone | CURRENT_TIMESTAMP | false |  |  |  |
 | filename | text |  | false |  |  | ファイル名 |
 | finished_at | timestamp without time zone |  | true |  |  | 録画終了日時(UTC) |
 | id | bigint | nextval('videos_id_seq'::regclass) | false |  |  |  |
-| processing_status | varchar(20) | 'ready'::character varying | false |  |  | 処理状態（recording, pending, processing, ready, failed） |
 | started_at | timestamp without time zone |  | false |  |  | 録画開始日時(UTC) |
 | title | text |  | false |  |  | 動画タイトル |
 | updated_at | timestamp without time zone | CURRENT_TIMESTAMP | false |  |  |  |
@@ -21,12 +21,12 @@
 
 | Name | Type | Definition |
 | ---- | ---- | ---------- |
+| videos_audio_activity_ratio_not_null | n | NOT NULL audio_activity_ratio |
 | videos_created_at_not_null | n | NOT NULL created_at |
 | videos_filename_key | UNIQUE | UNIQUE (filename) |
 | videos_filename_not_null | n | NOT NULL filename |
 | videos_id_not_null | n | NOT NULL id |
 | videos_pkey | PRIMARY KEY | PRIMARY KEY (id) |
-| videos_processing_status_not_null | n | NOT NULL processing_status |
 | videos_started_at_not_null | n | NOT NULL started_at |
 | videos_title_not_null | n | NOT NULL title |
 | videos_updated_at_not_null | n | NOT NULL updated_at |
@@ -35,7 +35,6 @@
 
 | Name | Definition |
 | ---- | ---------- |
-| idx_videos_processing_status | CREATE INDEX idx_videos_processing_status ON public.videos USING btree (processing_status) |
 | videos_filename_key | CREATE UNIQUE INDEX videos_filename_key ON public.videos USING btree (filename) |
 | videos_pkey | CREATE UNIQUE INDEX videos_pkey ON public.videos USING btree (id) |
 
@@ -46,11 +45,11 @@ erDiagram
 
 
 "public.videos" {
+  double_precision audio_activity_ratio
   timestamp_without_time_zone created_at
   text filename
   timestamp_without_time_zone finished_at
   bigint id
-  varchar_20_ processing_status
   timestamp_without_time_zone started_at
   text title
   timestamp_without_time_zone updated_at

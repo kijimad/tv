@@ -34,4 +34,3 @@ comments:
       finished_at: 録画終了日時(UTC)
       title: 動画タイトル
       filename: ファイル名
-      processing_status: 処理状態（recording, pending, processing, ready, failed）
