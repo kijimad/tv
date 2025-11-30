@@ -11,9 +11,6 @@ using TypeSpec.Rest;
 @server("http://localhost:8080", "Development server")
 namespace TvApi;
 
-/** 処理ステータス */
-alias ProcessingStatus = "recording" | "pending" | "processing" | "ready" | "archived" | "failed" | "cancelled";
-
 /** 録画ビデオ */
 model Video {
   /** ビデオID */
@@ -36,9 +33,6 @@ model Video {
   /** 録画終了時刻(UTC) */
   finishedAt?: utcDateTime;
 
-  /** 処理ステータス */
-  processingStatus: ProcessingStatus;
-
   /** 作成日時 */
   @visibility("read")
   createdAt: utcDateTime;
@@ -48,93 +42,7 @@ model Video {
   updatedAt: utcDateTime;
 }
 
-/** 録画中情報 */
-model VideoRecording {
-  /** ID */
-  @visibility("read")
-  id: int64;
-
-  /** ビデオID */
-  videoId: int64;
-
-  /** 一時ファイルパス */
-  tempFilePath: string;
-
-  /** recorderプロセスPID */
-  recorderPid?: int32;
-
-  /** 開始時刻 */
-  startedAt: utcDateTime;
-}
-
-/** 変換処理情報 */
-model VideoProcessing {
-  /** ID */
-  @visibility("read")
-  id: int64;
-
-  /** ビデオID */
-  videoId: int64;
-
-  /** ジョブステータス */
-  jobStatus: "pending" | "processing" | "failed";
-
-  /** 一時ファイルパス */
-  tempFilePath: string;
-
-  /** 出力ファイルパス */
-  outputFilePath: string;
-
-  /** サムネイルパス */
-  thumbnailPath?: string;
-
-  /** 進捗 (0-100) */
-  @minValue(0)
-  @maxValue(100)
-  progress: int32;
-
-  /** 再試行回数 */
-  retryCount: int32;
-
-  /** 最後のエラー */
-  lastError?: string;
-}
-
-/** 完了情報 */
-model VideoCompletion {
-  /** ID */
-  @visibility("read")
-  id: int64;
-
-  /** ビデオID */
-  videoId: int64;
-
-  /** ファイルパス */
-  filePath: string;
-
-  /** ファイルサイズ(バイト) */
-  fileSize: int64;
-
-  /** 長さ(秒) */
-  durationSeconds: int32;
-
-  /** サムネイルパス */
-  thumbnailPath?: string;
-
-  /** 動画コーデック */
-  videoCodec?: string;
-
-  /** 音声コーデック */
-  audioCodec?: string;
-
-  /** 解像度 */
-  resolution?: string;
-
-  /** 完了時刻 */
-  readyAt: utcDateTime;
-}
-
-/** ビデオ作成リクエスト（録画開始） */
+/** ビデオ作成リクエスト */
 model VideoCreate {
   @minLength(1)
   @maxLength(255)
@@ -143,6 +51,9 @@ model VideoCreate {
   @minLength(1)
   @maxLength(255)
   filename: string;
+
+  startedAt: utcDateTime;
+  finishedAt: utcDateTime;
 }
 
 /** ビデオ更新リクエスト */
@@ -157,42 +68,6 @@ model VideoUpdate {
   @minLength(1)
   @maxLength(255)
   filename?: string;
-}
-
-/** 録画停止リクエスト */
-model VideoStopRequest {
-  /** 正常終了かどうか */
-  success: boolean;
-
-  /** 終了時刻（successがtrueの場合に必須） */
-  finishedAt?: utcDateTime;
-}
-
-/** 変換完了リクエスト */
-model VideoCompleteRequest {
-  /** ファイルサイズ(バイト) */
-  fileSize: int64;
-
-  /** 長さ(秒) */
-  durationSeconds: int32;
-
-  /** 動画コーデック */
-  videoCodec?: string;
-
-  /** 音声コーデック */
-  audioCodec?: string;
-
-  /** 解像度 */
-  resolution?: string;
-}
-
-/** 変換失敗リクエスト */
-model VideoFailRequest {
-  /** エラーメッセージ */
-  errorMessage: string;
-
-  /** エラー種別 */
-  errorType?: "conversion_failed" | "thumbnail_failed" | "file_not_found" | "invalid_file" | "disk_full" | "timeout";
 }
 
 /**
@@ -239,13 +114,6 @@ model Error {
   message: string;
 }
 
-/** 状態遷移エラーレスポンス */
-@error
-model InvalidStateTransitionError {
-  error: "invalid_state_transition";
-  message: string;
-}
-
 @route("/api/v1/videos")
 interface Videos {
   /** ビデオ一覧取得 */
@@ -255,8 +123,6 @@ interface Videos {
     @query @minValue(1) page?: int32 = 1,
     /** 1ページあたりの最大取得件数 */
     @query @minValue(1) @maxValue(100) size?: int32 = 30,
-    /** ステータスで絞り込み */
-    @query status?: ProcessingStatus,
   ): VideoPage | Error;
 
   /** ビデオ詳細取得 */
@@ -264,7 +130,7 @@ interface Videos {
   @route("/{id}")
   get(@path id: int64): Video | Error;
 
-  /** ビデオ作成（録画開始） */
+  /** ビデオ作成 */
   @post
   create(@body video: VideoCreate): {
     @statusCode statusCode: 201;
@@ -304,36 +170,4 @@ interface Videos {
     @statusCode statusCode: 404;
     @body body: Error;
   } | Error;
-
-  /** 録画停止（recording → pending） */
-  @post
-  @route("/{id}/stop")
-  stop(@path id: int64): Video | InvalidStateTransitionError | Error;
-
-  /** 変換開始（pending → processing） */
-  @post
-  @route("/{id}/process")
-  process(@path id: int64): Video | InvalidStateTransitionError | Error;
-
-  /** 変換完了（processing → ready） */
-  @post
-  @route("/{id}/complete")
-  complete(@path id: int64): Video | InvalidStateTransitionError | Error;
-
-  /** 変換失敗（processing → failed） */
-  @post
-  @route("/{id}/fail")
-  fail(@path id: int64): Video | InvalidStateTransitionError | Error;
-
-  /** 再試行（failed → pending） */
-  @post
-  @route("/{id}/retry")
-  retry(@path id: int64): Video | InvalidStateTransitionError | Error;
-}
-
-@route("/api/v1/status")
-interface Status {
-  /** 現在の録画状態取得 */
-  @get
-  get(): RecordingStatus | Error;
 }

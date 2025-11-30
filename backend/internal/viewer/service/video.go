@@ -28,16 +28,9 @@ type VideoService interface {
 	Baser
 	ListVideos(ctx context.Context, limit, offset int32) ([]sqlc.Video, int64, error)
 	GetVideo(ctx context.Context, id int64) (*sqlc.Video, error)
-	GetRecordingVideo(ctx context.Context) (*sqlc.Video, error)
 	CreateVideo(ctx context.Context, params sqlc.CreateVideoParams) (*sqlc.Video, error)
 	UpdateVideo(ctx context.Context, id int64, params sqlc.UpdateVideoParams) (*sqlc.Video, error)
 	DeleteVideo(ctx context.Context, id int64) error
-	// 状態遷移メソッド
-	StopVideo(ctx context.Context, id int64) (*sqlc.Video, error)
-	ProcessVideo(ctx context.Context, id int64) (*sqlc.Video, error)
-	CompleteVideo(ctx context.Context, id int64) (*sqlc.Video, error)
-	FailVideo(ctx context.Context, id int64) (*sqlc.Video, error)
-	RetryVideo(ctx context.Context, id int64) (*sqlc.Video, error)
 	// ファイル削除メソッド
 	DeleteVideoFile(ctx context.Context, id int64) error
 	DeleteOldVideoFiles(ctx context.Context, olderThanDays int) (int, error)
@@ -47,13 +40,10 @@ type VideoService interface {
 type VideoQuerier interface {
 	CreateVideo(ctx context.Context, params sqlc.CreateVideoParams) (sqlc.Video, error)
 	GetVideo(ctx context.Context, id int64) (sqlc.Video, error)
-	GetRecordingVideo(ctx context.Context) (sqlc.Video, error)
 	ListVideos(ctx context.Context, params sqlc.ListVideosParams) ([]sqlc.Video, error)
-	ListReadyVideosOlderThan(ctx context.Context, startedAt time.Time) ([]sqlc.Video, error)
+	ListVideosOlderThan(ctx context.Context, startedAt time.Time) ([]sqlc.Video, error)
 	CountVideos(ctx context.Context) (int64, error)
 	UpdateVideo(ctx context.Context, params sqlc.UpdateVideoParams) (sqlc.Video, error)
-	UpdateVideoStatus(ctx context.Context, params sqlc.UpdateVideoStatusParams) (sqlc.Video, error)
-	UpdateVideoStatusWithFinishedAt(ctx context.Context, params sqlc.UpdateVideoStatusWithFinishedAtParams) (sqlc.Video, error)
 	DeleteVideo(ctx context.Context, id int64) error
 }
 
@@ -91,17 +81,6 @@ func (s *videoService) GetVideo(ctx context.Context, id int64) (*sqlc.Video, err
 	video, err := s.queries.GetVideo(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get video: %w", err)
-	}
-	return &video, nil
-}
-
-func (s *videoService) GetRecordingVideo(ctx context.Context) (*sqlc.Video, error) {
-	video, err := s.queries.GetRecordingVideo(ctx)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to get recording video: %w", err)
 	}
 	return &video, nil
 }
@@ -158,108 +137,6 @@ func (s *videoService) DeleteVideo(ctx context.Context, id int64) error {
 	return nil
 }
 
-// StopVideo は録画を停止する（recording → pending）
-func (s *videoService) StopVideo(ctx context.Context, id int64) (*sqlc.Video, error) {
-	video, err := s.queries.GetVideo(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get video: %w", err)
-	}
-	if video.ProcessingStatus != "recording" {
-		return nil, ErrInvalidStateTransition
-	}
-
-	updated, err := s.queries.UpdateVideoStatusWithFinishedAt(ctx, sqlc.UpdateVideoStatusWithFinishedAtParams{
-		ID:               id,
-		ProcessingStatus: "pending",
-		FinishedAt:       sql.NullTime{Time: s.GetClock().Now(), Valid: true},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to stop video: %w", err)
-	}
-
-	return &updated, nil
-}
-
-// ProcessVideo は変換を開始する（pending → processing）
-func (s *videoService) ProcessVideo(ctx context.Context, id int64) (*sqlc.Video, error) {
-	video, err := s.queries.GetVideo(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get video: %w", err)
-	}
-	if video.ProcessingStatus != "pending" {
-		return nil, ErrInvalidStateTransition
-	}
-
-	updated, err := s.queries.UpdateVideoStatus(ctx, sqlc.UpdateVideoStatusParams{
-		ID:               id,
-		ProcessingStatus: "processing",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to process video: %w", err)
-	}
-	return &updated, nil
-}
-
-// CompleteVideo は変換を完了する（processing → ready）
-func (s *videoService) CompleteVideo(ctx context.Context, id int64) (*sqlc.Video, error) {
-	video, err := s.queries.GetVideo(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get video: %w", err)
-	}
-	if video.ProcessingStatus != "processing" {
-		return nil, ErrInvalidStateTransition
-	}
-
-	updated, err := s.queries.UpdateVideoStatus(ctx, sqlc.UpdateVideoStatusParams{
-		ID:               id,
-		ProcessingStatus: "ready",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to complete video: %w", err)
-	}
-	return &updated, nil
-}
-
-// FailVideo は変換失敗を記録する（processing → failed）
-func (s *videoService) FailVideo(ctx context.Context, id int64) (*sqlc.Video, error) {
-	video, err := s.queries.GetVideo(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get video: %w", err)
-	}
-	if video.ProcessingStatus != "processing" {
-		return nil, ErrInvalidStateTransition
-	}
-
-	updated, err := s.queries.UpdateVideoStatus(ctx, sqlc.UpdateVideoStatusParams{
-		ID:               id,
-		ProcessingStatus: "failed",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to fail video: %w", err)
-	}
-	return &updated, nil
-}
-
-// RetryVideo は再試行する（failed → pending）
-func (s *videoService) RetryVideo(ctx context.Context, id int64) (*sqlc.Video, error) {
-	video, err := s.queries.GetVideo(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get video: %w", err)
-	}
-	if video.ProcessingStatus != "failed" {
-		return nil, ErrInvalidStateTransition
-	}
-
-	updated, err := s.queries.UpdateVideoStatus(ctx, sqlc.UpdateVideoStatusParams{
-		ID:               id,
-		ProcessingStatus: "pending",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to retry video: %w", err)
-	}
-	return &updated, nil
-}
-
 // DeleteVideoFile は動画ファイルとサムネイルを削除する（レコードは残す）
 func (s *videoService) DeleteVideoFile(ctx context.Context, id int64) error {
 	video, err := s.queries.GetVideo(ctx, id)
@@ -283,14 +160,23 @@ func (s *videoService) DeleteVideoFile(ctx context.Context, id int64) error {
 		log.Printf("failed to remove thumbnail: %v", err)
 	}
 
+	// Filenameを空文字に更新する
+	_, err = s.queries.UpdateVideo(ctx, sqlc.UpdateVideoParams{
+		ID:       id,
+		Filename: sql.NullString{String: "", Valid: true},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update video filename: %w", err)
+	}
+
 	return nil
 }
 
-// DeleteOldVideoFiles は指定日数以上経過したready状態の動画ファイルを削除する
+// DeleteOldVideoFiles は指定日数以上経過した動画ファイルを削除する
 func (s *videoService) DeleteOldVideoFiles(ctx context.Context, olderThanDays int) (int, error) {
 	threshold := s.GetClock().Now().AddDate(0, 0, -olderThanDays)
 
-	videos, err := s.queries.ListReadyVideosOlderThan(ctx, threshold)
+	videos, err := s.queries.ListVideosOlderThan(ctx, threshold)
 	if err != nil {
 		return 0, fmt.Errorf("failed to list old videos: %w", err)
 	}

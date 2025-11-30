@@ -62,10 +62,10 @@ func (h *VideoHandler) VideosList(ctx context.Context, request oapi.VideosListRe
 // VideosCreate はビデオを作成する
 func (h *VideoHandler) VideosCreate(ctx context.Context, request oapi.VideosCreateRequestObject) (oapi.VideosCreateResponseObject, error) {
 	video, err := h.videoSvc.CreateVideo(ctx, sqlc.CreateVideoParams{
-		Title:            request.Body.Title,
-		Filename:         request.Body.Filename,
-		StartedAt:        h.videoSvc.GetClock().Now(),
-		ProcessingStatus: "recording",
+		Title:      request.Body.Title,
+		Filename:   request.Body.Filename,
+		StartedAt:  request.Body.StartedAt,
+		FinishedAt: sql.NullTime{Time: request.Body.FinishedAt, Valid: true},
 	})
 	if err != nil {
 		return nil, err
@@ -158,72 +158,6 @@ func (h *VideoHandler) VideosThumbnail(ctx context.Context, request oapi.VideosT
 	return &videosThumbnailResponse{filePath: thumbnailPath}, nil
 }
 
-// StatusGet は現在の録画状態を取得する
-func (h *VideoHandler) StatusGet(ctx context.Context, _ oapi.StatusGetRequestObject) (oapi.StatusGetResponseObject, error) {
-	video, err := h.videoSvc.GetRecordingVideo(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if video == nil {
-		return oapi.StatusGet200JSONResponse{
-			Recording:    false,
-			CurrentVideo: nil,
-		}, nil
-	}
-
-	apiVideo := toAPIVideo(*video)
-	return oapi.StatusGet200JSONResponse{
-		Recording:    true,
-		CurrentVideo: &apiVideo,
-	}, nil
-}
-
-// VideosStop は録画を停止する（recording → pending）
-func (h *VideoHandler) VideosStop(ctx context.Context, request oapi.VideosStopRequestObject) (oapi.VideosStopResponseObject, error) {
-	video, err := h.videoSvc.StopVideo(ctx, request.Id)
-	if err != nil {
-		return nil, err
-	}
-	return oapi.VideosStop200JSONResponse(toAPIVideo(*video)), nil
-}
-
-// VideosProcess は変換を開始する（pending → processing）
-func (h *VideoHandler) VideosProcess(ctx context.Context, request oapi.VideosProcessRequestObject) (oapi.VideosProcessResponseObject, error) {
-	video, err := h.videoSvc.ProcessVideo(ctx, request.Id)
-	if err != nil {
-		return nil, err
-	}
-	return oapi.VideosProcess200JSONResponse(toAPIVideo(*video)), nil
-}
-
-// VideosComplete は変換を完了する（processing → ready）
-func (h *VideoHandler) VideosComplete(ctx context.Context, request oapi.VideosCompleteRequestObject) (oapi.VideosCompleteResponseObject, error) {
-	video, err := h.videoSvc.CompleteVideo(ctx, request.Id)
-	if err != nil {
-		return nil, err
-	}
-	return oapi.VideosComplete200JSONResponse(toAPIVideo(*video)), nil
-}
-
-// VideosFail は変換失敗を記録する（processing → failed）
-func (h *VideoHandler) VideosFail(ctx context.Context, request oapi.VideosFailRequestObject) (oapi.VideosFailResponseObject, error) {
-	video, err := h.videoSvc.FailVideo(ctx, request.Id)
-	if err != nil {
-		return nil, err
-	}
-	return oapi.VideosFail200JSONResponse(toAPIVideo(*video)), nil
-}
-
-// VideosRetry は再試行する（failed → pending）
-func (h *VideoHandler) VideosRetry(ctx context.Context, request oapi.VideosRetryRequestObject) (oapi.VideosRetryResponseObject, error) {
-	video, err := h.videoSvc.RetryVideo(ctx, request.Id)
-	if err != nil {
-		return nil, err
-	}
-	return oapi.VideosRetry200JSONResponse(toAPIVideo(*video)), nil
-}
-
 // validateFilename はファイル名を検証する（パストラバーサル対策）
 func validateFilename(filename string) error {
 	// ファイル名にパス区切り文字が含まれていないことを確認する
@@ -245,14 +179,13 @@ func toAPIVideo(v sqlc.Video) oapi.Video {
 		finishedAt = &v.FinishedAt.Time
 	}
 	return oapi.Video{
-		Id:               &id,
-		Title:            v.Title,
-		Filename:         v.Filename,
-		StartedAt:        v.StartedAt,
-		FinishedAt:       finishedAt,
-		ProcessingStatus: oapi.VideoProcessingStatus(v.ProcessingStatus),
-		CreatedAt:        &v.CreatedAt,
-		UpdatedAt:        &v.UpdatedAt,
+		Id:         &id,
+		Title:      v.Title,
+		Filename:   v.Filename,
+		StartedAt:  v.StartedAt,
+		FinishedAt: finishedAt,
+		CreatedAt:  &v.CreatedAt,
+		UpdatedAt:  &v.UpdatedAt,
 	}
 }
 

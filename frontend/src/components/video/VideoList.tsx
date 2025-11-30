@@ -13,11 +13,14 @@ import { useState } from "react";
 import VideoPlayerModal from "./VideoPlayerModal";
 import type { Video } from "../../oapi";
 import { IoGrid, IoList } from "react-icons/io5";
+import Pagination from "./Pagination";
 
 type ViewMode = "grid" | "table";
 
 export default function VideoList() {
-  const { data, isLoading, error } = useVideos();
+  const [page, setPage] = useState(1);
+  const [size] = useState(32);
+  const { data, isLoading, error } = useVideos(page, size);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
@@ -59,6 +62,11 @@ export default function VideoList() {
     const mins = Math.floor(minutes % 60);
     return `${hours}時間${mins}分`;
   };
+
+  // 総ページ数を計算する
+  const totalPages = data?.pager
+    ? Math.ceil(data.pager.totalCount / data.pager.size)
+    : 0;
 
   return (
     <>
@@ -134,6 +142,12 @@ export default function VideoList() {
           </Table.Root>
         </Box>
       )}
+
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+      />
 
       {selectedVideo && (
         <VideoPlayerModal

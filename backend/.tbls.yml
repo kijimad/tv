@@ -34,4 +34,4 @@ comments:
       finished_at: 録画終了日時(UTC)
       title: 動画タイトル
       filename: ファイル名
-      processing_status: 処理状態（recording, pending, processing, ready, failed）
+      audio_activity_ratio: 音声の割合。品質評価用。低いと無音を示し、高いほうがよい

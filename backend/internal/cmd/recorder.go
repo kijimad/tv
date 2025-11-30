@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,6 +14,23 @@ import (
 	recorderConfig "github.com/kijimaD/tv/internal/recorder/config"
 	"github.com/urfave/cli/v3"
 )
+
+// corsMiddleware はCORSヘッダーを追加するミドルウェア
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		// プリフライトリクエストの処理
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
 
 // CmdRecorder is the recorder subcommand
 var CmdRecorder = &cli.Command{
@@ -45,7 +63,35 @@ func runRecorder(ctx context.Context) error {
 	viewerClient := recorder.NewViewerClient(cfg)
 	processor := recorder.NewVideoProcessor(cfg, viewerClient)
 	ffmpegRecorder := recorder.NewFFmpegRecorder(cfg)
-	monitor := recorder.NewMonitor(ffmpegRecorder, emacsStatusProvider, viewerClient, processor)
+	monitor := recorder.NewMonitor(ffmpegRecorder, emacsStatusProvider, processor)
+
+	// HTTPステータスサーバーを起動する
+	statusHandler := recorder.NewStatusHandler(monitor)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/status", statusHandler.GetRecordingStatus)
+
+	// CORSミドルウェアを追加する
+	corsHandler := corsMiddleware(mux)
+
+	statusServer := &http.Server{
+		Addr:    fmt.Sprintf(":%d", cfg.StatusPort),
+		Handler: corsHandler,
+	}
+
+	go func() {
+		log.Printf("Starting status server on port %d", cfg.StatusPort)
+		if err := statusServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("Status server error: %v", err)
+		}
+	}()
+
+	defer func() {
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := statusServer.Shutdown(shutdownCtx); err != nil {
+			log.Printf("Status server shutdown error: %v", err)
+		}
+	}()
 
 	states := make(chan bool)
 	pollInterval := time.Duration(cfg.PollInterval) * time.Second

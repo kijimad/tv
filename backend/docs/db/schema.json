@@ -7,6 +7,13 @@
       "comment": "動画情報",
       "columns": [
         {
+          "name": "audio_activity_ratio",
+          "type": "double precision",
+          "nullable": false,
+          "default": "0",
+          "comment": "音声の割合。品質評価用。低いと無音を示し、高いほうがよい"
+        },
+        {
           "name": "created_at",
           "type": "timestamp without time zone",
           "nullable": false,
@@ -31,13 +38,6 @@
           "default": "nextval('videos_id_seq'::regclass)"
         },
         {
-          "name": "processing_status",
-          "type": "varchar(20)",
-          "nullable": false,
-          "default": "'ready'::character varying",
-          "comment": "処理状態（recording, pending, processing, ready, failed）"
-        },
-        {
           "name": "started_at",
           "type": "timestamp without time zone",
           "nullable": false,
@@ -58,14 +58,6 @@
       ],
       "indexes": [
         {
-          "name": "idx_videos_processing_status",
-          "def": "CREATE INDEX idx_videos_processing_status ON public.videos USING btree (processing_status)",
-          "table": "public.videos",
-          "columns": [
-            "processing_status"
-          ]
-        },
-        {
           "name": "videos_filename_key",
           "def": "CREATE UNIQUE INDEX videos_filename_key ON public.videos USING btree (filename)",
           "table": "public.videos",
@@ -83,6 +75,16 @@
         }
       ],
       "constraints": [
+        {
+          "name": "videos_audio_activity_ratio_not_null",
+          "type": "n",
+          "def": "NOT NULL audio_activity_ratio",
+          "table": "public.videos",
+          "referenced_table": "",
+          "columns": [
+            "audio_activity_ratio"
+          ]
+        },
         {
           "name": "videos_created_at_not_null",
           "type": "n",
@@ -131,16 +133,6 @@
           "referenced_table": "",
           "columns": [
             "id"
-          ]
-        },
-        {
-          "name": "videos_processing_status_not_null",
-          "type": "n",
-          "def": "NOT NULL processing_status",
-          "table": "public.videos",
-          "referenced_table": "",
-          "columns": [
-            "processing_status"
           ]
         },
         {

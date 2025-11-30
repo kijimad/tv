@@ -60,7 +60,6 @@ describe("Timeline", () => {
           finishedAt: new Date(today.getTime() + 3600000).toISOString(),
           createdAt: today.toISOString(),
           updatedAt: today.toISOString(),
-          processingStatus: "ready",
         },
       ],
     };
@@ -96,7 +95,6 @@ describe("Timeline", () => {
           finishedAt: new Date(yesterday.getTime() + 3600000).toISOString(),
           createdAt: yesterday.toISOString(),
           updatedAt: yesterday.toISOString(),
-          processingStatus: "ready",
         },
       ],
     };
@@ -138,7 +136,6 @@ describe("Timeline", () => {
           ).toISOString(),
           createdAt: justBeforeMidnight.toISOString(),
           updatedAt: justBeforeMidnight.toISOString(),
-          processingStatus: "ready",
         },
         {
           id: 2,
@@ -150,7 +147,6 @@ describe("Timeline", () => {
           ).toISOString(),
           createdAt: justAfterMidnight.toISOString(),
           updatedAt: justAfterMidnight.toISOString(),
-          processingStatus: "ready",
         },
       ],
     };
@@ -187,7 +183,6 @@ describe("Timeline", () => {
           finishedAt: new Date(yesterday.getTime() + 3600000).toISOString(),
           createdAt: yesterday.toISOString(),
           updatedAt: yesterday.toISOString(),
-          processingStatus: "ready",
         },
       ],
     };
@@ -227,7 +222,6 @@ describe("Timeline", () => {
           finishedAt: new Date(tomorrow.getTime() + 3600000).toISOString(),
           createdAt: tomorrow.toISOString(),
           updatedAt: tomorrow.toISOString(),
-          processingStatus: "ready",
         },
       ],
     };
@@ -270,7 +264,6 @@ describe("Timeline", () => {
           finishedAt: new Date(today.getTime() + 3600000).toISOString(),
           createdAt: today.toISOString(),
           updatedAt: today.toISOString(),
-          processingStatus: "ready",
         },
         {
           id: 2,
@@ -280,7 +273,6 @@ describe("Timeline", () => {
           finishedAt: new Date(tomorrow.getTime() + 3600000).toISOString(),
           createdAt: tomorrow.toISOString(),
           updatedAt: tomorrow.toISOString(),
-          processingStatus: "ready",
         },
       ],
     };

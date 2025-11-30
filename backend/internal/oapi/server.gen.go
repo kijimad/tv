@@ -18,9 +18,6 @@ import (
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
-	// (GET /api/v1/status)
-	StatusGet(c *gin.Context)
-
 	// (GET /api/v1/videos)
 	VideosList(c *gin.Context, params VideosListParams)
 
@@ -36,23 +33,8 @@ type ServerInterface interface {
 	// (PATCH /api/v1/videos/{id})
 	VideosUpdate(c *gin.Context, id int64)
 
-	// (POST /api/v1/videos/{id}/complete)
-	VideosComplete(c *gin.Context, id int64)
-
-	// (POST /api/v1/videos/{id}/fail)
-	VideosFail(c *gin.Context, id int64)
-
 	// (GET /api/v1/videos/{id}/file)
 	VideosFile(c *gin.Context, id int64)
-
-	// (POST /api/v1/videos/{id}/process)
-	VideosProcess(c *gin.Context, id int64)
-
-	// (POST /api/v1/videos/{id}/retry)
-	VideosRetry(c *gin.Context, id int64)
-
-	// (POST /api/v1/videos/{id}/stop)
-	VideosStop(c *gin.Context, id int64)
 
 	// (GET /api/v1/videos/{id}/thumbnail)
 	VideosThumbnail(c *gin.Context, id int64)
@@ -66,19 +48,6 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(c *gin.Context)
-
-// StatusGet operation middleware
-func (siw *ServerInterfaceWrapper) StatusGet(c *gin.Context) {
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.StatusGet(c)
-}
 
 // VideosList operation middleware
 func (siw *ServerInterfaceWrapper) VideosList(c *gin.Context) {
@@ -101,14 +70,6 @@ func (siw *ServerInterfaceWrapper) VideosList(c *gin.Context) {
 	err = runtime.BindQueryParameter("form", false, false, "size", c.Request.URL.Query(), &params.Size)
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter size: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	// ------------- Optional query parameter "status" -------------
-
-	err = runtime.BindQueryParameter("form", false, false, "status", c.Request.URL.Query(), &params.Status)
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter status: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -207,54 +168,6 @@ func (siw *ServerInterfaceWrapper) VideosUpdate(c *gin.Context) {
 	siw.Handler.VideosUpdate(c, id)
 }
 
-// VideosComplete operation middleware
-func (siw *ServerInterfaceWrapper) VideosComplete(c *gin.Context) {
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id int64
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.VideosComplete(c, id)
-}
-
-// VideosFail operation middleware
-func (siw *ServerInterfaceWrapper) VideosFail(c *gin.Context) {
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id int64
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.VideosFail(c, id)
-}
-
 // VideosFile operation middleware
 func (siw *ServerInterfaceWrapper) VideosFile(c *gin.Context) {
 
@@ -277,78 +190,6 @@ func (siw *ServerInterfaceWrapper) VideosFile(c *gin.Context) {
 	}
 
 	siw.Handler.VideosFile(c, id)
-}
-
-// VideosProcess operation middleware
-func (siw *ServerInterfaceWrapper) VideosProcess(c *gin.Context) {
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id int64
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.VideosProcess(c, id)
-}
-
-// VideosRetry operation middleware
-func (siw *ServerInterfaceWrapper) VideosRetry(c *gin.Context) {
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id int64
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.VideosRetry(c, id)
-}
-
-// VideosStop operation middleware
-func (siw *ServerInterfaceWrapper) VideosStop(c *gin.Context) {
-
-	var err error
-
-	// ------------- Path parameter "id" -------------
-	var id int64
-
-	err = runtime.BindStyledParameterWithOptions("simple", "id", c.Param("id"), &id, runtime.BindStyledParameterOptions{Explode: false, Required: true})
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter id: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		middleware(c)
-		if c.IsAborted() {
-			return
-		}
-	}
-
-	siw.Handler.VideosStop(c, id)
 }
 
 // VideosThumbnail operation middleware
@@ -402,47 +243,13 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 		ErrorHandler:       errorHandler,
 	}
 
-	router.GET(options.BaseURL+"/api/v1/status", wrapper.StatusGet)
 	router.GET(options.BaseURL+"/api/v1/videos", wrapper.VideosList)
 	router.POST(options.BaseURL+"/api/v1/videos", wrapper.VideosCreate)
 	router.DELETE(options.BaseURL+"/api/v1/videos/:id", wrapper.VideosDelete)
 	router.GET(options.BaseURL+"/api/v1/videos/:id", wrapper.VideosGet)
 	router.PATCH(options.BaseURL+"/api/v1/videos/:id", wrapper.VideosUpdate)
-	router.POST(options.BaseURL+"/api/v1/videos/:id/complete", wrapper.VideosComplete)
-	router.POST(options.BaseURL+"/api/v1/videos/:id/fail", wrapper.VideosFail)
 	router.GET(options.BaseURL+"/api/v1/videos/:id/file", wrapper.VideosFile)
-	router.POST(options.BaseURL+"/api/v1/videos/:id/process", wrapper.VideosProcess)
-	router.POST(options.BaseURL+"/api/v1/videos/:id/retry", wrapper.VideosRetry)
-	router.POST(options.BaseURL+"/api/v1/videos/:id/stop", wrapper.VideosStop)
 	router.GET(options.BaseURL+"/api/v1/videos/:id/thumbnail", wrapper.VideosThumbnail)
-}
-
-type StatusGetRequestObject struct {
-}
-
-type StatusGetResponseObject interface {
-	VisitStatusGetResponse(w http.ResponseWriter) error
-}
-
-type StatusGet200JSONResponse RecordingStatus
-
-func (response StatusGet200JSONResponse) VisitStatusGetResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type StatusGetdefaultJSONResponse struct {
-	Body       Error
-	StatusCode int
-}
-
-func (response StatusGetdefaultJSONResponse) VisitStatusGetResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type VideosListRequestObject struct {
@@ -590,68 +397,6 @@ func (response VideosUpdatedefaultJSONResponse) VisitVideosUpdateResponse(w http
 	return json.NewEncoder(w).Encode(response.Body)
 }
 
-type VideosCompleteRequestObject struct {
-	Id int64 `json:"id"`
-}
-
-type VideosCompleteResponseObject interface {
-	VisitVideosCompleteResponse(w http.ResponseWriter) error
-}
-
-type VideosComplete200JSONResponse Video
-
-func (response VideosComplete200JSONResponse) VisitVideosCompleteResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type VideosCompletedefaultJSONResponse struct {
-	Body struct {
-		union json.RawMessage
-	}
-	StatusCode int
-}
-
-func (response VideosCompletedefaultJSONResponse) VisitVideosCompleteResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body.union)
-}
-
-type VideosFailRequestObject struct {
-	Id int64 `json:"id"`
-}
-
-type VideosFailResponseObject interface {
-	VisitVideosFailResponse(w http.ResponseWriter) error
-}
-
-type VideosFail200JSONResponse Video
-
-func (response VideosFail200JSONResponse) VisitVideosFailResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type VideosFaildefaultJSONResponse struct {
-	Body struct {
-		union json.RawMessage
-	}
-	StatusCode int
-}
-
-func (response VideosFaildefaultJSONResponse) VisitVideosFailResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body.union)
-}
-
 type VideosFileRequestObject struct {
 	Id int64 `json:"id"`
 }
@@ -698,99 +443,6 @@ func (response VideosFiledefaultJSONResponse) VisitVideosFileResponse(w http.Res
 	w.WriteHeader(response.StatusCode)
 
 	return json.NewEncoder(w).Encode(response.Body)
-}
-
-type VideosProcessRequestObject struct {
-	Id int64 `json:"id"`
-}
-
-type VideosProcessResponseObject interface {
-	VisitVideosProcessResponse(w http.ResponseWriter) error
-}
-
-type VideosProcess200JSONResponse Video
-
-func (response VideosProcess200JSONResponse) VisitVideosProcessResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type VideosProcessdefaultJSONResponse struct {
-	Body struct {
-		union json.RawMessage
-	}
-	StatusCode int
-}
-
-func (response VideosProcessdefaultJSONResponse) VisitVideosProcessResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body.union)
-}
-
-type VideosRetryRequestObject struct {
-	Id int64 `json:"id"`
-}
-
-type VideosRetryResponseObject interface {
-	VisitVideosRetryResponse(w http.ResponseWriter) error
-}
-
-type VideosRetry200JSONResponse Video
-
-func (response VideosRetry200JSONResponse) VisitVideosRetryResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type VideosRetrydefaultJSONResponse struct {
-	Body struct {
-		union json.RawMessage
-	}
-	StatusCode int
-}
-
-func (response VideosRetrydefaultJSONResponse) VisitVideosRetryResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body.union)
-}
-
-type VideosStopRequestObject struct {
-	Id int64 `json:"id"`
-}
-
-type VideosStopResponseObject interface {
-	VisitVideosStopResponse(w http.ResponseWriter) error
-}
-
-type VideosStop200JSONResponse Video
-
-func (response VideosStop200JSONResponse) VisitVideosStopResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
-type VideosStopdefaultJSONResponse struct {
-	Body struct {
-		union json.RawMessage
-	}
-	StatusCode int
-}
-
-func (response VideosStopdefaultJSONResponse) VisitVideosStopResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.StatusCode)
-
-	return json.NewEncoder(w).Encode(response.Body.union)
 }
 
 type VideosThumbnailRequestObject struct {
@@ -844,9 +496,6 @@ func (response VideosThumbnaildefaultJSONResponse) VisitVideosThumbnailResponse(
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 
-	// (GET /api/v1/status)
-	StatusGet(ctx context.Context, request StatusGetRequestObject) (StatusGetResponseObject, error)
-
 	// (GET /api/v1/videos)
 	VideosList(ctx context.Context, request VideosListRequestObject) (VideosListResponseObject, error)
 
@@ -862,23 +511,8 @@ type StrictServerInterface interface {
 	// (PATCH /api/v1/videos/{id})
 	VideosUpdate(ctx context.Context, request VideosUpdateRequestObject) (VideosUpdateResponseObject, error)
 
-	// (POST /api/v1/videos/{id}/complete)
-	VideosComplete(ctx context.Context, request VideosCompleteRequestObject) (VideosCompleteResponseObject, error)
-
-	// (POST /api/v1/videos/{id}/fail)
-	VideosFail(ctx context.Context, request VideosFailRequestObject) (VideosFailResponseObject, error)
-
 	// (GET /api/v1/videos/{id}/file)
 	VideosFile(ctx context.Context, request VideosFileRequestObject) (VideosFileResponseObject, error)
-
-	// (POST /api/v1/videos/{id}/process)
-	VideosProcess(ctx context.Context, request VideosProcessRequestObject) (VideosProcessResponseObject, error)
-
-	// (POST /api/v1/videos/{id}/retry)
-	VideosRetry(ctx context.Context, request VideosRetryRequestObject) (VideosRetryResponseObject, error)
-
-	// (POST /api/v1/videos/{id}/stop)
-	VideosStop(ctx context.Context, request VideosStopRequestObject) (VideosStopResponseObject, error)
 
 	// (GET /api/v1/videos/{id}/thumbnail)
 	VideosThumbnail(ctx context.Context, request VideosThumbnailRequestObject) (VideosThumbnailResponseObject, error)
@@ -894,31 +528,6 @@ func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareF
 type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
-}
-
-// StatusGet operation middleware
-func (sh *strictHandler) StatusGet(ctx *gin.Context) {
-	var request StatusGetRequestObject
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.StatusGet(ctx, request.(StatusGetRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "StatusGet")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(StatusGetResponseObject); ok {
-		if err := validResponse.VisitStatusGetResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
 }
 
 // VideosList operation middleware
@@ -1070,60 +679,6 @@ func (sh *strictHandler) VideosUpdate(ctx *gin.Context, id int64) {
 	}
 }
 
-// VideosComplete operation middleware
-func (sh *strictHandler) VideosComplete(ctx *gin.Context, id int64) {
-	var request VideosCompleteRequestObject
-
-	request.Id = id
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.VideosComplete(ctx, request.(VideosCompleteRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "VideosComplete")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(VideosCompleteResponseObject); ok {
-		if err := validResponse.VisitVideosCompleteResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// VideosFail operation middleware
-func (sh *strictHandler) VideosFail(ctx *gin.Context, id int64) {
-	var request VideosFailRequestObject
-
-	request.Id = id
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.VideosFail(ctx, request.(VideosFailRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "VideosFail")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(VideosFailResponseObject); ok {
-		if err := validResponse.VisitVideosFailResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
 // VideosFile operation middleware
 func (sh *strictHandler) VideosFile(ctx *gin.Context, id int64) {
 	var request VideosFileRequestObject
@@ -1144,87 +699,6 @@ func (sh *strictHandler) VideosFile(ctx *gin.Context, id int64) {
 		ctx.Status(http.StatusInternalServerError)
 	} else if validResponse, ok := response.(VideosFileResponseObject); ok {
 		if err := validResponse.VisitVideosFileResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// VideosProcess operation middleware
-func (sh *strictHandler) VideosProcess(ctx *gin.Context, id int64) {
-	var request VideosProcessRequestObject
-
-	request.Id = id
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.VideosProcess(ctx, request.(VideosProcessRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "VideosProcess")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(VideosProcessResponseObject); ok {
-		if err := validResponse.VisitVideosProcessResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// VideosRetry operation middleware
-func (sh *strictHandler) VideosRetry(ctx *gin.Context, id int64) {
-	var request VideosRetryRequestObject
-
-	request.Id = id
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.VideosRetry(ctx, request.(VideosRetryRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "VideosRetry")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(VideosRetryResponseObject); ok {
-		if err := validResponse.VisitVideosRetryResponse(ctx.Writer); err != nil {
-			ctx.Error(err)
-		}
-	} else if response != nil {
-		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
-	}
-}
-
-// VideosStop operation middleware
-func (sh *strictHandler) VideosStop(ctx *gin.Context, id int64) {
-	var request VideosStopRequestObject
-
-	request.Id = id
-
-	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.VideosStop(ctx, request.(VideosStopRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "VideosStop")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		ctx.Error(err)
-		ctx.Status(http.StatusInternalServerError)
-	} else if validResponse, ok := response.(VideosStopResponseObject); ok {
-		if err := validResponse.VisitVideosStopResponse(ctx.Writer); err != nil {
 			ctx.Error(err)
 		}
 	} else if response != nil {

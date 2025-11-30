@@ -56,6 +56,8 @@ services:
       DISPLAY: ${DISPLAY}
       PULSE_SERVER: unix:/run/user/1000/pulse/native
       TZ: UTC
+    ports:
+      - "8091:8091"
     volumes:
       - ./backend/outputs:/outputs
       # ホストマシンによって変わるだろう

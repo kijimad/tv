@@ -11,17 +11,12 @@ import (
 
 type Querier interface {
 	CountVideos(ctx context.Context) (int64, error)
-	CountVideosByStatus(ctx context.Context, processingStatus string) (int64, error)
 	CreateVideo(ctx context.Context, arg CreateVideoParams) (Video, error)
 	DeleteVideo(ctx context.Context, id int64) error
-	GetRecordingVideo(ctx context.Context) (Video, error)
 	GetVideo(ctx context.Context, id int64) (Video, error)
-	ListReadyVideosOlderThan(ctx context.Context, startedAt time.Time) ([]Video, error)
 	ListVideos(ctx context.Context, arg ListVideosParams) ([]Video, error)
-	ListVideosByStatus(ctx context.Context, arg ListVideosByStatusParams) ([]Video, error)
+	ListVideosOlderThan(ctx context.Context, startedAt time.Time) ([]Video, error)
 	UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error)
-	UpdateVideoStatus(ctx context.Context, arg UpdateVideoStatusParams) (Video, error)
-	UpdateVideoStatusWithFinishedAt(ctx context.Context, arg UpdateVideoStatusWithFinishedAtParams) (Video, error)
 }
 
 var _ Querier = (*Queries)(nil)

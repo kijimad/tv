@@ -4,24 +4,6 @@ info:
   version: 0.0.0
 tags: []
 paths:
-  /api/v1/status:
-    get:
-      operationId: Status_get
-      description: 現在の録画状態取得
-      parameters: []
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RecordingStatus'
-        default:
-          description: An unexpected error response.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
   /api/v1/videos:
     get:
       operationId: Videos_list
@@ -48,21 +30,6 @@ paths:
             maximum: 100
             default: 30
           explode: false
-        - name: status
-          in: query
-          required: false
-          description: ステータスで絞り込み
-          schema:
-            type: string
-            enum:
-              - recording
-              - pending
-              - processing
-              - ready
-              - archived
-              - failed
-              - cancelled
-          explode: false
       responses:
         '200':
           description: The request has succeeded.
@@ -78,7 +45,7 @@ paths:
                 $ref: '#/components/schemas/Error'
     post:
       operationId: Videos_create
-      description: ビデオ作成（録画開始）
+      description: ビデオ作成
       parameters: []
       responses:
         '201':
@@ -171,58 +138,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /api/v1/videos/{id}/complete:
-    post:
-      operationId: Videos_complete
-      description: 変換完了（processing → ready）
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Video'
-        default:
-          description: An unexpected error response.
-          content:
-            application/json:
-              schema:
-                anyOf:
-                  - $ref: '#/components/schemas/InvalidStateTransitionError'
-                  - $ref: '#/components/schemas/Error'
-  /api/v1/videos/{id}/fail:
-    post:
-      operationId: Videos_fail
-      description: 変換失敗（processing → failed）
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Video'
-        default:
-          description: An unexpected error response.
-          content:
-            application/json:
-              schema:
-                anyOf:
-                  - $ref: '#/components/schemas/InvalidStateTransitionError'
-                  - $ref: '#/components/schemas/Error'
   /api/v1/videos/{id}/file:
     get:
       operationId: Videos_file
@@ -254,84 +169,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /api/v1/videos/{id}/process:
-    post:
-      operationId: Videos_process
-      description: 変換開始（pending → processing）
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Video'
-        default:
-          description: An unexpected error response.
-          content:
-            application/json:
-              schema:
-                anyOf:
-                  - $ref: '#/components/schemas/InvalidStateTransitionError'
-                  - $ref: '#/components/schemas/Error'
-  /api/v1/videos/{id}/retry:
-    post:
-      operationId: Videos_retry
-      description: 再試行（failed → pending）
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Video'
-        default:
-          description: An unexpected error response.
-          content:
-            application/json:
-              schema:
-                anyOf:
-                  - $ref: '#/components/schemas/InvalidStateTransitionError'
-                  - $ref: '#/components/schemas/Error'
-  /api/v1/videos/{id}/stop:
-    post:
-      operationId: Videos_stop
-      description: 録画停止（recording → pending）
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Video'
-        default:
-          description: An unexpected error response.
-          content:
-            application/json:
-              schema:
-                anyOf:
-                  - $ref: '#/components/schemas/InvalidStateTransitionError'
-                  - $ref: '#/components/schemas/Error'
   /api/v1/videos/{id}/thumbnail:
     get:
       operationId: Videos_thumbnail
@@ -373,19 +210,6 @@ components:
         message:
           type: string
       description: エラーレスポンス
-    InvalidStateTransitionError:
-      type: object
-      required:
-        - error
-        - message
-      properties:
-        error:
-          type: string
-          enum:
-            - invalid_state_transition
-        message:
-          type: string
-      description: 状態遷移エラーレスポンス
     Pager:
       type: object
       required:
@@ -436,7 +260,6 @@ components:
         - title
         - filename
         - startedAt
-        - processingStatus
         - createdAt
         - updatedAt
       properties:
@@ -463,17 +286,6 @@ components:
           type: string
           format: date-time
           description: 録画終了時刻(UTC)
-        processingStatus:
-          type: string
-          enum:
-            - recording
-            - pending
-            - processing
-            - ready
-            - archived
-            - failed
-            - cancelled
-          description: 処理ステータス
         createdAt:
           type: string
           format: date-time
@@ -485,82 +297,13 @@ components:
           description: 更新日時
           readOnly: true
       description: 録画ビデオ
-    VideoCompleteRequest:
-      type: object
-      required:
-        - fileSize
-        - durationSeconds
-      properties:
-        fileSize:
-          type: integer
-          format: int64
-          description: ファイルサイズ(バイト)
-        durationSeconds:
-          type: integer
-          format: int32
-          description: 長さ(秒)
-        videoCodec:
-          type: string
-          description: 動画コーデック
-        audioCodec:
-          type: string
-          description: 音声コーデック
-        resolution:
-          type: string
-          description: 解像度
-      description: 変換完了リクエスト
-    VideoCompletion:
-      type: object
-      required:
-        - id
-        - videoId
-        - filePath
-        - fileSize
-        - durationSeconds
-        - readyAt
-      properties:
-        id:
-          type: integer
-          format: int64
-          description: ID
-          readOnly: true
-        videoId:
-          type: integer
-          format: int64
-          description: ビデオID
-        filePath:
-          type: string
-          description: ファイルパス
-        fileSize:
-          type: integer
-          format: int64
-          description: ファイルサイズ(バイト)
-        durationSeconds:
-          type: integer
-          format: int32
-          description: 長さ(秒)
-        thumbnailPath:
-          type: string
-          description: サムネイルパス
-        videoCodec:
-          type: string
-          description: 動画コーデック
-        audioCodec:
-          type: string
-          description: 音声コーデック
-        resolution:
-          type: string
-          description: 解像度
-        readyAt:
-          type: string
-          format: date-time
-          description: 完了時刻
-      description: 完了情報
     VideoCreate:
       type: object
       required:
         - title
         - filename
+        - startedAt
+        - finishedAt
       properties:
         title:
           type: string
@@ -570,26 +313,13 @@ components:
           type: string
           minLength: 1
           maxLength: 255
-      description: ビデオ作成リクエスト（録画開始）
-    VideoFailRequest:
-      type: object
-      required:
-        - errorMessage
-      properties:
-        errorMessage:
+        startedAt:
           type: string
-          description: エラーメッセージ
-        errorType:
+          format: date-time
+        finishedAt:
           type: string
-          enum:
-            - conversion_failed
-            - thumbnail_failed
-            - file_not_found
-            - invalid_file
-            - disk_full
-            - timeout
-          description: エラー種別
-      description: 変換失敗リクエスト
+          format: date-time
+      description: ビデオ作成リクエスト
     VideoPage:
       type: object
       required:
@@ -603,98 +333,6 @@ components:
           items:
             $ref: '#/components/schemas/Video'
       description: ビデオページレスポンス
-    VideoProcessing:
-      type: object
-      required:
-        - id
-        - videoId
-        - jobStatus
-        - tempFilePath
-        - outputFilePath
-        - progress
-        - retryCount
-      properties:
-        id:
-          type: integer
-          format: int64
-          description: ID
-          readOnly: true
-        videoId:
-          type: integer
-          format: int64
-          description: ビデオID
-        jobStatus:
-          type: string
-          enum:
-            - pending
-            - processing
-            - failed
-          description: ジョブステータス
-        tempFilePath:
-          type: string
-          description: 一時ファイルパス
-        outputFilePath:
-          type: string
-          description: 出力ファイルパス
-        thumbnailPath:
-          type: string
-          description: サムネイルパス
-        progress:
-          type: integer
-          format: int32
-          minimum: 0
-          maximum: 100
-          description: 進捗 (0-100)
-        retryCount:
-          type: integer
-          format: int32
-          description: 再試行回数
-        lastError:
-          type: string
-          description: 最後のエラー
-      description: 変換処理情報
-    VideoRecording:
-      type: object
-      required:
-        - id
-        - videoId
-        - tempFilePath
-        - startedAt
-      properties:
-        id:
-          type: integer
-          format: int64
-          description: ID
-          readOnly: true
-        videoId:
-          type: integer
-          format: int64
-          description: ビデオID
-        tempFilePath:
-          type: string
-          description: 一時ファイルパス
-        recorderPid:
-          type: integer
-          format: int32
-          description: recorderプロセスPID
-        startedAt:
-          type: string
-          format: date-time
-          description: 開始時刻
-      description: 録画中情報
-    VideoStopRequest:
-      type: object
-      required:
-        - success
-      properties:
-        success:
-          type: boolean
-          description: 正常終了かどうか
-        finishedAt:
-          type: string
-          format: date-time
-          description: 終了時刻（successがtrueの場合に必須）
-      description: 録画停止リクエスト
     VideoUpdate:
       type: object
       properties:

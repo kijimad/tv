@@ -13,11 +13,11 @@ erDiagram
 
 
 "public.videos" {
+  double_precision audio_activity_ratio
   timestamp_without_time_zone created_at
   text filename
   timestamp_without_time_zone finished_at
   bigint id
-  varchar_20_ processing_status
   timestamp_without_time_zone started_at
   text title
   timestamp_without_time_zone updated_at
