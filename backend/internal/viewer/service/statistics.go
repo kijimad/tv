@@ -19,7 +19,7 @@ const (
 
 // StatisticsService は統計ビジネスロジックのインターフェース
 type StatisticsService interface {
-	GetStatistics(ctx context.Context, period Period, baseDate time.Time) (*PeriodStatistics, error)
+	GetStatistics(ctx context.Context, period Period, baseDate time.Time, limit int32) (*PeriodStatistics, error)
 }
 
 // StatisticsQuerier は統計操作に必要なクエリメソッドのインターフェース
@@ -52,11 +52,12 @@ type StatisticsItem struct {
 }
 
 // GetStatistics は統計を取得する
-func (s *statisticsService) GetStatistics(ctx context.Context, period Period, baseDate time.Time) (*PeriodStatistics, error) {
+func (s *statisticsService) GetStatistics(ctx context.Context, period Period, baseDate time.Time, limit int32) (*PeriodStatistics, error) {
 	periodStart, periodEnd := calculatePeriodRange(period, baseDate)
 	rows, err := s.q.GetPeriodStatistics(ctx, sqlc.GetPeriodStatisticsParams{
 		PeriodStart: periodStart,
 		PeriodEnd:   periodEnd,
+		LimitCount:  limit,
 	})
 	if err != nil {
 		return nil, err

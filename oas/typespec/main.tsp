@@ -203,6 +203,8 @@ interface StatisticsAPI {
   @get
   get(
     /** 期間 */
-    @query period: "day" | "week" | "month"
+    @query period: "day" | "week" | "month",
+    /** 取得件数 */
+    @query @minValue(1) @maxValue(100) limit?: int32 = 5,
   ): PeriodStatistics | Error;
 }

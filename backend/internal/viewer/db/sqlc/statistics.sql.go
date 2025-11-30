@@ -18,11 +18,13 @@ FROM videos
 WHERE started_at >= $1 AND started_at < $2
 GROUP BY title
 ORDER BY duration DESC
+LIMIT $3
 `
 
 type GetPeriodStatisticsParams struct {
 	PeriodStart time.Time `json:"period_start"`
 	PeriodEnd   time.Time `json:"period_end"`
+	LimitCount  int32     `json:"limit_count"`
 }
 
 type GetPeriodStatisticsRow struct {
@@ -31,7 +33,7 @@ type GetPeriodStatisticsRow struct {
 }
 
 func (q *Queries) GetPeriodStatistics(ctx context.Context, arg GetPeriodStatisticsParams) ([]GetPeriodStatisticsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getPeriodStatistics, arg.PeriodStart, arg.PeriodEnd)
+	rows, err := q.db.QueryContext(ctx, getPeriodStatistics, arg.PeriodStart, arg.PeriodEnd, arg.LimitCount)
 	if err != nil {
 		return nil, err
 	}

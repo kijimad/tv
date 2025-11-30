@@ -37,7 +37,7 @@ func TestStatisticsService_GetStatistics(t *testing.T) {
 		require.NoError(t, err)
 
 		// 統計を取得する
-		stats, err := svc.GetStatistics(ctx, service.PeriodDay, created.StartedAt)
+		stats, err := svc.GetStatistics(ctx, service.PeriodDay, created.StartedAt, 100)
 		require.NoError(t, err)
 
 		assert.Len(t, stats.Items, 1)
@@ -58,7 +58,7 @@ func TestStatisticsService_GetStatistics(t *testing.T) {
 		}).Create(ctx, queries)
 		require.NoError(t, err)
 
-		stats, err := svc.GetStatistics(ctx, service.PeriodWeek, created.StartedAt)
+		stats, err := svc.GetStatistics(ctx, service.PeriodWeek, created.StartedAt, 100)
 		require.NoError(t, err)
 
 		assert.Len(t, stats.Items, 1)
@@ -79,7 +79,7 @@ func TestStatisticsService_GetStatistics(t *testing.T) {
 		}).Create(ctx, queries)
 		require.NoError(t, err)
 
-		stats, err := svc.GetStatistics(ctx, service.PeriodMonth, created.StartedAt)
+		stats, err := svc.GetStatistics(ctx, service.PeriodMonth, created.StartedAt, 100)
 		require.NoError(t, err)
 
 		assert.Len(t, stats.Items, 1)
@@ -121,7 +121,7 @@ func TestStatisticsService_GetStatistics(t *testing.T) {
 		}).Create(ctx, queries)
 		require.NoError(t, err)
 
-		stats, err := svc.GetStatistics(ctx, service.PeriodDay, created1.StartedAt)
+		stats, err := svc.GetStatistics(ctx, service.PeriodDay, created1.StartedAt, 100)
 		require.NoError(t, err)
 
 		// 同じタイトルが集計されて1つのアイテムになる
@@ -139,7 +139,7 @@ func TestStatisticsService_GetStatistics(t *testing.T) {
 		defer cleanup()
 		ctx := context.Background()
 
-		stats, err := svc.GetStatistics(ctx, service.PeriodDay, time.Now())
+		stats, err := svc.GetStatistics(ctx, service.PeriodDay, time.Now(), 100)
 		require.NoError(t, err)
 
 		assert.Len(t, stats.Items, 0)
@@ -167,7 +167,7 @@ func TestStatisticsService_GetStatistics(t *testing.T) {
 		}).Create(ctx, queries)
 		require.NoError(t, err)
 
-		stats, err := svc.GetStatistics(ctx, service.PeriodDay, time.Now())
+		stats, err := svc.GetStatistics(ctx, service.PeriodDay, time.Now(), 100)
 		require.NoError(t, err)
 
 		// 合計時間を確認する
@@ -193,7 +193,7 @@ func TestStatisticsService_GetStatistics(t *testing.T) {
 		created, err := factory.NewVideo().Create(ctx, queries)
 		require.NoError(t, err)
 
-		stats, err := svc.GetStatistics(ctx, service.Period("invalid"), created.StartedAt)
+		stats, err := svc.GetStatistics(ctx, service.Period("invalid"), created.StartedAt, 100)
 		require.NoError(t, err)
 
 		assert.GreaterOrEqual(t, len(stats.Items), 0)
@@ -227,7 +227,7 @@ func TestStatisticsService_GetStatistics(t *testing.T) {
 		require.NoError(t, err)
 
 		// 今日の統計を取得する
-		stats, err := svc.GetStatistics(ctx, service.PeriodDay, now)
+		stats, err := svc.GetStatistics(ctx, service.PeriodDay, now, 100)
 		require.NoError(t, err)
 
 		// 今日のデータだけが含まれる
@@ -235,5 +235,28 @@ func TestStatisticsService_GetStatistics(t *testing.T) {
 		assert.Equal(t, "今日のタスク", stats.Items[0].Title)
 		assert.Equal(t, int64(createdToday.FinishedAt.Sub(createdToday.StartedAt).Seconds()), stats.Items[0].Duration)
 		assert.Equal(t, int64(createdToday.FinishedAt.Sub(createdToday.StartedAt).Seconds()), stats.Total)
+	})
+
+	t.Run("limit件数で結果を制限できる", func(t *testing.T) {
+		t.Parallel()
+		svc, queries, cleanup := setupStatisticsService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// 10個のビデオを作成する
+		for i := 0; i < 10; i++ {
+			_, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+				vf.Title = "タスク" + string(rune('A'+i))
+				vf.FinishedAt = vf.StartedAt.Add(time.Duration(i+1) * 10 * 60 * 1000000000) // (i+1)*10分
+			}).Create(ctx, queries)
+			require.NoError(t, err)
+		}
+
+		// limit=3で取得する
+		stats, err := svc.GetStatistics(ctx, service.PeriodDay, time.Now(), 3)
+		require.NoError(t, err)
+
+		// 3件のみ返される
+		assert.Len(t, stats.Items, 3)
 	})
 }

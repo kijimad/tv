@@ -121,6 +121,9 @@ type VideoUpdate struct {
 type StatisticsAPIGetParams struct {
 	// Period 期間
 	Period StatisticsAPIGetParamsPeriod `form:"period" json:"period"`
+
+	// Limit 取得件数
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // StatisticsAPIGetParamsPeriod defines parameters for StatisticsAPIGet.

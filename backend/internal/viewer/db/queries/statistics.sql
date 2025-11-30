@@ -5,4 +5,5 @@ SELECT
 FROM videos
 WHERE started_at >= sqlc.arg(period_start) AND started_at < sqlc.arg(period_end)
 GROUP BY title
-ORDER BY duration DESC;
+ORDER BY duration DESC
+LIMIT sqlc.arg(limit_count);

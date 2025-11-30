@@ -25,7 +25,14 @@ func (h *StatisticsHandler) StatisticsAPIGet(ctx context.Context, request oapi.S
 	period := service.Period(request.Params.Period)
 	// TODO: 将来的にはクエリパラメータで基準日を受け取れるようにする
 	baseDate := time.Now()
-	stats, err := h.statisticsSvc.GetStatistics(ctx, period, baseDate)
+
+	// limitのデフォルト値は5
+	limit := int32(5)
+	if request.Params.Limit != nil {
+		limit = *request.Params.Limit
+	}
+
+	stats, err := h.statisticsSvc.GetStatistics(ctx, period, baseDate, limit)
 	if err != nil {
 		statusCode, message := errorResponse(err)
 		return oapi.StatisticsAPIGetdefaultJSONResponse{
