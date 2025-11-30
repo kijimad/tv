@@ -8,7 +8,7 @@ export default function Header() {
         <Flex align="center" justify="space-between">
           <Heading size="lg">TV</Heading>
           <Flex gap={6}>
-            <Link to="/">一覧</Link>
+            <Link to="/">ホーム</Link>
             <Link to="/timeline">タイムライン</Link>
           </Flex>
         </Flex>

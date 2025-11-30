@@ -23,7 +23,7 @@ describe("Header", () => {
       </BrowserRouter>,
     );
 
-    expect(screen.getByText("一覧")).toBeInTheDocument();
+    expect(screen.getByText("ホーム")).toBeInTheDocument();
     expect(screen.getByText("タイムライン")).toBeInTheDocument();
   });
 
@@ -34,7 +34,7 @@ describe("Header", () => {
       </BrowserRouter>,
     );
 
-    const dashboardLink = screen.getByText("一覧").closest("a");
+    const dashboardLink = screen.getByText("ホーム").closest("a");
     const timelineLink = screen.getByText("タイムライン").closest("a");
 
     expect(dashboardLink).toHaveAttribute("href", "/");

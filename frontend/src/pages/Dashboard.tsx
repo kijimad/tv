@@ -6,7 +6,7 @@ export default function Dashboard() {
   return (
     <Container maxW="container.xl">
       <Heading size="xl" mb={6}>
-        一覧
+        ホーム
       </Heading>
       <RecordingStatusList />
       <VideoList />
