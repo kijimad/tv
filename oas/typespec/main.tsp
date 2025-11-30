@@ -34,6 +34,8 @@ model Video {
   finishedAt: utcDateTime;
 
   /** 音声アクティビティ率(%) */
+  @minValue(0)
+  @maxValue(100)
   audioActivityRatio: float64;
 
   /** 作成日時 */
@@ -59,6 +61,8 @@ model VideoCreate {
   finishedAt: utcDateTime;
 
   /** 音声アクティビティ率(%) */
+  @minValue(0)
+  @maxValue(100)
   audioActivityRatio: float64;
 }
 

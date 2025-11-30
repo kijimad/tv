@@ -278,6 +278,8 @@ components:
         audioActivityRatio:
           type: number
           format: double
+          minimum: 0
+          maximum: 100
           description: 音声アクティビティ率(%)
         createdAt:
           type: string
@@ -316,6 +318,8 @@ components:
         audioActivityRatio:
           type: number
           format: double
+          minimum: 0
+          maximum: 100
           description: 音声アクティビティ率(%)
       description: ビデオ作成リクエスト
     VideoPage:
