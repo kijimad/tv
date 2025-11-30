@@ -1,4 +1,4 @@
-import { Box, Spinner, Text, HStack, Badge } from "@chakra-ui/react";
+import { Heading, Box, Spinner, Text, HStack, Badge } from "@chakra-ui/react";
 import { useRecordingStatus } from "../../hooks/useRecordingStatus";
 
 // RecordingInfoの型定義
@@ -84,10 +84,11 @@ export default function RecordingStatusList() {
   }
 
   return (
-    <Box mb={6} p={4} borderWidth="1px" borderRadius="md" bg="gray.50">
-      <Text fontSize="lg" fontWeight="bold" mb={3}>
+    <Box mb={6}>
+      <Heading size="lg" fontWeight="bold" mb={3}>
         実行中のジョブ
-      </Text>
+      </Heading>
+
       {runningJobs.map((info) => (
         <Box
           key={info.filename}
