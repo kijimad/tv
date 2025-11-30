@@ -18,6 +18,9 @@ import (
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
+	// (GET /api/v1/statistics)
+	StatisticsAPIGet(c *gin.Context, params StatisticsAPIGetParams)
+
 	// (GET /api/v1/videos)
 	VideosList(c *gin.Context, params VideosListParams)
 
@@ -48,6 +51,39 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(c *gin.Context)
+
+// StatisticsAPIGet operation middleware
+func (siw *ServerInterfaceWrapper) StatisticsAPIGet(c *gin.Context) {
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params StatisticsAPIGetParams
+
+	// ------------- Required query parameter "period" -------------
+
+	if paramValue := c.Query("period"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandler(c, fmt.Errorf("Query argument period is required, but not found"), http.StatusBadRequest)
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", false, true, "period", c.Request.URL.Query(), &params.Period)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter period: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+		if c.IsAborted() {
+			return
+		}
+	}
+
+	siw.Handler.StatisticsAPIGet(c, params)
+}
 
 // VideosList operation middleware
 func (siw *ServerInterfaceWrapper) VideosList(c *gin.Context) {
@@ -243,6 +279,7 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 		ErrorHandler:       errorHandler,
 	}
 
+	router.GET(options.BaseURL+"/api/v1/statistics", wrapper.StatisticsAPIGet)
 	router.GET(options.BaseURL+"/api/v1/videos", wrapper.VideosList)
 	router.POST(options.BaseURL+"/api/v1/videos", wrapper.VideosCreate)
 	router.DELETE(options.BaseURL+"/api/v1/videos/:id", wrapper.VideosDelete)
@@ -250,6 +287,35 @@ func RegisterHandlersWithOptions(router gin.IRouter, si ServerInterface, options
 	router.PATCH(options.BaseURL+"/api/v1/videos/:id", wrapper.VideosUpdate)
 	router.GET(options.BaseURL+"/api/v1/videos/:id/file", wrapper.VideosFile)
 	router.GET(options.BaseURL+"/api/v1/videos/:id/thumbnail", wrapper.VideosThumbnail)
+}
+
+type StatisticsAPIGetRequestObject struct {
+	Params StatisticsAPIGetParams
+}
+
+type StatisticsAPIGetResponseObject interface {
+	VisitStatisticsAPIGetResponse(w http.ResponseWriter) error
+}
+
+type StatisticsAPIGet200JSONResponse PeriodStatistics
+
+func (response StatisticsAPIGet200JSONResponse) VisitStatisticsAPIGetResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type StatisticsAPIGetdefaultJSONResponse struct {
+	Body       Error
+	StatusCode int
+}
+
+func (response StatisticsAPIGetdefaultJSONResponse) VisitStatisticsAPIGetResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(response.StatusCode)
+
+	return json.NewEncoder(w).Encode(response.Body)
 }
 
 type VideosListRequestObject struct {
@@ -496,6 +562,9 @@ func (response VideosThumbnaildefaultJSONResponse) VisitVideosThumbnailResponse(
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 
+	// (GET /api/v1/statistics)
+	StatisticsAPIGet(ctx context.Context, request StatisticsAPIGetRequestObject) (StatisticsAPIGetResponseObject, error)
+
 	// (GET /api/v1/videos)
 	VideosList(ctx context.Context, request VideosListRequestObject) (VideosListResponseObject, error)
 
@@ -528,6 +597,33 @@ func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareF
 type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
+}
+
+// StatisticsAPIGet operation middleware
+func (sh *strictHandler) StatisticsAPIGet(ctx *gin.Context, params StatisticsAPIGetParams) {
+	var request StatisticsAPIGetRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *gin.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.StatisticsAPIGet(ctx, request.(StatisticsAPIGetRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StatisticsAPIGet")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		ctx.Error(err)
+		ctx.Status(http.StatusInternalServerError)
+	} else if validResponse, ok := response.(StatisticsAPIGetResponseObject); ok {
+		if err := validResponse.VisitStatisticsAPIGetResponse(ctx.Writer); err != nil {
+			ctx.Error(err)
+		}
+	} else if response != nil {
+		ctx.Error(fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // VideosList operation middleware

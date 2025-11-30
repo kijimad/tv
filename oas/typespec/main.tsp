@@ -112,6 +112,27 @@ model VideoPage {
   data: Video[];
 }
 
+/** 統計アイテム */
+model StatisticsItem {
+  /** タイトル */
+  title: string;
+
+  /** 合計時間(秒) */
+  duration: int64;
+
+  /** 割合(%) */
+  percentage: float64;
+}
+
+/** 期間統計 */
+model PeriodStatistics {
+  /** 統計アイテム一覧 */
+  items: StatisticsItem[];
+
+  /** 合計時間(秒) */
+  total: int64;
+}
+
 /** エラーレスポンス */
 @error
 model Error {
@@ -174,4 +195,14 @@ interface Videos {
     @statusCode statusCode: 404;
     @body body: Error;
   } | Error;
+}
+
+@route("/api/v1/statistics")
+interface StatisticsAPI {
+  /** 統計取得 */
+  @get
+  get(
+    /** 期間 */
+    @query period: "day" | "week" | "month"
+  ): PeriodStatistics | Error;
 }

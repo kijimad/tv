@@ -7,6 +7,13 @@ import (
 	"time"
 )
 
+// Defines values for StatisticsAPIGetParamsPeriod.
+const (
+	Day   StatisticsAPIGetParamsPeriod = "day"
+	Month StatisticsAPIGetParamsPeriod = "month"
+	Week  StatisticsAPIGetParamsPeriod = "week"
+)
+
 // Error エラーレスポンス
 type Error struct {
 	Message string `json:"message"`
@@ -27,6 +34,27 @@ type Pager struct {
 
 	// TotalCount ページに含まれているものも含まれていないものも合わせた対象の全数
 	TotalCount int32 `json:"totalCount"`
+}
+
+// PeriodStatistics 期間統計
+type PeriodStatistics struct {
+	// Items 統計アイテム一覧
+	Items []StatisticsItem `json:"items"`
+
+	// Total 合計時間(秒)
+	Total int64 `json:"total"`
+}
+
+// StatisticsItem 統計アイテム
+type StatisticsItem struct {
+	// Duration 合計時間(秒)
+	Duration int64 `json:"duration"`
+
+	// Percentage 割合(%)
+	Percentage float64 `json:"percentage"`
+
+	// Title タイトル
+	Title string `json:"title"`
 }
 
 // Video 録画ビデオ
@@ -88,6 +116,15 @@ type VideoUpdate struct {
 	StartedAt          *time.Time `json:"startedAt,omitempty"`
 	Title              *string    `json:"title,omitempty"`
 }
+
+// StatisticsAPIGetParams defines parameters for StatisticsAPIGet.
+type StatisticsAPIGetParams struct {
+	// Period 期間
+	Period StatisticsAPIGetParamsPeriod `form:"period" json:"period"`
+}
+
+// StatisticsAPIGetParamsPeriod defines parameters for StatisticsAPIGet.
+type StatisticsAPIGetParamsPeriod string
 
 // VideosListParams defines parameters for VideosList.
 type VideosListParams struct {
