@@ -1,0 +1,1 @@
+ALTER TABLE videos ADD COLUMN audio_activity_ratio FLOAT NOT NULL DEFAULT 0;

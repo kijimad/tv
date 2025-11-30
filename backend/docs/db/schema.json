@@ -10,7 +10,8 @@
           "name": "audio_activity_ratio",
           "type": "double precision",
           "nullable": false,
-          "default": "0"
+          "default": "0",
+          "comment": "音声の割合。品質評価用。低いと無音を示し、高いほうがよい"
         },
         {
           "name": "created_at",

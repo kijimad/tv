@@ -8,7 +8,7 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| audio_activity_ratio | double precision | 0 | false |  |  |  |
+| audio_activity_ratio | double precision | 0 | false |  |  | 音声の割合。品質評価用。低いと無音を示し、高いほうがよい |
 | created_at | timestamp without time zone | CURRENT_TIMESTAMP | false |  |  |  |
 | filename | text |  | false |  |  | ファイル名 |
 | finished_at | timestamp without time zone |  | true |  |  | 録画終了日時(UTC) |
