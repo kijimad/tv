@@ -40,6 +40,9 @@ type RecordingStatus struct {
 
 // Video 録画ビデオ
 type Video struct {
+	// AudioActivityRatio 音声アクティビティ率(%)
+	AudioActivityRatio float64 `json:"audioActivityRatio"`
+
 	// CreatedAt 作成日時
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 
@@ -64,10 +67,12 @@ type Video struct {
 
 // VideoCreate ビデオ作成リクエスト
 type VideoCreate struct {
-	Filename   string    `json:"filename"`
-	FinishedAt time.Time `json:"finishedAt"`
-	StartedAt  time.Time `json:"startedAt"`
-	Title      string    `json:"title"`
+	// AudioActivityRatio 音声アクティビティ率(%)
+	AudioActivityRatio float64   `json:"audioActivityRatio"`
+	Filename           string    `json:"filename"`
+	FinishedAt         time.Time `json:"finishedAt"`
+	StartedAt          time.Time `json:"startedAt"`
+	Title              string    `json:"title"`
 }
 
 // VideoPage ビデオページレスポンス
@@ -85,10 +90,12 @@ type VideoPage struct {
 
 // VideoUpdate ビデオ更新リクエスト
 type VideoUpdate struct {
-	Filename   *string    `json:"filename,omitempty"`
-	FinishedAt *time.Time `json:"finishedAt,omitempty"`
-	StartedAt  *time.Time `json:"startedAt,omitempty"`
-	Title      *string    `json:"title,omitempty"`
+	// AudioActivityRatio 音声アクティビティ率(%)
+	AudioActivityRatio *float64   `json:"audioActivityRatio,omitempty"`
+	Filename           *string    `json:"filename,omitempty"`
+	FinishedAt         *time.Time `json:"finishedAt,omitempty"`
+	StartedAt          *time.Time `json:"startedAt,omitempty"`
+	Title              *string    `json:"title,omitempty"`
 }
 
 // VideosListParams defines parameters for VideosList.

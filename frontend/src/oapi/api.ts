@@ -117,6 +117,12 @@ export interface Video {
      */
     'finishedAt'?: string;
     /**
+     * 音声アクティビティ率(%)
+     * @type {number}
+     * @memberof Video
+     */
+    'audioActivityRatio': number;
+    /**
      * 作成日時
      * @type {string}
      * @memberof Video
@@ -159,6 +165,12 @@ export interface VideoCreate {
      * @memberof VideoCreate
      */
     'finishedAt': string;
+    /**
+     * 音声アクティビティ率(%)
+     * @type {number}
+     * @memberof VideoCreate
+     */
+    'audioActivityRatio': number;
 }
 /**
  * ビデオページレスポンス
@@ -190,6 +202,18 @@ export interface VideoUpdate {
      * @type {string}
      * @memberof VideoUpdate
      */
+    'title'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof VideoUpdate
+     */
+    'filename'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof VideoUpdate
+     */
     'startedAt'?: string;
     /**
      * 
@@ -198,17 +222,11 @@ export interface VideoUpdate {
      */
     'finishedAt'?: string;
     /**
-     * 
-     * @type {string}
+     * 音声アクティビティ率(%)
+     * @type {number}
      * @memberof VideoUpdate
      */
-    'title'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof VideoUpdate
-     */
-    'filename'?: string;
+    'audioActivityRatio'?: number;
 }
 
 /**

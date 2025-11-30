@@ -33,6 +33,9 @@ model Video {
   /** 録画終了時刻(UTC) */
   finishedAt?: utcDateTime;
 
+  /** 音声アクティビティ率(%) */
+  audioActivityRatio: float64;
+
   /** 作成日時 */
   @visibility("read")
   createdAt: utcDateTime;
@@ -54,13 +57,13 @@ model VideoCreate {
 
   startedAt: utcDateTime;
   finishedAt: utcDateTime;
+
+  /** 音声アクティビティ率(%) */
+  audioActivityRatio: float64;
 }
 
 /** ビデオ更新リクエスト */
 model VideoUpdate {
-  startedAt?: utcDateTime;
-  finishedAt?: utcDateTime;
-
   @minLength(1)
   @maxLength(255)
   title?: string;
@@ -68,6 +71,12 @@ model VideoUpdate {
   @minLength(1)
   @maxLength(255)
   filename?: string;
+
+  startedAt?: utcDateTime;
+  finishedAt?: utcDateTime;
+
+  /** 音声アクティビティ率(%) */
+  audioActivityRatio?: float64;
 }
 
 /**

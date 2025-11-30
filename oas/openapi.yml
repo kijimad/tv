@@ -260,6 +260,7 @@ components:
         - title
         - filename
         - startedAt
+        - audioActivityRatio
         - createdAt
         - updatedAt
       properties:
@@ -286,6 +287,10 @@ components:
           type: string
           format: date-time
           description: 録画終了時刻(UTC)
+        audioActivityRatio:
+          type: number
+          format: double
+          description: 音声アクティビティ率(%)
         createdAt:
           type: string
           format: date-time
@@ -304,6 +309,7 @@ components:
         - filename
         - startedAt
         - finishedAt
+        - audioActivityRatio
       properties:
         title:
           type: string
@@ -319,6 +325,10 @@ components:
         finishedAt:
           type: string
           format: date-time
+        audioActivityRatio:
+          type: number
+          format: double
+          description: 音声アクティビティ率(%)
       description: ビデオ作成リクエスト
     VideoPage:
       type: object
@@ -336,12 +346,6 @@ components:
     VideoUpdate:
       type: object
       properties:
-        startedAt:
-          type: string
-          format: date-time
-        finishedAt:
-          type: string
-          format: date-time
         title:
           type: string
           minLength: 1
@@ -350,6 +354,16 @@ components:
           type: string
           minLength: 1
           maxLength: 255
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        audioActivityRatio:
+          type: number
+          format: double
+          description: 音声アクティビティ率(%)
       description: ビデオ更新リクエスト
 servers:
   - url: http://localhost:8080

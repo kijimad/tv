@@ -19,6 +19,7 @@ func NewMainApp() *cli.Command {
 			CmdViewer,
 			CmdMigrate,
 			CmdCleaner,
+			CmdAnalyzeAudio,
 		},
 	}
 

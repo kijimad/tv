@@ -12,9 +12,9 @@ SELECT COUNT(*) FROM videos;
 
 -- name: CreateVideo :one
 INSERT INTO videos (
-    title, filename, started_at, finished_at
+    title, filename, started_at, finished_at, audio_activity_ratio
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3, $4, $5
 )
 RETURNING *;
 
@@ -25,6 +25,7 @@ SET
     filename = COALESCE(sqlc.narg('filename'), filename),
     started_at = COALESCE(sqlc.narg('started_at'), started_at),
     finished_at = COALESCE(sqlc.narg('finished_at'), finished_at),
+    audio_activity_ratio = COALESCE(sqlc.narg('audio_activity_ratio'), audio_activity_ratio),
     updated_at = CURRENT_TIMESTAMP
 WHERE id = sqlc.arg('id')
 RETURNING *;

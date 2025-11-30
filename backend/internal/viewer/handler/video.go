@@ -62,13 +62,18 @@ func (h *VideoHandler) VideosList(ctx context.Context, request oapi.VideosListRe
 // VideosCreate はビデオを作成する
 func (h *VideoHandler) VideosCreate(ctx context.Context, request oapi.VideosCreateRequestObject) (oapi.VideosCreateResponseObject, error) {
 	video, err := h.videoSvc.CreateVideo(ctx, sqlc.CreateVideoParams{
-		Title:      request.Body.Title,
-		Filename:   request.Body.Filename,
-		StartedAt:  request.Body.StartedAt,
-		FinishedAt: sql.NullTime{Time: request.Body.FinishedAt, Valid: true},
+		Title:              request.Body.Title,
+		Filename:           request.Body.Filename,
+		StartedAt:          request.Body.StartedAt,
+		FinishedAt:         sql.NullTime{Time: request.Body.FinishedAt, Valid: true},
+		AudioActivityRatio: request.Body.AudioActivityRatio,
 	})
 	if err != nil {
-		return nil, err
+		statusCode, message := errorResponse(err)
+		return oapi.VideosCreatedefaultJSONResponse{
+			Body:       oapi.Error{Message: message},
+			StatusCode: statusCode,
+		}, nil
 	}
 
 	return oapi.VideosCreate201JSONResponse(toAPIVideo(*video)), nil
@@ -78,7 +83,11 @@ func (h *VideoHandler) VideosCreate(ctx context.Context, request oapi.VideosCrea
 func (h *VideoHandler) VideosGet(ctx context.Context, request oapi.VideosGetRequestObject) (oapi.VideosGetResponseObject, error) {
 	video, err := h.videoSvc.GetVideo(ctx, request.Id)
 	if err != nil {
-		return nil, err
+		statusCode, message := errorResponse(err)
+		return oapi.VideosGetdefaultJSONResponse{
+			Body:       oapi.Error{Message: message},
+			StatusCode: statusCode,
+		}, nil
 	}
 
 	return oapi.VideosGet200JSONResponse(toAPIVideo(*video)), nil
@@ -101,10 +110,17 @@ func (h *VideoHandler) VideosUpdate(ctx context.Context, request oapi.VideosUpda
 	if request.Body.FinishedAt != nil {
 		params.FinishedAt = sql.NullTime{Time: *request.Body.FinishedAt, Valid: true}
 	}
+	if request.Body.AudioActivityRatio != nil {
+		params.AudioActivityRatio = sql.NullFloat64{Float64: *request.Body.AudioActivityRatio, Valid: true}
+	}
 
 	video, err := h.videoSvc.UpdateVideo(ctx, request.Id, params)
 	if err != nil {
-		return nil, err
+		statusCode, message := errorResponse(err)
+		return oapi.VideosUpdatedefaultJSONResponse{
+			Body:       oapi.Error{Message: message},
+			StatusCode: statusCode,
+		}, nil
 	}
 
 	return oapi.VideosUpdate200JSONResponse(toAPIVideo(*video)), nil
@@ -113,7 +129,11 @@ func (h *VideoHandler) VideosUpdate(ctx context.Context, request oapi.VideosUpda
 // VideosDelete はビデオを削除する
 func (h *VideoHandler) VideosDelete(ctx context.Context, request oapi.VideosDeleteRequestObject) (oapi.VideosDeleteResponseObject, error) {
 	if err := h.videoSvc.DeleteVideo(ctx, request.Id); err != nil {
-		return nil, err
+		statusCode, message := errorResponse(err)
+		return oapi.VideosDeletedefaultJSONResponse{
+			Body:       oapi.Error{Message: message},
+			StatusCode: statusCode,
+		}, nil
 	}
 
 	return oapi.VideosDelete204Response{}, nil
@@ -179,13 +199,14 @@ func toAPIVideo(v sqlc.Video) oapi.Video {
 		finishedAt = &v.FinishedAt.Time
 	}
 	return oapi.Video{
-		Id:         &id,
-		Title:      v.Title,
-		Filename:   v.Filename,
-		StartedAt:  v.StartedAt,
-		FinishedAt: finishedAt,
-		CreatedAt:  &v.CreatedAt,
-		UpdatedAt:  &v.UpdatedAt,
+		Id:                 &id,
+		Title:              v.Title,
+		Filename:           v.Filename,
+		StartedAt:          v.StartedAt,
+		FinishedAt:         finishedAt,
+		AudioActivityRatio: v.AudioActivityRatio,
+		CreatedAt:          &v.CreatedAt,
+		UpdatedAt:          &v.UpdatedAt,
 	}
 }
 

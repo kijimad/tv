@@ -113,6 +113,7 @@ export default function VideoList() {
                 <Table.ColumnHeader>タイトル</Table.ColumnHeader>
                 <Table.ColumnHeader>開始時刻</Table.ColumnHeader>
                 <Table.ColumnHeader>長さ</Table.ColumnHeader>
+                <Table.ColumnHeader>音声率</Table.ColumnHeader>
                 <Table.ColumnHeader>作成日時</Table.ColumnHeader>
               </Table.Row>
             </Table.Header>
@@ -133,6 +134,7 @@ export default function VideoList() {
                       getDurationMinutes(video.startedAt, video.finishedAt),
                     )}
                   </Table.Cell>
+                  <Table.Cell>{video.audioActivityRatio}</Table.Cell>
                   <Table.Cell>
                     {new Date(video.createdAt).toLocaleString("ja-JP")}
                   </Table.Cell>
