@@ -1,4 +1,12 @@
-import { Heading, Box, Spinner, Text, HStack, Badge } from "@chakra-ui/react";
+import {
+  Heading,
+  Box,
+  Spinner,
+  Text,
+  HStack,
+  Badge,
+  Card,
+} from "@chakra-ui/react";
 import { useRecordingStatus } from "../../hooks/useRecordingStatus";
 
 // RecordingInfoの型定義
@@ -63,9 +71,7 @@ export default function RecordingStatusList() {
   if (error) {
     return (
       <Box textAlign="center" py={4}>
-        <Text color="red.500" fontSize="sm">
-          録画状態の取得に失敗しました
-        </Text>
+        <Text>録画状態の取得に失敗しました</Text>
       </Box>
     );
   }
@@ -85,31 +91,26 @@ export default function RecordingStatusList() {
 
   return (
     <Box mb={6}>
-      <Heading size="lg" fontWeight="bold" mb={3}>
+      <Heading size="lg" mb={3}>
         実行中のジョブ
       </Heading>
 
       {runningJobs.map((info) => (
-        <Box
-          key={info.filename}
-          p={3}
-          mb={2}
-          borderWidth="1px"
-          borderRadius="md"
-          bg="white"
-        >
-          <HStack justify="space-between">
-            <Box flex="1">
-              <Text fontWeight="medium">{info.title || info.filename}</Text>
-              <Text fontSize="sm" color="gray.600">
-                {info.filename}
-              </Text>
-            </Box>
-            <Badge colorScheme={getStatusColor(info.status)}>
-              {getStatusLabel(info.status)}
-            </Badge>
-          </HStack>
-        </Box>
+        <Card.Root key={info.filename} mb={2}>
+          <Card.Body>
+            <HStack justify="space-between">
+              <Box flex="1">
+                <Text>{info.title || info.filename}</Text>
+                <Text fontSize="sm" color="gray.600">
+                  {info.filename}
+                </Text>
+              </Box>
+              <Badge colorScheme={getStatusColor(info.status)}>
+                {getStatusLabel(info.status)}
+              </Badge>
+            </HStack>
+          </Card.Body>
+        </Card.Root>
       ))}
     </Box>
   );

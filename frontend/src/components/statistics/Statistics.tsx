@@ -6,6 +6,7 @@ import {
   Stack,
   Spinner,
   IconButton,
+  Card,
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
@@ -73,15 +74,58 @@ function StatisticsPanel({
 
   if (error) {
     return (
-      <Box p={4} bg="red.50" borderRadius="md">
-        <Text color="red.600">統計の取得に失敗しました</Text>
+      <Box p={4}>
+        <Text>統計の取得に失敗しました</Text>
       </Box>
     );
   }
 
   if (!data || data.items.length === 0) {
     return (
-      <Box p={4} borderWidth={1} borderRadius="md" bg="white">
+      <Card.Root>
+        <Card.Body>
+          <Stack direction="row" justify="space-between" align="center" mb={4}>
+            <Heading size="md">{title}</Heading>
+            <Stack direction="row" gap={1}>
+              <IconButton
+                aria-label="前へ"
+                size="sm"
+                onClick={() => navigatePeriod("prev")}
+              >
+                <FaChevronLeft />
+              </IconButton>
+              <IconButton
+                aria-label="次へ"
+                size="sm"
+                onClick={() => navigatePeriod("next")}
+              >
+                <FaChevronRight />
+              </IconButton>
+            </Stack>
+          </Stack>
+          <Text fontSize="sm" mb={4}>
+            {formatPeriodLabel()}
+          </Text>
+          <Text textAlign="center" py={8}>
+            データがありません
+          </Text>
+        </Card.Body>
+      </Card.Root>
+    );
+  }
+
+  const formatDuration = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) {
+      return `${hours}時間${minutes}分`;
+    }
+    return `${minutes}分`;
+  };
+
+  return (
+    <Card.Root>
+      <Card.Body>
         <Stack direction="row" justify="space-between" align="center" mb={4}>
           <Heading size="md">{title}</Heading>
           <Stack direction="row" gap={1}>
@@ -101,98 +145,44 @@ function StatisticsPanel({
             </IconButton>
           </Stack>
         </Stack>
-        <Text fontSize="sm" color="gray.600" mb={4}>
+
+        <Text fontSize="sm" mb={4}>
           {formatPeriodLabel()}
         </Text>
-        <Text color="gray.500" textAlign="center" py={8}>
-          データがありません
-        </Text>
-      </Box>
-    );
-  }
 
-  const formatDuration = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    if (hours > 0) {
-      return `${hours}時間${minutes}分`;
-    }
-    return `${minutes}分`;
-  };
+        <Box mb={4}>
+          <Text fontSize="sm" mb={1}>
+            合計時間
+          </Text>
+          <Text fontSize="xl">{formatDuration(data.total)}</Text>
+        </Box>
 
-  return (
-    <Box p={4} borderWidth={1} borderRadius="md" bg="white">
-      <Stack direction="row" justify="space-between" align="center" mb={4}>
-        <Heading size="md">{title}</Heading>
-        <Stack direction="row" gap={1}>
-          <IconButton
-            aria-label="前へ"
-            size="sm"
-            onClick={() => navigatePeriod("prev")}
-          >
-            <FaChevronLeft />
-          </IconButton>
-          <IconButton
-            aria-label="次へ"
-            size="sm"
-            onClick={() => navigatePeriod("next")}
-          >
-            <FaChevronRight />
-          </IconButton>
+        <Stack gap={3}>
+          {data.items.map((item, index) => (
+            <Card.Root key={index} variant="subtle">
+              <Card.Body>
+                <Stack direction="row" justify="space-between" mb={2}>
+                  <Text fontSize="sm">{item.title}</Text>
+                  <Text fontSize="sm">{formatDuration(item.duration)}</Text>
+                </Stack>
+                <Stack direction="row" align="center" gap={2}>
+                  <Box flex={1} h="8px" overflow="hidden">
+                    <Box
+                      h="full"
+                      bg="blue.500"
+                      style={{ width: `${item.percentage}%` }}
+                    />
+                  </Box>
+                  <Text fontSize="xs" minW="45px" textAlign="right">
+                    {item.percentage.toFixed(1)}%
+                  </Text>
+                </Stack>
+              </Card.Body>
+            </Card.Root>
+          ))}
         </Stack>
-      </Stack>
-
-      <Text fontSize="sm" color="gray.600" mb={4}>
-        {formatPeriodLabel()}
-      </Text>
-
-      <Box mb={4}>
-        <Text fontSize="sm" color="gray.600" mb={1}>
-          合計時間
-        </Text>
-        <Text fontSize="xl" fontWeight="bold">
-          {formatDuration(data.total)}
-        </Text>
-      </Box>
-
-      <Stack gap={3}>
-        {data.items.map((item, index) => (
-          <Box key={index} p={3} borderWidth={1} borderRadius="md" bg="gray.50">
-            <Stack direction="row" justify="space-between" mb={2}>
-              <Text fontWeight="medium" fontSize="sm">
-                {item.title}
-              </Text>
-              <Text color="gray.600" fontSize="sm">
-                {formatDuration(item.duration)}
-              </Text>
-            </Stack>
-            <Stack direction="row" align="center" gap={2}>
-              <Box
-                flex={1}
-                h="8px"
-                bg="gray.200"
-                borderRadius="full"
-                overflow="hidden"
-              >
-                <Box
-                  h="full"
-                  bg="blue.500"
-                  style={{ width: `${item.percentage}%` }}
-                />
-              </Box>
-              <Text
-                fontSize="xs"
-                color="gray.600"
-                minW="45px"
-                textAlign="right"
-              >
-                {item.percentage.toFixed(1)}%
-              </Text>
-            </Stack>
-          </Box>
-        ))}
-      </Stack>
-    </Box>
+      </Card.Body>
+    </Card.Root>
   );
 }
 

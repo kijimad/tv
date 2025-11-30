@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  Card,
   Container,
   Heading,
   HStack,
@@ -24,7 +25,6 @@ function VideoThumbnail({ videoId }: { videoId: number }) {
       objectFit="cover"
       w="60px"
       h="40px"
-      borderRadius="sm"
       flexShrink={0}
     />
   );
@@ -218,40 +218,30 @@ export default function Timeline() {
         >
           <IoChevronForward />
         </Button>
-        <Box ml={4} fontSize="md" fontWeight="medium">
-          {formatSelectedDate()}
-        </Box>
+        <Box ml={4}>{formatSelectedDate()}</Box>
       </HStack>
 
       {/* 統計情報カード */}
-      <Box mb={6} p={4} bg="gray.50" borderRadius="md">
-        <HStack gap={8}>
-          <VStack align="start" gap={1}>
-            <Text fontSize="sm" color="gray.600">
-              録画回数
-            </Text>
-            <Text fontSize="2xl" fontWeight="bold">
-              {statistics.count}回
-            </Text>
-          </VStack>
-          <VStack align="start" gap={1}>
-            <Text fontSize="sm" color="gray.600">
-              総録画時間
-            </Text>
-            <Text fontSize="2xl" fontWeight="bold">
-              {formatDuration(statistics.totalMinutes)}
-            </Text>
-          </VStack>
-          <VStack align="start" gap={1}>
-            <Text fontSize="sm" color="gray.600">
-              カバレッジ
-            </Text>
-            <Text fontSize="2xl" fontWeight="bold">
-              {statistics.coverage.toFixed(1)}%
-            </Text>
-          </VStack>
-        </HStack>
-      </Box>
+      <Card.Root mb={6} variant="subtle">
+        <Card.Body>
+          <HStack gap={8}>
+            <VStack align="start" gap={1}>
+              <Text fontSize="sm">録画回数</Text>
+              <Text fontSize="2xl">{statistics.count}回</Text>
+            </VStack>
+            <VStack align="start" gap={1}>
+              <Text fontSize="sm">総録画時間</Text>
+              <Text fontSize="2xl">
+                {formatDuration(statistics.totalMinutes)}
+              </Text>
+            </VStack>
+            <VStack align="start" gap={1}>
+              <Text fontSize="sm">カバレッジ</Text>
+              <Text fontSize="2xl">{statistics.coverage.toFixed(1)}%</Text>
+            </VStack>
+          </HStack>
+        </Card.Body>
+      </Card.Root>
 
       <Box position="relative" h={`${timelineHeight}px`} w="full">
         {/* 時刻軸 */}
@@ -268,7 +258,6 @@ export default function Timeline() {
               position="absolute"
               left="0"
               top="-10px"
-              fontSize="sm"
               w="60px"
               textAlign="right"
               pr={2}
@@ -321,7 +310,6 @@ export default function Timeline() {
               <VideoThumbnail videoId={video.id} />
               <Box flex={1} overflow="hidden">
                 <Box
-                  fontSize="sm"
                   overflow="hidden"
                   textOverflow="ellipsis"
                   whiteSpace="nowrap"
