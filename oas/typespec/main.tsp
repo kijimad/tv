@@ -31,7 +31,7 @@ model Video {
   startedAt: utcDateTime;
 
   /** 録画終了時刻(UTC) */
-  finishedAt?: utcDateTime;
+  finishedAt: utcDateTime;
 
   /** 音声アクティビティ率(%) */
   audioActivityRatio: float64;

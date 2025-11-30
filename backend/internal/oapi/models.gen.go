@@ -29,15 +29,6 @@ type Pager struct {
 	TotalCount int32 `json:"totalCount"`
 }
 
-// RecordingStatus 録画ステータスレスポンス
-type RecordingStatus struct {
-	// CurrentVideo 現在録画中のビデオ
-	CurrentVideo *Video `json:"currentVideo,omitempty"`
-
-	// Recording 録画中かどうか
-	Recording bool `json:"recording"`
-}
-
 // Video 録画ビデオ
 type Video struct {
 	// AudioActivityRatio 音声アクティビティ率(%)
@@ -50,7 +41,7 @@ type Video struct {
 	Filename string `json:"filename"`
 
 	// FinishedAt 録画終了時刻(UTC)
-	FinishedAt *time.Time `json:"finishedAt,omitempty"`
+	FinishedAt time.Time `json:"finishedAt"`
 
 	// Id ビデオID
 	Id *int64 `json:"id,omitempty"`

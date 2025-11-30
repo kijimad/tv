@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/kijimaD/tv/internal/oapi"
 	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
@@ -65,7 +64,7 @@ func (h *VideoHandler) VideosCreate(ctx context.Context, request oapi.VideosCrea
 		Title:              request.Body.Title,
 		Filename:           request.Body.Filename,
 		StartedAt:          request.Body.StartedAt,
-		FinishedAt:         sql.NullTime{Time: request.Body.FinishedAt, Valid: true},
+		FinishedAt:         request.Body.FinishedAt,
 		AudioActivityRatio: request.Body.AudioActivityRatio,
 	})
 	if err != nil {
@@ -194,16 +193,12 @@ func validateFilename(filename string) error {
 // toAPIVideo はsqlc.Videoをoapi.Videoに変換する
 func toAPIVideo(v sqlc.Video) oapi.Video {
 	id := v.ID
-	var finishedAt *time.Time
-	if v.FinishedAt.Valid {
-		finishedAt = &v.FinishedAt.Time
-	}
 	return oapi.Video{
 		Id:                 &id,
 		Title:              v.Title,
 		Filename:           v.Filename,
 		StartedAt:          v.StartedAt,
-		FinishedAt:         finishedAt,
+		FinishedAt:         v.FinishedAt,
 		AudioActivityRatio: v.AudioActivityRatio,
 		CreatedAt:          &v.CreatedAt,
 		UpdatedAt:          &v.UpdatedAt,

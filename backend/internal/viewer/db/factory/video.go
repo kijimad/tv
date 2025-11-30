@@ -15,6 +15,7 @@ type VideoFactory struct {
 	Title              string
 	Filename           string
 	StartedAt          time.Time
+	FinishedAt         time.Time
 	AudioActivityRatio float64
 }
 
@@ -25,6 +26,7 @@ func NewVideo(overrides ...func(*VideoFactory)) *VideoFactory {
 		Title:              faker.Sentence(),
 		Filename:           fmt.Sprintf("%s.webm", faker.UUIDHyphenated()),
 		StartedAt:          now,
+		FinishedAt:         now.Add(30 * time.Minute),
 		AudioActivityRatio: 85.0,
 	}
 	for _, override := range overrides {
@@ -39,6 +41,7 @@ func (f *VideoFactory) Build() sqlc.CreateVideoParams {
 		Title:              f.Title,
 		Filename:           f.Filename,
 		StartedAt:          f.StartedAt,
+		FinishedAt:         f.FinishedAt,
 		AudioActivityRatio: f.AudioActivityRatio,
 	}
 }

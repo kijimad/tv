@@ -201,7 +201,7 @@ func TestVideoHandler_VideosCreate(t *testing.T) {
 		assert.Equal(t, "New Video", createResp.Title)
 		assert.Equal(t, "new.webm", createResp.Filename)
 		assert.WithinDuration(t, startedAt, createResp.StartedAt, time.Second)
-		assert.WithinDuration(t, finishedAt, *createResp.FinishedAt, time.Second)
+		assert.WithinDuration(t, finishedAt, createResp.FinishedAt, time.Second)
 		assert.Equal(t, 75.5, createResp.AudioActivityRatio)
 	})
 

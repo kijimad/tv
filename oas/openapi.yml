@@ -247,6 +247,7 @@ components:
         - title
         - filename
         - startedAt
+        - finishedAt
         - audioActivityRatio
         - createdAt
         - updatedAt

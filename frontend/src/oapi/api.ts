@@ -62,25 +62,6 @@ export interface Pager {
     'totalCount': number;
 }
 /**
- * 録画ステータスレスポンス
- * @export
- * @interface RecordingStatus
- */
-export interface RecordingStatus {
-    /**
-     * 録画中かどうか
-     * @type {boolean}
-     * @memberof RecordingStatus
-     */
-    'recording': boolean;
-    /**
-     * 現在録画中のビデオ
-     * @type {Video}
-     * @memberof RecordingStatus
-     */
-    'currentVideo'?: Video;
-}
-/**
  * 録画ビデオ
  * @export
  * @interface Video
@@ -115,7 +96,7 @@ export interface Video {
      * @type {string}
      * @memberof Video
      */
-    'finishedAt'?: string;
+    'finishedAt': string;
     /**
      * 音声アクティビティ率(%)
      * @type {number}
