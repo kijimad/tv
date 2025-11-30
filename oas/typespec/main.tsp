@@ -108,15 +108,6 @@ model VideoPage {
   data: Video[];
 }
 
-/** 録画ステータスレスポンス */
-model RecordingStatus {
-  /** 録画中かどうか */
-  recording: boolean;
-
-  /** 現在録画中のビデオ */
-  currentVideo?: Video;
-}
-
 /** エラーレスポンス */
 @error
 model Error {

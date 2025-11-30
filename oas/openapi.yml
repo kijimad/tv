@@ -240,19 +240,6 @@ components:
         ```
         min(size, totalCount - size * (page - 1))
         ```
-    RecordingStatus:
-      type: object
-      required:
-        - recording
-      properties:
-        recording:
-          type: boolean
-          description: 録画中かどうか
-        currentVideo:
-          allOf:
-            - $ref: '#/components/schemas/Video'
-          description: 現在録画中のビデオ
-      description: 録画ステータスレスポンス
     Video:
       type: object
       required:
