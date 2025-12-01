@@ -11,7 +11,7 @@
 | audio_activity_ratio | double precision | 0 | false |  |  | 音声の割合。品質評価用。低いと無音を示し、高いほうがよい |
 | created_at | timestamp without time zone | CURRENT_TIMESTAMP | false |  |  |  |
 | filename | text |  | false |  |  | ファイル名 |
-| finished_at | timestamp without time zone |  | true |  |  | 録画終了日時(UTC) |
+| finished_at | timestamp without time zone |  | false |  |  | 録画終了日時(UTC) |
 | id | bigint | nextval('videos_id_seq'::regclass) | false |  |  |  |
 | started_at | timestamp without time zone |  | false |  |  | 録画開始日時(UTC) |
 | title | text |  | false |  |  | 動画タイトル |
@@ -25,6 +25,7 @@
 | videos_created_at_not_null | n | NOT NULL created_at |
 | videos_filename_key | UNIQUE | UNIQUE (filename) |
 | videos_filename_not_null | n | NOT NULL filename |
+| videos_finished_at_not_null | n | NOT NULL finished_at |
 | videos_id_not_null | n | NOT NULL id |
 | videos_pkey | PRIMARY KEY | PRIMARY KEY (id) |
 | videos_started_at_not_null | n | NOT NULL started_at |
