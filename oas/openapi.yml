@@ -34,10 +34,18 @@ paths:
         - name: baseDate
           in: query
           required: false
-          description: 基準日(UTC)
+          description: 基準日（YYYY-MM-DD形式）
           schema:
             type: string
-            format: date-time
+          explode: false
+        - name: timezone
+          in: query
+          required: false
+          description: タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要
+          schema:
+            type: string
+            default: UTC
+          explode: false
       responses:
         '200':
           description: The request has succeeded.

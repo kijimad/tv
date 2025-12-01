@@ -125,8 +125,11 @@ type StatisticsAPIGetParams struct {
 	// Limit 取得件数
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
 
-	// BaseDate 基準日(UTC)
-	BaseDate *time.Time `form:"baseDate,omitempty" json:"baseDate,omitempty"`
+	// BaseDate 基準日（YYYY-MM-DD形式）
+	BaseDate *string `form:"baseDate,omitempty" json:"baseDate,omitempty"`
+
+	// Timezone タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要
+	Timezone *string `form:"timezone,omitempty" json:"timezone,omitempty"`
 }
 
 // StatisticsAPIGetParamsPeriod defines parameters for StatisticsAPIGet.

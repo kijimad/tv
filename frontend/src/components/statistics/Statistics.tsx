@@ -20,10 +20,16 @@ function StatisticsPanel({
   period: StatisticsAPIGetPeriodEnum;
   title: string;
 }) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => {
+    // ブラウザのローカルタイムゾーンでの現在日付（00:00:00）を取得する
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now;
+  });
 
   const navigatePeriod = (direction: "prev" | "next") => {
     const newDate = new Date(currentDate);
+
     if (period === "day") {
       newDate.setDate(newDate.getDate() + (direction === "next" ? 1 : -1));
     } else if (period === "week") {
@@ -31,6 +37,8 @@ function StatisticsPanel({
     } else if (period === "month") {
       newDate.setMonth(newDate.getMonth() + (direction === "next" ? 1 : -1));
     }
+
+    newDate.setHours(0, 0, 0, 0);
     setCurrentDate(newDate);
   };
 
@@ -42,10 +50,15 @@ function StatisticsPanel({
         day: "2-digit",
       });
     } else if (period === "week") {
+      // 週の開始日（月曜日）を計算する
       const weekStart = new Date(currentDate);
-      weekStart.setDate(currentDate.getDate() - currentDate.getDay());
+      const weekday = weekStart.getDay();
+      const daysToMonday = weekday === 0 ? -6 : 1 - weekday;
+      weekStart.setDate(currentDate.getDate() + daysToMonday);
+
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 6);
+
       return `${weekStart.toLocaleDateString("ja-JP", {
         month: "2-digit",
         day: "2-digit",
@@ -61,8 +74,18 @@ function StatisticsPanel({
     }
   };
 
-  const baseDate = currentDate.toISOString();
-  const { data, isLoading, error } = useStatistics(period, baseDate);
+  // ブラウザのタイムゾーンを取得する（IANA timezone database形式）
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // baseDateをYYYY-MM-DD形式で送信する
+  const baseDate = (() => {
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, "0");
+    const day = String(currentDate.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  })();
+
+  const { data, isLoading, error } = useStatistics(period, baseDate, timezone);
 
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);

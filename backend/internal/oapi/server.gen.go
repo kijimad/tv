@@ -85,9 +85,17 @@ func (siw *ServerInterfaceWrapper) StatisticsAPIGet(c *gin.Context) {
 
 	// ------------- Optional query parameter "baseDate" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "baseDate", c.Request.URL.Query(), &params.BaseDate)
+	err = runtime.BindQueryParameter("form", false, false, "baseDate", c.Request.URL.Query(), &params.BaseDate)
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter baseDate: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "timezone" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "timezone", c.Request.URL.Query(), &params.Timezone)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter timezone: %w", err), http.StatusBadRequest)
 		return
 	}
 

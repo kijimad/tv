@@ -206,7 +206,9 @@ interface StatisticsAPI {
     @query period: "day" | "week" | "month",
     /** 取得件数 */
     @query @minValue(1) @maxValue(100) limit?: int32 = 5,
-    /** 基準日(UTC) */
-    @query baseDate?: utcDateTime,
+    /** 基準日（YYYY-MM-DD形式） */
+    @query baseDate?: string,
+    /** タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要 */
+    @query timezone?: string = "UTC",
   ): PeriodStatistics | Error;
 }

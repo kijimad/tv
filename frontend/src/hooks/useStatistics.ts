@@ -7,12 +7,18 @@ const api = new DefaultApi();
 export function useStatistics(
   period: StatisticsAPIGetPeriodEnum,
   baseDate?: string,
+  timezone?: string,
   limit?: number,
 ) {
   return useQuery({
-    queryKey: ["statistics", period, baseDate, limit],
+    queryKey: ["statistics", period, baseDate, timezone, limit],
     queryFn: async () => {
-      const response = await api.statisticsAPIGet(period, limit, baseDate);
+      const response = await api.statisticsAPIGet(
+        period,
+        limit,
+        baseDate,
+        timezone,
+      );
       return response.data;
     },
     retry: (failureCount, error) => {

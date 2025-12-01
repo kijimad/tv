@@ -68,32 +68,37 @@ func (s *statisticsService) GetStatistics(ctx context.Context, period Period, ba
 }
 
 // calculatePeriodRange は期間と基準日に基づいて開始時刻と終了時刻を計算する
+// baseDateのタイムゾーンでの日付境界を計算し、UTC に変換して返す
 func calculatePeriodRange(period Period, baseDate time.Time) (time.Time, time.Time) {
+	loc := baseDate.Location()
+	year, month, day := baseDate.Date()
+
 	switch period {
 	case PeriodDay:
-		// 基準日の00:00から翌日の00:00まで
-		start := baseDate.Truncate(24 * time.Hour)
+		// baseDateのタイムゾーンでの00:00から翌日の00:00まで
+		start := time.Date(year, month, day, 0, 0, 0, 0, loc)
 		end := start.AddDate(0, 0, 1)
-		return start, end
+		return start.UTC(), end.UTC()
 	case PeriodWeek:
-		// 基準日を含む週の月曜日00:00から翌週の月曜日00:00まで
+		// baseDateを含む週の月曜日00:00から翌週の月曜日00:00まで
 		weekday := int(baseDate.Weekday())
 		if weekday == 0 {
 			weekday = 7 // 日曜日を7として扱う
 		}
-		start := baseDate.AddDate(0, 0, -weekday+1).Truncate(24 * time.Hour)
+		daysToMonday := -weekday + 1
+		start := time.Date(year, month, day+daysToMonday, 0, 0, 0, 0, loc)
 		end := start.AddDate(0, 0, 7)
-		return start, end
+		return start.UTC(), end.UTC()
 	case PeriodMonth:
-		// 基準日を含む月の1日00:00から翌月の1日00:00まで
-		start := time.Date(baseDate.Year(), baseDate.Month(), 1, 0, 0, 0, 0, baseDate.Location())
+		// baseDateを含む月の1日00:00から翌月の1日00:00まで
+		start := time.Date(year, month, 1, 0, 0, 0, 0, loc)
 		end := start.AddDate(0, 1, 0)
-		return start, end
+		return start.UTC(), end.UTC()
 	default:
 		// デフォルトは日
-		start := baseDate.Truncate(24 * time.Hour)
+		start := time.Date(year, month, day, 0, 0, 0, 0, loc)
 		end := start.AddDate(0, 0, 1)
-		return start, end
+		return start.UTC(), end.UTC()
 	}
 }
 
