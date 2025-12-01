@@ -13,6 +13,7 @@ type Querier interface {
 	CountVideos(ctx context.Context) (int64, error)
 	CreateVideo(ctx context.Context, arg CreateVideoParams) (Video, error)
 	DeleteVideo(ctx context.Context, id int64) error
+	GetPeriodStatistics(ctx context.Context, arg GetPeriodStatisticsParams) ([]GetPeriodStatisticsRow, error)
 	GetVideo(ctx context.Context, id int64) (Video, error)
 	ListVideos(ctx context.Context, arg ListVideosParams) ([]Video, error)
 	ListVideosOlderThan(ctx context.Context, startedAt time.Time) ([]Video, error)

@@ -35,7 +35,7 @@ export default function VideoList() {
   if (error) {
     return (
       <Box textAlign="center" py={8}>
-        <Text color="red.500">動画の読み込みに失敗しました</Text>
+        <Text>動画の読み込みに失敗しました</Text>
       </Box>
     );
   }
@@ -43,7 +43,7 @@ export default function VideoList() {
   if (!data?.data || data.data.length === 0) {
     return (
       <Box textAlign="center" py={8}>
-        <Text color="gray.500">録画データがありません</Text>
+        <Text>録画データがありません</Text>
       </Box>
     );
   }
@@ -113,6 +113,7 @@ export default function VideoList() {
                 <Table.ColumnHeader>タイトル</Table.ColumnHeader>
                 <Table.ColumnHeader>開始時刻</Table.ColumnHeader>
                 <Table.ColumnHeader>長さ</Table.ColumnHeader>
+                <Table.ColumnHeader>音声率</Table.ColumnHeader>
                 <Table.ColumnHeader>作成日時</Table.ColumnHeader>
               </Table.Row>
             </Table.Header>
@@ -122,7 +123,6 @@ export default function VideoList() {
                   key={video.id}
                   onClick={() => setSelectedVideo(video)}
                   cursor="pointer"
-                  _hover={{ bg: "gray.50" }}
                 >
                   <Table.Cell>{video.title}</Table.Cell>
                   <Table.Cell>
@@ -133,6 +133,7 @@ export default function VideoList() {
                       getDurationMinutes(video.startedAt, video.finishedAt),
                     )}
                   </Table.Cell>
+                  <Table.Cell>{video.audioActivityRatio}</Table.Cell>
                   <Table.Cell>
                     {new Date(video.createdAt).toLocaleString("ja-JP")}
                   </Table.Cell>

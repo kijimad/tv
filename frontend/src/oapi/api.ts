@@ -62,23 +62,48 @@ export interface Pager {
     'totalCount': number;
 }
 /**
- * 録画ステータスレスポンス
+ * 期間統計
  * @export
- * @interface RecordingStatus
+ * @interface PeriodStatistics
  */
-export interface RecordingStatus {
+export interface PeriodStatistics {
     /**
-     * 録画中かどうか
-     * @type {boolean}
-     * @memberof RecordingStatus
+     * 統計アイテム一覧
+     * @type {Array<StatisticsItem>}
+     * @memberof PeriodStatistics
      */
-    'recording': boolean;
+    'items': Array<StatisticsItem>;
     /**
-     * 現在録画中のビデオ
-     * @type {Video}
-     * @memberof RecordingStatus
+     * 合計時間(秒)
+     * @type {number}
+     * @memberof PeriodStatistics
      */
-    'currentVideo'?: Video;
+    'total': number;
+}
+/**
+ * 統計アイテム
+ * @export
+ * @interface StatisticsItem
+ */
+export interface StatisticsItem {
+    /**
+     * タイトル
+     * @type {string}
+     * @memberof StatisticsItem
+     */
+    'title': string;
+    /**
+     * 合計時間(秒)
+     * @type {number}
+     * @memberof StatisticsItem
+     */
+    'duration': number;
+    /**
+     * 割合(%)
+     * @type {number}
+     * @memberof StatisticsItem
+     */
+    'percentage': number;
 }
 /**
  * 録画ビデオ
@@ -115,7 +140,13 @@ export interface Video {
      * @type {string}
      * @memberof Video
      */
-    'finishedAt'?: string;
+    'finishedAt': string;
+    /**
+     * 音声アクティビティ率(%)
+     * @type {number}
+     * @memberof Video
+     */
+    'audioActivityRatio': number;
     /**
      * 作成日時
      * @type {string}
@@ -159,6 +190,12 @@ export interface VideoCreate {
      * @memberof VideoCreate
      */
     'finishedAt': string;
+    /**
+     * 音声アクティビティ率(%)
+     * @type {number}
+     * @memberof VideoCreate
+     */
+    'audioActivityRatio': number;
 }
 /**
  * ビデオページレスポンス
@@ -190,6 +227,18 @@ export interface VideoUpdate {
      * @type {string}
      * @memberof VideoUpdate
      */
+    'title'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof VideoUpdate
+     */
+    'filename'?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof VideoUpdate
+     */
     'startedAt'?: string;
     /**
      * 
@@ -198,17 +247,11 @@ export interface VideoUpdate {
      */
     'finishedAt'?: string;
     /**
-     * 
-     * @type {string}
+     * 音声アクティビティ率(%)
+     * @type {number}
      * @memberof VideoUpdate
      */
-    'title'?: string;
-    /**
-     * 
-     * @type {string}
-     * @memberof VideoUpdate
-     */
-    'filename'?: string;
+    'audioActivityRatio'?: number;
 }
 
 /**
@@ -217,6 +260,57 @@ export interface VideoUpdate {
  */
 export const DefaultApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
+        /**
+         * 統計取得
+         * @param {StatisticsAPIGetPeriodEnum} period 期間
+         * @param {number} [limit] 取得件数
+         * @param {string} [baseDate] 基準日（YYYY-MM-DD形式）
+         * @param {string} [timezone] タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        statisticsAPIGet: async (period: StatisticsAPIGetPeriodEnum, limit?: number, baseDate?: string, timezone?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'period' is not null or undefined
+            assertParamExists('statisticsAPIGet', 'period', period)
+            const localVarPath = `/api/v1/statistics`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            if (period !== undefined) {
+                localVarQueryParameter['period'] = period;
+            }
+
+            if (limit !== undefined) {
+                localVarQueryParameter['limit'] = limit;
+            }
+
+            if (baseDate !== undefined) {
+                localVarQueryParameter['baseDate'] = baseDate;
+            }
+
+            if (timezone !== undefined) {
+                localVarQueryParameter['timezone'] = timezone;
+            }
+
+
+    
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
         /**
          * ビデオ作成
          * @param {VideoCreate} videoCreate 
@@ -473,6 +567,21 @@ export const DefaultApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = DefaultApiAxiosParamCreator(configuration)
     return {
         /**
+         * 統計取得
+         * @param {StatisticsAPIGetPeriodEnum} period 期間
+         * @param {number} [limit] 取得件数
+         * @param {string} [baseDate] 基準日（YYYY-MM-DD形式）
+         * @param {string} [timezone] タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async statisticsAPIGet(period: StatisticsAPIGetPeriodEnum, limit?: number, baseDate?: string, timezone?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PeriodStatistics>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.statisticsAPIGet(period, limit, baseDate, timezone, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.statisticsAPIGet']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * ビデオ作成
          * @param {VideoCreate} videoCreate 
          * @param {*} [options] Override http request option.
@@ -569,6 +678,18 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
     const localVarFp = DefaultApiFp(configuration)
     return {
         /**
+         * 統計取得
+         * @param {StatisticsAPIGetPeriodEnum} period 期間
+         * @param {number} [limit] 取得件数
+         * @param {string} [baseDate] 基準日（YYYY-MM-DD形式）
+         * @param {string} [timezone] タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        statisticsAPIGet(period: StatisticsAPIGetPeriodEnum, limit?: number, baseDate?: string, timezone?: string, options?: RawAxiosRequestConfig): AxiosPromise<PeriodStatistics> {
+            return localVarFp.statisticsAPIGet(period, limit, baseDate, timezone, options).then((request) => request(axios, basePath));
+        },
+        /**
          * ビデオ作成
          * @param {VideoCreate} videoCreate 
          * @param {*} [options] Override http request option.
@@ -643,6 +764,20 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
  * @extends {BaseAPI}
  */
 export class DefaultApi extends BaseAPI {
+    /**
+     * 統計取得
+     * @param {StatisticsAPIGetPeriodEnum} period 期間
+     * @param {number} [limit] 取得件数
+     * @param {string} [baseDate] 基準日（YYYY-MM-DD形式）
+     * @param {string} [timezone] タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public statisticsAPIGet(period: StatisticsAPIGetPeriodEnum, limit?: number, baseDate?: string, timezone?: string, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).statisticsAPIGet(period, limit, baseDate, timezone, options).then((request) => request(this.axios, this.basePath));
+    }
+
     /**
      * ビデオ作成
      * @param {VideoCreate} videoCreate 
@@ -723,5 +858,14 @@ export class DefaultApi extends BaseAPI {
     }
 }
 
+/**
+ * @export
+ */
+export const StatisticsAPIGetPeriodEnum = {
+    Day: 'day',
+    Week: 'week',
+    Month: 'month'
+} as const;
+export type StatisticsAPIGetPeriodEnum = typeof StatisticsAPIGetPeriodEnum[keyof typeof StatisticsAPIGetPeriodEnum];
 
 

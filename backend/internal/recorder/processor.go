@@ -34,6 +34,18 @@ func (p *VideoProcessor) processVideo(filename, title string, startedAt, finishe
 
 	log.Printf("Starting post-processing for: %s", filename)
 
+	// 音声を解析する
+	analyzer := NewAudioAnalyzer()
+	audioResult, err := analyzer.Analyze(tempPath)
+	audioActivityRatio := 0.0
+	if err != nil {
+		log.Printf("Failed to analyze audio for %s: %v", filename, err)
+		// 失敗しても続行する（0を送信）
+	} else {
+		log.Printf("Audio analysis completed for %s: activity_ratio=%.2f%%", filename, audioResult.ActivityRatio)
+		audioActivityRatio = audioResult.ActivityRatio
+	}
+
 	// サムネイルを生成する
 	thumbnailPath := strings.TrimSuffix(outputPath, ".webm") + ".jpg"
 	if err := p.generateThumbnail(tempPath, thumbnailPath); err != nil {
@@ -54,10 +66,11 @@ func (p *VideoProcessor) processVideo(filename, title string, startedAt, finishe
 
 	// ビデオを作成する
 	video, err := p.client.CreateVideo(oapi.VideoCreate{
-		Filename:   filename,
-		Title:      title,
-		StartedAt:  startedAt,
-		FinishedAt: finishedAt,
+		Filename:           filename,
+		Title:              title,
+		StartedAt:          startedAt,
+		FinishedAt:         finishedAt,
+		AudioActivityRatio: audioActivityRatio,
 	})
 	if err != nil {
 		log.Printf("Failed to create video for %s: %v", filename, err)

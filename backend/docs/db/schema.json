@@ -28,7 +28,7 @@
         {
           "name": "finished_at",
           "type": "timestamp without time zone",
-          "nullable": true,
+          "nullable": false,
           "comment": "録画終了日時(UTC)"
         },
         {
@@ -113,6 +113,16 @@
           "referenced_table": "",
           "columns": [
             "filename"
+          ]
+        },
+        {
+          "name": "videos_finished_at_not_null",
+          "type": "n",
+          "def": "NOT NULL finished_at",
+          "table": "public.videos",
+          "referenced_table": "",
+          "columns": [
+            "finished_at"
           ]
         },
         {

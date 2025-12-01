@@ -31,7 +31,12 @@ model Video {
   startedAt: utcDateTime;
 
   /** 録画終了時刻(UTC) */
-  finishedAt?: utcDateTime;
+  finishedAt: utcDateTime;
+
+  /** 音声アクティビティ率(%) */
+  @minValue(0)
+  @maxValue(100)
+  audioActivityRatio: float64;
 
   /** 作成日時 */
   @visibility("read")
@@ -54,13 +59,15 @@ model VideoCreate {
 
   startedAt: utcDateTime;
   finishedAt: utcDateTime;
+
+  /** 音声アクティビティ率(%) */
+  @minValue(0)
+  @maxValue(100)
+  audioActivityRatio: float64;
 }
 
 /** ビデオ更新リクエスト */
 model VideoUpdate {
-  startedAt?: utcDateTime;
-  finishedAt?: utcDateTime;
-
   @minLength(1)
   @maxLength(255)
   title?: string;
@@ -68,6 +75,12 @@ model VideoUpdate {
   @minLength(1)
   @maxLength(255)
   filename?: string;
+
+  startedAt?: utcDateTime;
+  finishedAt?: utcDateTime;
+
+  /** 音声アクティビティ率(%) */
+  audioActivityRatio?: float64;
 }
 
 /**
@@ -99,13 +112,25 @@ model VideoPage {
   data: Video[];
 }
 
-/** 録画ステータスレスポンス */
-model RecordingStatus {
-  /** 録画中かどうか */
-  recording: boolean;
+/** 統計アイテム */
+model StatisticsItem {
+  /** タイトル */
+  title: string;
 
-  /** 現在録画中のビデオ */
-  currentVideo?: Video;
+  /** 合計時間(秒) */
+  duration: int64;
+
+  /** 割合(%) */
+  percentage: float64;
+}
+
+/** 期間統計 */
+model PeriodStatistics {
+  /** 統計アイテム一覧 */
+  items: StatisticsItem[];
+
+  /** 合計時間(秒) */
+  total: int64;
 }
 
 /** エラーレスポンス */
@@ -170,4 +195,20 @@ interface Videos {
     @statusCode statusCode: 404;
     @body body: Error;
   } | Error;
+}
+
+@route("/api/v1/statistics")
+interface StatisticsAPI {
+  /** 統計取得 */
+  @get
+  get(
+    /** 期間 */
+    @query period: "day" | "week" | "month",
+    /** 取得件数 */
+    @query @minValue(1) @maxValue(100) limit?: int32 = 5,
+    /** 基準日（YYYY-MM-DD形式） */
+    @query baseDate?: string,
+    /** タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要 */
+    @query timezone?: string = "UTC",
+  ): PeriodStatistics | Error;
 }

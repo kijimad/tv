@@ -29,6 +29,7 @@ describe("VideoPlayerModal", () => {
     title: "テスト動画",
     startedAt: "2025-11-17T10:00:00Z",
     finishedAt: "2025-11-17T11:00:00Z",
+    audioActivityRatio: 85.0,
     createdAt: "2025-11-17T10:00:00Z",
     updatedAt: "2025-11-17T10:00:00Z",
   };

@@ -24,18 +24,19 @@ func (q *Queries) CountVideos(ctx context.Context) (int64, error) {
 
 const createVideo = `-- name: CreateVideo :one
 INSERT INTO videos (
-    title, filename, started_at, finished_at
+    title, filename, started_at, finished_at, audio_activity_ratio
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3, $4, $5
 )
-RETURNING id, started_at, finished_at, title, filename, created_at, updated_at
+RETURNING id, started_at, finished_at, title, filename, created_at, updated_at, audio_activity_ratio
 `
 
 type CreateVideoParams struct {
-	Title      string       `json:"title"`
-	Filename   string       `json:"filename"`
-	StartedAt  time.Time    `json:"started_at"`
-	FinishedAt sql.NullTime `json:"finished_at"`
+	Title              string    `json:"title"`
+	Filename           string    `json:"filename"`
+	StartedAt          time.Time `json:"started_at"`
+	FinishedAt         time.Time `json:"finished_at"`
+	AudioActivityRatio float64   `json:"audio_activity_ratio"`
 }
 
 func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video, error) {
@@ -44,6 +45,7 @@ func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video
 		arg.Filename,
 		arg.StartedAt,
 		arg.FinishedAt,
+		arg.AudioActivityRatio,
 	)
 	var i Video
 	err := row.Scan(
@@ -54,6 +56,7 @@ func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video
 		&i.Filename,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AudioActivityRatio,
 	)
 	return i, err
 }
@@ -69,7 +72,7 @@ func (q *Queries) DeleteVideo(ctx context.Context, id int64) error {
 }
 
 const getVideo = `-- name: GetVideo :one
-SELECT id, started_at, finished_at, title, filename, created_at, updated_at FROM videos
+SELECT id, started_at, finished_at, title, filename, created_at, updated_at, audio_activity_ratio FROM videos
 WHERE id = $1 LIMIT 1
 `
 
@@ -84,12 +87,13 @@ func (q *Queries) GetVideo(ctx context.Context, id int64) (Video, error) {
 		&i.Filename,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AudioActivityRatio,
 	)
 	return i, err
 }
 
 const listVideos = `-- name: ListVideos :many
-SELECT id, started_at, finished_at, title, filename, created_at, updated_at FROM videos
+SELECT id, started_at, finished_at, title, filename, created_at, updated_at, audio_activity_ratio FROM videos
 ORDER BY started_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -116,6 +120,7 @@ func (q *Queries) ListVideos(ctx context.Context, arg ListVideosParams) ([]Video
 			&i.Filename,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.AudioActivityRatio,
 		); err != nil {
 			return nil, err
 		}
@@ -131,7 +136,7 @@ func (q *Queries) ListVideos(ctx context.Context, arg ListVideosParams) ([]Video
 }
 
 const listVideosOlderThan = `-- name: ListVideosOlderThan :many
-SELECT id, started_at, finished_at, title, filename, created_at, updated_at FROM videos
+SELECT id, started_at, finished_at, title, filename, created_at, updated_at, audio_activity_ratio FROM videos
 WHERE started_at < $1
 ORDER BY started_at ASC
 `
@@ -153,6 +158,7 @@ func (q *Queries) ListVideosOlderThan(ctx context.Context, startedAt time.Time) 
 			&i.Filename,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.AudioActivityRatio,
 		); err != nil {
 			return nil, err
 		}
@@ -174,17 +180,19 @@ SET
     filename = COALESCE($2, filename),
     started_at = COALESCE($3, started_at),
     finished_at = COALESCE($4, finished_at),
+    audio_activity_ratio = COALESCE($5, audio_activity_ratio),
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $5
-RETURNING id, started_at, finished_at, title, filename, created_at, updated_at
+WHERE id = $6
+RETURNING id, started_at, finished_at, title, filename, created_at, updated_at, audio_activity_ratio
 `
 
 type UpdateVideoParams struct {
-	Title      sql.NullString `json:"title"`
-	Filename   sql.NullString `json:"filename"`
-	StartedAt  sql.NullTime   `json:"started_at"`
-	FinishedAt sql.NullTime   `json:"finished_at"`
-	ID         int64          `json:"id"`
+	Title              sql.NullString  `json:"title"`
+	Filename           sql.NullString  `json:"filename"`
+	StartedAt          sql.NullTime    `json:"started_at"`
+	FinishedAt         sql.NullTime    `json:"finished_at"`
+	AudioActivityRatio sql.NullFloat64 `json:"audio_activity_ratio"`
+	ID                 int64           `json:"id"`
 }
 
 func (q *Queries) UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video, error) {
@@ -193,6 +201,7 @@ func (q *Queries) UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video
 		arg.Filename,
 		arg.StartedAt,
 		arg.FinishedAt,
+		arg.AudioActivityRatio,
 		arg.ID,
 	)
 	var i Video
@@ -204,6 +213,7 @@ func (q *Queries) UpdateVideo(ctx context.Context, arg UpdateVideoParams) (Video
 		&i.Filename,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AudioActivityRatio,
 	)
 	return i, err
 }

@@ -4,6 +4,61 @@ info:
   version: 0.0.0
 tags: []
 paths:
+  /api/v1/statistics:
+    get:
+      operationId: StatisticsAPI_get
+      description: 統計取得
+      parameters:
+        - name: period
+          in: query
+          required: true
+          description: 期間
+          schema:
+            type: string
+            enum:
+              - day
+              - week
+              - month
+          explode: false
+        - name: limit
+          in: query
+          required: false
+          description: 取得件数
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+            default: 5
+          explode: false
+        - name: baseDate
+          in: query
+          required: false
+          description: 基準日（YYYY-MM-DD形式）
+          schema:
+            type: string
+          explode: false
+        - name: timezone
+          in: query
+          required: false
+          description: タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要
+          schema:
+            type: string
+            default: UTC
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeriodStatistics'
+        default:
+          description: An unexpected error response.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /api/v1/videos:
     get:
       operationId: Videos_list
@@ -240,19 +295,41 @@ components:
         ```
         min(size, totalCount - size * (page - 1))
         ```
-    RecordingStatus:
+    PeriodStatistics:
       type: object
       required:
-        - recording
+        - items
+        - total
       properties:
-        recording:
-          type: boolean
-          description: 録画中かどうか
-        currentVideo:
-          allOf:
-            - $ref: '#/components/schemas/Video'
-          description: 現在録画中のビデオ
-      description: 録画ステータスレスポンス
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatisticsItem'
+          description: 統計アイテム一覧
+        total:
+          type: integer
+          format: int64
+          description: 合計時間(秒)
+      description: 期間統計
+    StatisticsItem:
+      type: object
+      required:
+        - title
+        - duration
+        - percentage
+      properties:
+        title:
+          type: string
+          description: タイトル
+        duration:
+          type: integer
+          format: int64
+          description: 合計時間(秒)
+        percentage:
+          type: number
+          format: double
+          description: 割合(%)
+      description: 統計アイテム
     Video:
       type: object
       required:
@@ -260,6 +337,8 @@ components:
         - title
         - filename
         - startedAt
+        - finishedAt
+        - audioActivityRatio
         - createdAt
         - updatedAt
       properties:
@@ -286,6 +365,12 @@ components:
           type: string
           format: date-time
           description: 録画終了時刻(UTC)
+        audioActivityRatio:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+          description: 音声アクティビティ率(%)
         createdAt:
           type: string
           format: date-time
@@ -304,6 +389,7 @@ components:
         - filename
         - startedAt
         - finishedAt
+        - audioActivityRatio
       properties:
         title:
           type: string
@@ -319,6 +405,12 @@ components:
         finishedAt:
           type: string
           format: date-time
+        audioActivityRatio:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+          description: 音声アクティビティ率(%)
       description: ビデオ作成リクエスト
     VideoPage:
       type: object
@@ -336,12 +428,6 @@ components:
     VideoUpdate:
       type: object
       properties:
-        startedAt:
-          type: string
-          format: date-time
-        finishedAt:
-          type: string
-          format: date-time
         title:
           type: string
           minLength: 1
@@ -350,6 +436,16 @@ components:
           type: string
           minLength: 1
           maxLength: 255
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        audioActivityRatio:
+          type: number
+          format: double
+          description: 音声アクティビティ率(%)
       description: ビデオ更新リクエスト
 servers:
   - url: http://localhost:8080

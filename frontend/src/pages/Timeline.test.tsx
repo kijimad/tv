@@ -60,6 +60,7 @@ describe("Timeline", () => {
           finishedAt: new Date(today.getTime() + 3600000).toISOString(),
           createdAt: today.toISOString(),
           updatedAt: today.toISOString(),
+          audioActivityRatio: 85.0,
         },
       ],
     };
@@ -95,6 +96,7 @@ describe("Timeline", () => {
           finishedAt: new Date(yesterday.getTime() + 3600000).toISOString(),
           createdAt: yesterday.toISOString(),
           updatedAt: yesterday.toISOString(),
+          audioActivityRatio: 85.0,
         },
       ],
     };
@@ -136,6 +138,7 @@ describe("Timeline", () => {
           ).toISOString(),
           createdAt: justBeforeMidnight.toISOString(),
           updatedAt: justBeforeMidnight.toISOString(),
+          audioActivityRatio: 85.0,
         },
         {
           id: 2,
@@ -147,6 +150,7 @@ describe("Timeline", () => {
           ).toISOString(),
           createdAt: justAfterMidnight.toISOString(),
           updatedAt: justAfterMidnight.toISOString(),
+          audioActivityRatio: 85.0,
         },
       ],
     };
@@ -183,6 +187,7 @@ describe("Timeline", () => {
           finishedAt: new Date(yesterday.getTime() + 3600000).toISOString(),
           createdAt: yesterday.toISOString(),
           updatedAt: yesterday.toISOString(),
+          audioActivityRatio: 85.0,
         },
       ],
     };
@@ -222,6 +227,7 @@ describe("Timeline", () => {
           finishedAt: new Date(tomorrow.getTime() + 3600000).toISOString(),
           createdAt: tomorrow.toISOString(),
           updatedAt: tomorrow.toISOString(),
+          audioActivityRatio: 85.0,
         },
       ],
     };
@@ -264,6 +270,7 @@ describe("Timeline", () => {
           finishedAt: new Date(today.getTime() + 3600000).toISOString(),
           createdAt: today.toISOString(),
           updatedAt: today.toISOString(),
+          audioActivityRatio: 85.0,
         },
         {
           id: 2,
@@ -273,6 +280,7 @@ describe("Timeline", () => {
           finishedAt: new Date(tomorrow.getTime() + 3600000).toISOString(),
           createdAt: tomorrow.toISOString(),
           updatedAt: tomorrow.toISOString(),
+          audioActivityRatio: 85.0,
         },
       ],
     };

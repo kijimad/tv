@@ -7,6 +7,13 @@ import (
 	"time"
 )
 
+// Defines values for StatisticsAPIGetParamsPeriod.
+const (
+	Day   StatisticsAPIGetParamsPeriod = "day"
+	Month StatisticsAPIGetParamsPeriod = "month"
+	Week  StatisticsAPIGetParamsPeriod = "week"
+)
+
 // Error エラーレスポンス
 type Error struct {
 	Message string `json:"message"`
@@ -29,17 +36,32 @@ type Pager struct {
 	TotalCount int32 `json:"totalCount"`
 }
 
-// RecordingStatus 録画ステータスレスポンス
-type RecordingStatus struct {
-	// CurrentVideo 現在録画中のビデオ
-	CurrentVideo *Video `json:"currentVideo,omitempty"`
+// PeriodStatistics 期間統計
+type PeriodStatistics struct {
+	// Items 統計アイテム一覧
+	Items []StatisticsItem `json:"items"`
 
-	// Recording 録画中かどうか
-	Recording bool `json:"recording"`
+	// Total 合計時間(秒)
+	Total int64 `json:"total"`
+}
+
+// StatisticsItem 統計アイテム
+type StatisticsItem struct {
+	// Duration 合計時間(秒)
+	Duration int64 `json:"duration"`
+
+	// Percentage 割合(%)
+	Percentage float64 `json:"percentage"`
+
+	// Title タイトル
+	Title string `json:"title"`
 }
 
 // Video 録画ビデオ
 type Video struct {
+	// AudioActivityRatio 音声アクティビティ率(%)
+	AudioActivityRatio float64 `json:"audioActivityRatio"`
+
 	// CreatedAt 作成日時
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 
@@ -47,7 +69,7 @@ type Video struct {
 	Filename string `json:"filename"`
 
 	// FinishedAt 録画終了時刻(UTC)
-	FinishedAt *time.Time `json:"finishedAt,omitempty"`
+	FinishedAt time.Time `json:"finishedAt"`
 
 	// Id ビデオID
 	Id *int64 `json:"id,omitempty"`
@@ -64,10 +86,12 @@ type Video struct {
 
 // VideoCreate ビデオ作成リクエスト
 type VideoCreate struct {
-	Filename   string    `json:"filename"`
-	FinishedAt time.Time `json:"finishedAt"`
-	StartedAt  time.Time `json:"startedAt"`
-	Title      string    `json:"title"`
+	// AudioActivityRatio 音声アクティビティ率(%)
+	AudioActivityRatio float64   `json:"audioActivityRatio"`
+	Filename           string    `json:"filename"`
+	FinishedAt         time.Time `json:"finishedAt"`
+	StartedAt          time.Time `json:"startedAt"`
+	Title              string    `json:"title"`
 }
 
 // VideoPage ビデオページレスポンス
@@ -85,11 +109,31 @@ type VideoPage struct {
 
 // VideoUpdate ビデオ更新リクエスト
 type VideoUpdate struct {
-	Filename   *string    `json:"filename,omitempty"`
-	FinishedAt *time.Time `json:"finishedAt,omitempty"`
-	StartedAt  *time.Time `json:"startedAt,omitempty"`
-	Title      *string    `json:"title,omitempty"`
+	// AudioActivityRatio 音声アクティビティ率(%)
+	AudioActivityRatio *float64   `json:"audioActivityRatio,omitempty"`
+	Filename           *string    `json:"filename,omitempty"`
+	FinishedAt         *time.Time `json:"finishedAt,omitempty"`
+	StartedAt          *time.Time `json:"startedAt,omitempty"`
+	Title              *string    `json:"title,omitempty"`
 }
+
+// StatisticsAPIGetParams defines parameters for StatisticsAPIGet.
+type StatisticsAPIGetParams struct {
+	// Period 期間
+	Period StatisticsAPIGetParamsPeriod `form:"period" json:"period"`
+
+	// Limit 取得件数
+	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// BaseDate 基準日（YYYY-MM-DD形式）
+	BaseDate *string `form:"baseDate,omitempty" json:"baseDate,omitempty"`
+
+	// Timezone タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要
+	Timezone *string `form:"timezone,omitempty" json:"timezone,omitempty"`
+}
+
+// StatisticsAPIGetParamsPeriod defines parameters for StatisticsAPIGet.
+type StatisticsAPIGetParamsPeriod string
 
 // VideosListParams defines parameters for VideosList.
 type VideosListParams struct {

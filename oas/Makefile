@@ -16,6 +16,9 @@ genapi: ## OpenAPIスキーマからバックエンドコードを生成する
 genfront: ## OpenAPIスキーマからフロントエンドコードを生成する
 	./scripts/generate-frontend.sh
 
+.PHONY: genall
+genall: compile genapi genfront ## すべて作成する
+
 .PHONY: help
 help: ## Show help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \

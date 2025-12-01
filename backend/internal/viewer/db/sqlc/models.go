@@ -5,16 +5,16 @@
 package sqlc
 
 import (
-	"database/sql"
 	"time"
 )
 
 type Video struct {
-	ID         int64        `json:"id"`
-	StartedAt  time.Time    `json:"started_at"`
-	FinishedAt sql.NullTime `json:"finished_at"`
-	Title      string       `json:"title"`
-	Filename   string       `json:"filename"`
-	CreatedAt  time.Time    `json:"created_at"`
-	UpdatedAt  time.Time    `json:"updated_at"`
+	ID                 int64     `json:"id"`
+	StartedAt          time.Time `json:"started_at"`
+	FinishedAt         time.Time `json:"finished_at"`
+	Title              string    `json:"title"`
+	Filename           string    `json:"filename"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+	AudioActivityRatio float64   `json:"audio_activity_ratio"`
 }
