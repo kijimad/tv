@@ -43,6 +43,7 @@ export default function Pagination({
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
         size="sm"
+        variant="outline"
       >
         <IoChevronBack />
       </IconButton>
@@ -93,6 +94,7 @@ export default function Pagination({
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
         size="sm"
+        variant="outline"
       >
         <IoChevronForward />
       </IconButton>
