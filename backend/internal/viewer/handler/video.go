@@ -62,7 +62,7 @@ func (h *VideoHandler) VideosList(ctx context.Context, request oapi.VideosListRe
 func (h *VideoHandler) VideosCreate(ctx context.Context, request oapi.VideosCreateRequestObject) (oapi.VideosCreateResponseObject, error) {
 	video, err := h.videoSvc.CreateVideo(ctx, sqlc.CreateVideoParams{
 		Title:              request.Body.Title,
-		Filename:           request.Body.Filename,
+		Filename:           sql.NullString{String: request.Body.Filename, Valid: request.Body.Filename != ""},
 		StartedAt:          request.Body.StartedAt,
 		FinishedAt:         request.Body.FinishedAt,
 		AudioActivityRatio: request.Body.AudioActivityRatio,
@@ -146,13 +146,18 @@ func (h *VideoHandler) VideosFile(ctx context.Context, request oapi.VideosFileRe
 		return nil, err
 	}
 
+	// ファイル名が存在しない場合はエラーを返す
+	if !video.Filename.Valid || video.Filename.String == "" {
+		return nil, fmt.Errorf("video file not found")
+	}
+
 	// ファイル名を検証する（パストラバーサル対策）
-	if err := validateFilename(video.Filename); err != nil {
+	if err := validateFilename(video.Filename.String); err != nil {
 		return nil, err
 	}
 
 	// ファイルパスを構築する
-	filePath := filepath.Join(h.videoSvc.GetConfig().VideoDir, video.Filename)
+	filePath := filepath.Join(h.videoSvc.GetConfig().VideoDir, video.Filename.String)
 
 	return &videosFileResponse{filePath: filePath}, nil
 }
@@ -165,13 +170,18 @@ func (h *VideoHandler) VideosThumbnail(ctx context.Context, request oapi.VideosT
 		return nil, err
 	}
 
+	// ファイル名が存在しない場合はエラーを返す
+	if !video.Filename.Valid || video.Filename.String == "" {
+		return nil, fmt.Errorf("video file not found")
+	}
+
 	// ファイル名を検証する（パストラバーサル対策）
-	if err := validateFilename(video.Filename); err != nil {
+	if err := validateFilename(video.Filename.String); err != nil {
 		return nil, err
 	}
 
 	// サムネイルパスを生成する
-	thumbnailFilename := strings.TrimSuffix(video.Filename, ".webm") + ".jpg"
+	thumbnailFilename := strings.TrimSuffix(video.Filename.String, ".webm") + ".jpg"
 	thumbnailPath := filepath.Join(h.videoSvc.GetConfig().VideoDir, thumbnailFilename)
 
 	return &videosThumbnailResponse{filePath: thumbnailPath}, nil
@@ -193,10 +203,14 @@ func validateFilename(filename string) error {
 // toAPIVideo はsqlc.Videoをoapi.Videoに変換する
 func toAPIVideo(v sqlc.Video) oapi.Video {
 	id := v.ID
+	filename := ""
+	if v.Filename.Valid {
+		filename = v.Filename.String
+	}
 	return oapi.Video{
 		Id:                 &id,
 		Title:              v.Title,
-		Filename:           v.Filename,
+		Filename:           filename,
 		StartedAt:          v.StartedAt,
 		FinishedAt:         v.FinishedAt,
 		AudioActivityRatio: v.AudioActivityRatio,

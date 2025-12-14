@@ -139,7 +139,7 @@ func TestVideoService_CreateVideo(t *testing.T) {
 		// ビデオを作成する
 		params := sqlc.CreateVideoParams{
 			Title:     "New Video",
-			Filename:  "new.webm",
+			Filename:  sql.NullString{String: "new.webm", Valid: true},
 			StartedAt: time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC),
 		}
 		video, err := svc.CreateVideo(ctx, params)
@@ -147,7 +147,8 @@ func TestVideoService_CreateVideo(t *testing.T) {
 
 		// 内容を確認する
 		assert.Equal(t, "New Video", video.Title)
-		assert.Equal(t, "new.webm", video.Filename)
+		assert.Equal(t, "new.webm", video.Filename.String)
+		assert.True(t, video.Filename.Valid)
 	})
 }
 
@@ -221,9 +222,10 @@ func TestVideoService_DeleteOldVideoFiles(t *testing.T) {
 		}).Create(ctx, queries)
 		require.NoError(t, err)
 
-		// 古い動画を作成する
+		// 古い動画を作成する（ファイルはまだ存在しない）
 		pendingVideo, err := factory.NewVideo(func(vf *factory.VideoFactory) {
 			vf.StartedAt = now.AddDate(0, 0, -31)
+			vf.Filename = sql.NullString{Valid: false} // ファイルがまだアップロードされていない状態を表現する
 		}).Create(ctx, queries)
 		require.NoError(t, err)
 
@@ -233,10 +235,10 @@ func TestVideoService_DeleteOldVideoFiles(t *testing.T) {
 		require.NoError(t, err)
 
 		// 動画ファイルとサムネイルを作成する
-		oldVideoPath := filepath.Join(cfg.VideoDir, oldVideo.Filename)
-		oldThumbnailPath := filepath.Join(cfg.VideoDir, strings.TrimSuffix(oldVideo.Filename, ".webm")+".jpg")
-		recentVideoPath := filepath.Join(cfg.VideoDir, recentVideo.Filename)
-		recentThumbnailPath := filepath.Join(cfg.VideoDir, strings.TrimSuffix(recentVideo.Filename, ".webm")+".jpg")
+		oldVideoPath := filepath.Join(cfg.VideoDir, oldVideo.Filename.String)
+		oldThumbnailPath := filepath.Join(cfg.VideoDir, strings.TrimSuffix(oldVideo.Filename.String, ".webm")+".jpg")
+		recentVideoPath := filepath.Join(cfg.VideoDir, recentVideo.Filename.String)
+		recentThumbnailPath := filepath.Join(cfg.VideoDir, strings.TrimSuffix(recentVideo.Filename.String, ".webm")+".jpg")
 
 		err = os.WriteFile(oldVideoPath, []byte("old video"), 0644)
 		require.NoError(t, err)

@@ -3,6 +3,7 @@ package factory
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 // VideoFactory はVideoのテストデータを作成するファクトリ
 type VideoFactory struct {
 	Title              string
-	Filename           string
+	Filename           sql.NullString
 	StartedAt          time.Time
 	FinishedAt         time.Time
 	AudioActivityRatio float64
@@ -24,7 +25,7 @@ func NewVideo(overrides ...func(*VideoFactory)) *VideoFactory {
 	now := time.Now()
 	f := &VideoFactory{
 		Title:              faker.Sentence(),
-		Filename:           fmt.Sprintf("%s.webm", faker.UUIDHyphenated()),
+		Filename:           sql.NullString{String: fmt.Sprintf("%s.webm", faker.UUIDHyphenated()), Valid: true},
 		StartedAt:          now,
 		FinishedAt:         now.Add(30 * time.Minute),
 		AudioActivityRatio: 85.0,

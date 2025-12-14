@@ -1,6 +1,7 @@
 package factory_test
 
 import (
+	"database/sql"
 	"testing"
 	"time"
 
@@ -36,12 +37,13 @@ func TestNewVideo(t *testing.T) {
 
 		f := factory.NewVideo(func(vf *factory.VideoFactory) {
 			vf.Title = "Test Video"
-			vf.Filename = "test.webm"
+			vf.Filename = sql.NullString{String: "test.webm", Valid: true}
 			vf.StartedAt = startTime
 		})
 
 		assert.Equal(t, "Test Video", f.Title)
-		assert.Equal(t, "test.webm", f.Filename)
+		assert.Equal(t, "test.webm", f.Filename.String)
+		assert.True(t, f.Filename.Valid)
 		assert.True(t, f.StartedAt.Equal(startTime))
 	})
 }
@@ -53,13 +55,14 @@ func TestVideoFactory_Build(t *testing.T) {
 		t.Parallel()
 		f := factory.NewVideo(func(vf *factory.VideoFactory) {
 			vf.Title = "Test Video"
-			vf.Filename = "test.webm"
+			vf.Filename = sql.NullString{String: "test.webm", Valid: true}
 		})
 
 		params := f.Build()
 
 		assert.Equal(t, "Test Video", params.Title)
-		assert.Equal(t, "test.webm", params.Filename)
+		assert.Equal(t, "test.webm", params.Filename.String)
+		assert.True(t, params.Filename.Valid)
 	})
 
 	t.Run("ランダムな値でパラメータを生成できる", func(t *testing.T) {
@@ -67,6 +70,6 @@ func TestVideoFactory_Build(t *testing.T) {
 		params1 := factory.NewVideo().Build()
 		params2 := factory.NewVideo().Build()
 
-		assert.NotEqual(t, params1.Filename, params2.Filename)
+		assert.NotEqual(t, params1.Filename.String, params2.Filename.String)
 	})
 }

@@ -121,17 +121,20 @@ func (s *videoService) DeleteVideo(ctx context.Context, id int64) error {
 		return fmt.Errorf("failed to delete video: %w", err)
 	}
 
-	// 動画ファイルを削除する
-	videoFilePath := filepath.Join(s.GetConfig().VideoDir, video.Filename)
-	if err := os.Remove(videoFilePath); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to delete video file: %w", err)
-	}
+	// ファイルが存在する場合は削除する
+	if video.Filename.Valid && video.Filename.String != "" {
+		// 動画ファイルを削除する
+		videoFilePath := filepath.Join(s.GetConfig().VideoDir, video.Filename.String)
+		if err := os.Remove(videoFilePath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to delete video file: %w", err)
+		}
 
-	// サムネイルファイルを削除する
-	thumbnailFilename := strings.TrimSuffix(video.Filename, ".webm") + ".jpg"
-	thumbnailPath := filepath.Join(s.GetConfig().VideoDir, thumbnailFilename)
-	if err := os.Remove(thumbnailPath); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to delete thumbnail file: %w", err)
+		// サムネイルファイルを削除する
+		thumbnailFilename := strings.TrimSuffix(video.Filename.String, ".webm") + ".jpg"
+		thumbnailPath := filepath.Join(s.GetConfig().VideoDir, thumbnailFilename)
+		if err := os.Remove(thumbnailPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to delete thumbnail file: %w", err)
+		}
 	}
 
 	return nil
@@ -144,29 +147,32 @@ func (s *videoService) DeleteVideoFile(ctx context.Context, id int64) error {
 		return fmt.Errorf("failed to get video: %w", err)
 	}
 
-	// ファイルパスを構築する
-	filePath := filepath.Join(s.GetConfig().VideoDir, video.Filename)
-	thumbnailFilename := strings.TrimSuffix(video.Filename, ".webm") + ".jpg"
-	thumbnailPath := filepath.Join(s.GetConfig().VideoDir, thumbnailFilename)
+	// ファイル名が有効な場合のみファイルを削除する
+	if video.Filename.Valid && video.Filename.String != "" {
+		// ファイルパスを構築する
+		filePath := filepath.Join(s.GetConfig().VideoDir, video.Filename.String)
+		thumbnailFilename := strings.TrimSuffix(video.Filename.String, ".webm") + ".jpg"
+		thumbnailPath := filepath.Join(s.GetConfig().VideoDir, thumbnailFilename)
 
-	// 動画ファイルを削除する
-	if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to remove video file: %w", err)
-	}
+		// 動画ファイルを削除する
+		if err := os.Remove(filePath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove video file: %w", err)
+		}
 
-	// サムネイルを削除する
-	if err := os.Remove(thumbnailPath); err != nil && !os.IsNotExist(err) {
-		// サムネイルがなくてもログだけ出してエラーにしない
-		log.Printf("failed to remove thumbnail: %v", err)
-	}
+		// サムネイルを削除する
+		if err := os.Remove(thumbnailPath); err != nil && !os.IsNotExist(err) {
+			// サムネイルがなくてもログだけ出してエラーにしない
+			log.Printf("failed to remove thumbnail: %v", err)
+		}
 
-	// Filenameを空文字に更新する
-	_, err = s.queries.UpdateVideo(ctx, sqlc.UpdateVideoParams{
-		ID:       id,
-		Filename: sql.NullString{String: "", Valid: true},
-	})
-	if err != nil {
-		return fmt.Errorf("failed to update video filename: %w", err)
+		// FilenameをNULLに更新する
+		_, err = s.queries.UpdateVideo(ctx, sqlc.UpdateVideoParams{
+			ID:       id,
+			Filename: sql.NullString{Valid: false},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to update video filename: %w", err)
+		}
 	}
 
 	return nil
@@ -183,6 +189,11 @@ func (s *videoService) DeleteOldVideoFiles(ctx context.Context, olderThanDays in
 
 	deleted := 0
 	for _, video := range videos {
+		// ファイル名が空の場合はスキップする
+		if !video.Filename.Valid || video.Filename.String == "" {
+			continue
+		}
+
 		if err := s.DeleteVideoFile(ctx, video.ID); err != nil {
 			log.Printf("failed to delete video file %d: %v", video.ID, err)
 			continue

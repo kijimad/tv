@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"testing"
 	"time"
 
@@ -239,7 +240,7 @@ func TestVideoHandler_VideosCreate(t *testing.T) {
 		// 最初のビデオを作成する
 		existingFilename := "duplicate_test.webm"
 		_, err := factory.NewVideo(func(vf *factory.VideoFactory) {
-			vf.Filename = existingFilename
+			vf.Filename = sql.NullString{String: existingFilename, Valid: true}
 		}).Create(ctx, queries)
 		require.NoError(t, err)
 

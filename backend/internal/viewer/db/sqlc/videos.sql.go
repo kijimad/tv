@@ -32,11 +32,11 @@ RETURNING id, started_at, finished_at, title, filename, created_at, updated_at, 
 `
 
 type CreateVideoParams struct {
-	Title              string    `json:"title"`
-	Filename           string    `json:"filename"`
-	StartedAt          time.Time `json:"started_at"`
-	FinishedAt         time.Time `json:"finished_at"`
-	AudioActivityRatio float64   `json:"audio_activity_ratio"`
+	Title              string         `json:"title"`
+	Filename           sql.NullString `json:"filename"`
+	StartedAt          time.Time      `json:"started_at"`
+	FinishedAt         time.Time      `json:"finished_at"`
+	AudioActivityRatio float64        `json:"audio_activity_ratio"`
 }
 
 func (q *Queries) CreateVideo(ctx context.Context, arg CreateVideoParams) (Video, error) {

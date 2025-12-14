@@ -22,7 +22,7 @@
         {
           "name": "filename",
           "type": "text",
-          "nullable": false,
+          "nullable": true,
           "comment": "ファイル名"
         },
         {
@@ -99,16 +99,6 @@
           "name": "videos_filename_key",
           "type": "UNIQUE",
           "def": "UNIQUE (filename)",
-          "table": "public.videos",
-          "referenced_table": "",
-          "columns": [
-            "filename"
-          ]
-        },
-        {
-          "name": "videos_filename_not_null",
-          "type": "n",
-          "def": "NOT NULL filename",
           "table": "public.videos",
           "referenced_table": "",
           "columns": [
