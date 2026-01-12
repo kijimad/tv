@@ -38,7 +38,3 @@ org-pomodoro中だと動画を取るレコーダーと、ビューワー。
 - CI
   - [x] Github Actionsを使ってコード生成をチェックし、漏れを検知できる
   - [x] Github Actionsを使ってコードをチェックし、品質を維持できる
-
-## TODO
-
-- フロントエンド環境をdocker composeに書く

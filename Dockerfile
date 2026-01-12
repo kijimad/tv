@@ -59,3 +59,22 @@ RUN chown -R appuser:appuser /workdir
 USER appuser
 
 ENTRYPOINT ["/bin/tv"]
+
+################
+# frontend-dev #
+################
+
+FROM node:22-slim AS frontend-dev
+
+WORKDIR /app
+
+# 依存関係をインストールする
+COPY ./frontend/package*.json ./
+RUN npm ci
+
+# ソースコードをコピーする（開発時はボリュームマウントで上書きされる）
+COPY ./frontend .
+
+# Vite開発サーバを起動する
+# 0.0.0.0 をリッスンしてコンテナ外からのアクセスを許可する
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

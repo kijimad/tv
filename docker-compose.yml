@@ -76,5 +76,22 @@ services:
       - viewer
     restart: unless-stopped
 
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend-dev
+    container_name: tv-frontend
+    environment:
+      TZ: UTC
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - viewer
+    restart: unless-stopped
+
 volumes:
   postgres-data:
