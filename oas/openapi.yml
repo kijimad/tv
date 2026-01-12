@@ -9,17 +9,20 @@ paths:
       operationId: StatisticsAPI_get
       description: 統計取得
       parameters:
-        - name: period
+        - name: startedAtFrom
           in: query
-          required: true
-          description: 期間
+          required: false
+          description: 開始時刻の範囲指定(from)。この時刻以降に開始した動画を集計する
           schema:
             type: string
-            enum:
-              - day
-              - week
-              - month
-          explode: false
+            format: date-time
+        - name: startedAtTo
+          in: query
+          required: false
+          description: 開始時刻の範囲指定(to)。この時刻以前に開始した動画を集計する
+          schema:
+            type: string
+            format: date-time
         - name: limit
           in: query
           required: false
@@ -30,22 +33,6 @@ paths:
             minimum: 1
             maximum: 100
             default: 10
-          explode: false
-        - name: baseDate
-          in: query
-          required: false
-          description: 基準日（YYYY-MM-DD形式）
-          schema:
-            type: string
-          explode: false
-        - name: timezone
-          in: query
-          required: false
-          description: タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要
-          schema:
-            type: string
-            default: UTC
-          explode: false
       responses:
         '200':
           description: The request has succeeded.
@@ -73,7 +60,6 @@ paths:
             format: int32
             minimum: 1
             default: 1
-          explode: false
         - name: size
           in: query
           required: false
@@ -84,7 +70,6 @@ paths:
             minimum: 1
             maximum: 100
             default: 30
-          explode: false
         - name: startedAtFrom
           in: query
           required: false
@@ -92,7 +77,6 @@ paths:
           schema:
             type: string
             format: date-time
-          explode: false
         - name: startedAtTo
           in: query
           required: false
@@ -100,7 +84,6 @@ paths:
           schema:
             type: string
             format: date-time
-          explode: false
       responses:
         '200':
           description: The request has succeeded.

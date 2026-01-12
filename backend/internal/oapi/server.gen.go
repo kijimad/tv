@@ -60,42 +60,27 @@ func (siw *ServerInterfaceWrapper) StatisticsAPIGet(c *gin.Context) {
 	// Parameter object where we will unmarshal all parameters from the context
 	var params StatisticsAPIGetParams
 
-	// ------------- Required query parameter "period" -------------
+	// ------------- Optional query parameter "startedAtFrom" -------------
 
-	if paramValue := c.Query("period"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandler(c, fmt.Errorf("Query argument period is required, but not found"), http.StatusBadRequest)
+	err = runtime.BindQueryParameter("form", true, false, "startedAtFrom", c.Request.URL.Query(), &params.StartedAtFrom)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter startedAtFrom: %w", err), http.StatusBadRequest)
 		return
 	}
 
-	err = runtime.BindQueryParameter("form", false, true, "period", c.Request.URL.Query(), &params.Period)
+	// ------------- Optional query parameter "startedAtTo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "startedAtTo", c.Request.URL.Query(), &params.StartedAtTo)
 	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter period: %w", err), http.StatusBadRequest)
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter startedAtTo: %w", err), http.StatusBadRequest)
 		return
 	}
 
 	// ------------- Optional query parameter "limit" -------------
 
-	err = runtime.BindQueryParameter("form", false, false, "limit", c.Request.URL.Query(), &params.Limit)
+	err = runtime.BindQueryParameter("form", true, false, "limit", c.Request.URL.Query(), &params.Limit)
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter limit: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	// ------------- Optional query parameter "baseDate" -------------
-
-	err = runtime.BindQueryParameter("form", false, false, "baseDate", c.Request.URL.Query(), &params.BaseDate)
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter baseDate: %w", err), http.StatusBadRequest)
-		return
-	}
-
-	// ------------- Optional query parameter "timezone" -------------
-
-	err = runtime.BindQueryParameter("form", false, false, "timezone", c.Request.URL.Query(), &params.Timezone)
-	if err != nil {
-		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter timezone: %w", err), http.StatusBadRequest)
 		return
 	}
 
@@ -119,7 +104,7 @@ func (siw *ServerInterfaceWrapper) VideosList(c *gin.Context) {
 
 	// ------------- Optional query parameter "page" -------------
 
-	err = runtime.BindQueryParameter("form", false, false, "page", c.Request.URL.Query(), &params.Page)
+	err = runtime.BindQueryParameter("form", true, false, "page", c.Request.URL.Query(), &params.Page)
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter page: %w", err), http.StatusBadRequest)
 		return
@@ -127,7 +112,7 @@ func (siw *ServerInterfaceWrapper) VideosList(c *gin.Context) {
 
 	// ------------- Optional query parameter "size" -------------
 
-	err = runtime.BindQueryParameter("form", false, false, "size", c.Request.URL.Query(), &params.Size)
+	err = runtime.BindQueryParameter("form", true, false, "size", c.Request.URL.Query(), &params.Size)
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter size: %w", err), http.StatusBadRequest)
 		return
@@ -135,7 +120,7 @@ func (siw *ServerInterfaceWrapper) VideosList(c *gin.Context) {
 
 	// ------------- Optional query parameter "startedAtFrom" -------------
 
-	err = runtime.BindQueryParameter("form", false, false, "startedAtFrom", c.Request.URL.Query(), &params.StartedAtFrom)
+	err = runtime.BindQueryParameter("form", true, false, "startedAtFrom", c.Request.URL.Query(), &params.StartedAtFrom)
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter startedAtFrom: %w", err), http.StatusBadRequest)
 		return
@@ -143,7 +128,7 @@ func (siw *ServerInterfaceWrapper) VideosList(c *gin.Context) {
 
 	// ------------- Optional query parameter "startedAtTo" -------------
 
-	err = runtime.BindQueryParameter("form", false, false, "startedAtTo", c.Request.URL.Query(), &params.StartedAtTo)
+	err = runtime.BindQueryParameter("form", true, false, "startedAtTo", c.Request.URL.Query(), &params.StartedAtTo)
 	if err != nil {
 		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter startedAtTo: %w", err), http.StatusBadRequest)
 		return

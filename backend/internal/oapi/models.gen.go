@@ -7,13 +7,6 @@ import (
 	"time"
 )
 
-// Defines values for StatisticsAPIGetParamsPeriod.
-const (
-	Day   StatisticsAPIGetParamsPeriod = "day"
-	Month StatisticsAPIGetParamsPeriod = "month"
-	Week  StatisticsAPIGetParamsPeriod = "week"
-)
-
 // Error エラーレスポンス
 type Error struct {
 	Message string `json:"message"`
@@ -119,21 +112,15 @@ type VideoUpdate struct {
 
 // StatisticsAPIGetParams defines parameters for StatisticsAPIGet.
 type StatisticsAPIGetParams struct {
-	// Period 期間
-	Period StatisticsAPIGetParamsPeriod `form:"period" json:"period"`
+	// StartedAtFrom 開始時刻の範囲指定(from)。この時刻以降に開始した動画を集計する
+	StartedAtFrom *time.Time `form:"startedAtFrom,omitempty" json:"startedAtFrom,omitempty"`
+
+	// StartedAtTo 開始時刻の範囲指定(to)。この時刻以前に開始した動画を集計する
+	StartedAtTo *time.Time `form:"startedAtTo,omitempty" json:"startedAtTo,omitempty"`
 
 	// Limit 取得件数
 	Limit *int32 `form:"limit,omitempty" json:"limit,omitempty"`
-
-	// BaseDate 基準日（YYYY-MM-DD形式）
-	BaseDate *string `form:"baseDate,omitempty" json:"baseDate,omitempty"`
-
-	// Timezone タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要
-	Timezone *string `form:"timezone,omitempty" json:"timezone,omitempty"`
 }
-
-// StatisticsAPIGetParamsPeriod defines parameters for StatisticsAPIGet.
-type StatisticsAPIGetParamsPeriod string
 
 // VideosListParams defines parameters for VideosList.
 type VideosListParams struct {
