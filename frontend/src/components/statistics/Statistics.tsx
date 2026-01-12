@@ -13,7 +13,7 @@ import { useState } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useStatistics } from "../../hooks/useStatistics";
-import type { StatisticsAPIGetPeriodEnum } from "../../oapi/api";
+import { calculatePeriodRange } from "../../utils/dateFormat";
 
 // 円グラフの色パレット
 const COLORS = [
@@ -27,11 +27,13 @@ const COLORS = [
   "#ED64A6", // pink.400
 ];
 
+type PeriodType = "day" | "week" | "month";
+
 function StatisticsPanel({
   period,
   title,
 }: {
-  period: StatisticsAPIGetPeriodEnum;
+  period: PeriodType;
   title: string;
 }) {
   const [currentDate, setCurrentDate] = useState(() => {
@@ -88,18 +90,8 @@ function StatisticsPanel({
     }
   };
 
-  // ブラウザのタイムゾーンを取得する（IANA timezone database形式）
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-  // baseDateをYYYY-MM-DD形式で送信する
-  const baseDate = (() => {
-    const year = currentDate.getFullYear();
-    const month = String(currentDate.getMonth() + 1).padStart(2, "0");
-    const day = String(currentDate.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  })();
-
-  const { data, isLoading, error } = useStatistics(period, baseDate, timezone);
+  const { from, to } = calculatePeriodRange(currentDate, period);
+  const { data, isLoading, error } = useStatistics(from, to);
 
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);

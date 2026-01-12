@@ -1,23 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
-import { DefaultApi, StatisticsAPIGetPeriodEnum } from "../oapi/api";
+import { DefaultApi } from "../oapi/api";
 import { AxiosError } from "axios";
 
 const api = new DefaultApi();
 
 export function useStatistics(
-  period: StatisticsAPIGetPeriodEnum,
-  baseDate?: string,
-  timezone?: string,
+  startedAtFrom: Date,
+  startedAtTo: Date,
   limit?: number,
 ) {
   return useQuery({
-    queryKey: ["statistics", period, baseDate, timezone, limit],
+    queryKey: [
+      "statistics",
+      startedAtFrom.toISOString(),
+      startedAtTo.toISOString(),
+      limit,
+    ],
     queryFn: async () => {
       const response = await api.statisticsAPIGet(
-        period,
+        startedAtFrom.toISOString(),
+        startedAtTo.toISOString(),
         limit,
-        baseDate,
-        timezone,
       );
       return response.data;
     },

@@ -2,24 +2,14 @@ package service
 
 import (
 	"context"
-	"time"
+	"database/sql"
 
 	"github.com/kijimaD/tv/internal/viewer/db/sqlc"
 )
 
-// Period は統計期間の型
-type Period string
-
-// 統計期間の定数
-const (
-	PeriodDay   Period = "day"
-	PeriodWeek  Period = "week"
-	PeriodMonth Period = "month"
-)
-
 // StatisticsService は統計ビジネスロジックのインターフェース
 type StatisticsService interface {
-	GetStatistics(ctx context.Context, period Period, baseDate time.Time, limit int32) (*PeriodStatistics, error)
+	GetStatistics(ctx context.Context, startedAtFrom, startedAtTo sql.NullTime, limit int32) (*PeriodStatistics, error)
 }
 
 // StatisticsQuerier は統計操作に必要なクエリメソッドのインターフェース
@@ -52,11 +42,10 @@ type StatisticsItem struct {
 }
 
 // GetStatistics は統計を取得する
-func (s *statisticsService) GetStatistics(ctx context.Context, period Period, baseDate time.Time, limit int32) (*PeriodStatistics, error) {
-	periodStart, periodEnd := calculatePeriodRange(period, baseDate)
+func (s *statisticsService) GetStatistics(ctx context.Context, startedAtFrom, startedAtTo sql.NullTime, limit int32) (*PeriodStatistics, error) {
 	rows, err := s.q.GetPeriodStatistics(ctx, sqlc.GetPeriodStatisticsParams{
-		PeriodStart: periodStart,
-		PeriodEnd:   periodEnd,
+		PeriodStart: startedAtFrom,
+		PeriodEnd:   startedAtTo,
 		LimitCount:  limit,
 	})
 	if err != nil {
@@ -65,41 +54,6 @@ func (s *statisticsService) GetStatistics(ctx context.Context, period Period, ba
 
 	result := toPeriodStatistics(rows)
 	return &result, nil
-}
-
-// calculatePeriodRange は期間と基準日に基づいて開始時刻と終了時刻を計算する
-// baseDateのタイムゾーンでの日付境界を計算し、UTC に変換して返す
-func calculatePeriodRange(period Period, baseDate time.Time) (time.Time, time.Time) {
-	loc := baseDate.Location()
-	year, month, day := baseDate.Date()
-
-	switch period {
-	case PeriodDay:
-		// baseDateのタイムゾーンでの00:00から翌日の00:00まで
-		start := time.Date(year, month, day, 0, 0, 0, 0, loc)
-		end := start.AddDate(0, 0, 1)
-		return start.UTC(), end.UTC()
-	case PeriodWeek:
-		// baseDateを含む週の月曜日00:00から翌週の月曜日00:00まで
-		weekday := int(baseDate.Weekday())
-		if weekday == 0 {
-			weekday = 7 // 日曜日を7として扱う
-		}
-		daysToMonday := -weekday + 1
-		start := time.Date(year, month, day+daysToMonday, 0, 0, 0, 0, loc)
-		end := start.AddDate(0, 0, 7)
-		return start.UTC(), end.UTC()
-	case PeriodMonth:
-		// baseDateを含む月の1日00:00から翌月の1日00:00まで
-		start := time.Date(year, month, 1, 0, 0, 0, 0, loc)
-		end := start.AddDate(0, 1, 0)
-		return start.UTC(), end.UTC()
-	default:
-		// デフォルトは日
-		start := time.Date(year, month, day, 0, 0, 0, 0, loc)
-		end := start.AddDate(0, 0, 1)
-		return start.UTC(), end.UTC()
-	}
 }
 
 // toPeriodStatistics は統計行を期間統計に変換する
