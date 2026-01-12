@@ -142,6 +142,12 @@ type VideosListParams struct {
 
 	// Size 1ページあたりの最大取得件数
 	Size *int32 `form:"size,omitempty" json:"size,omitempty"`
+
+	// StartedAtFrom 開始時刻の範囲指定（from）。この時刻以降に開始した動画を取得する
+	StartedAtFrom *time.Time `form:"startedAtFrom,omitempty" json:"startedAtFrom,omitempty"`
+
+	// StartedAtTo 開始時刻の範囲指定（to）。この時刻以前に開始した動画を取得する
+	StartedAtTo *time.Time `form:"startedAtTo,omitempty" json:"startedAtTo,omitempty"`
 }
 
 // VideosCreateJSONRequestBody defines body for VideosCreate for application/json ContentType.

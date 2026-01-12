@@ -133,6 +133,22 @@ func (siw *ServerInterfaceWrapper) VideosList(c *gin.Context) {
 		return
 	}
 
+	// ------------- Optional query parameter "startedAtFrom" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "startedAtFrom", c.Request.URL.Query(), &params.StartedAtFrom)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter startedAtFrom: %w", err), http.StatusBadRequest)
+		return
+	}
+
+	// ------------- Optional query parameter "startedAtTo" -------------
+
+	err = runtime.BindQueryParameter("form", false, false, "startedAtTo", c.Request.URL.Query(), &params.StartedAtTo)
+	if err != nil {
+		siw.ErrorHandler(c, fmt.Errorf("Invalid format for parameter startedAtTo: %w", err), http.StatusBadRequest)
+		return
+	}
+
 	for _, middleware := range siw.HandlerMiddlewares {
 		middleware(c)
 		if c.IsAborted() {

@@ -26,7 +26,7 @@ type Baser interface {
 // VideoService は動画ビジネスロジックのインターフェース
 type VideoService interface {
 	Baser
-	ListVideos(ctx context.Context, limit, offset int32) ([]sqlc.Video, int64, error)
+	ListVideos(ctx context.Context, limit, offset int32, startedAtFrom, startedAtTo sql.NullTime) ([]sqlc.Video, int64, error)
 	GetVideo(ctx context.Context, id int64) (*sqlc.Video, error)
 	CreateVideo(ctx context.Context, params sqlc.CreateVideoParams) (*sqlc.Video, error)
 	UpdateVideo(ctx context.Context, id int64, params sqlc.UpdateVideoParams) (*sqlc.Video, error)
@@ -42,7 +42,7 @@ type VideoQuerier interface {
 	GetVideo(ctx context.Context, id int64) (sqlc.Video, error)
 	ListVideos(ctx context.Context, params sqlc.ListVideosParams) ([]sqlc.Video, error)
 	ListVideosOlderThan(ctx context.Context, startedAt time.Time) ([]sqlc.Video, error)
-	CountVideos(ctx context.Context) (int64, error)
+	CountVideos(ctx context.Context, params sqlc.CountVideosParams) (int64, error)
 	UpdateVideo(ctx context.Context, params sqlc.UpdateVideoParams) (sqlc.Video, error)
 	DeleteVideo(ctx context.Context, id int64) error
 }
@@ -60,16 +60,21 @@ func NewVideoService(queries VideoQuerier, cfg config.AppConfig, clk clock.Clock
 	}
 }
 
-func (s *videoService) ListVideos(ctx context.Context, limit, offset int32) ([]sqlc.Video, int64, error) {
+func (s *videoService) ListVideos(ctx context.Context, limit, offset int32, startedAtFrom, startedAtTo sql.NullTime) ([]sqlc.Video, int64, error) {
 	videos, err := s.queries.ListVideos(ctx, sqlc.ListVideosParams{
-		Limit:  limit,
-		Offset: offset,
+		Limit:         limit,
+		Offset:        offset,
+		StartedAtFrom: startedAtFrom,
+		StartedAtTo:   startedAtTo,
 	})
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list videos: %w", err)
 	}
 
-	totalCount, err := s.queries.CountVideos(ctx)
+	totalCount, err := s.queries.CountVideos(ctx, sqlc.CountVideosParams{
+		StartedAtFrom: startedAtFrom,
+		StartedAtTo:   startedAtTo,
+	})
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to count videos: %w", err)
 	}

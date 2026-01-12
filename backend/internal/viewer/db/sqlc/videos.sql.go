@@ -13,10 +13,18 @@ import (
 
 const countVideos = `-- name: CountVideos :one
 SELECT COUNT(*) FROM videos
+WHERE
+    ($1::timestamp IS NULL OR started_at >= $1::timestamp)
+    AND ($2::timestamp IS NULL OR started_at <= $2::timestamp)
 `
 
-func (q *Queries) CountVideos(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countVideos)
+type CountVideosParams struct {
+	StartedAtFrom sql.NullTime `json:"started_at_from"`
+	StartedAtTo   sql.NullTime `json:"started_at_to"`
+}
+
+func (q *Queries) CountVideos(ctx context.Context, arg CountVideosParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countVideos, arg.StartedAtFrom, arg.StartedAtTo)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -94,17 +102,27 @@ func (q *Queries) GetVideo(ctx context.Context, id int64) (Video, error) {
 
 const listVideos = `-- name: ListVideos :many
 SELECT id, started_at, finished_at, title, filename, created_at, updated_at, audio_activity_ratio FROM videos
+WHERE
+    ($1::timestamp IS NULL OR started_at >= $1::timestamp)
+    AND ($2::timestamp IS NULL OR started_at <= $2::timestamp)
 ORDER BY started_at DESC
-LIMIT $1 OFFSET $2
+LIMIT $4 OFFSET $3
 `
 
 type ListVideosParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	StartedAtFrom sql.NullTime `json:"started_at_from"`
+	StartedAtTo   sql.NullTime `json:"started_at_to"`
+	Offset        int32        `json:"offset"`
+	Limit         int32        `json:"limit"`
 }
 
 func (q *Queries) ListVideos(ctx context.Context, arg ListVideosParams) ([]Video, error) {
-	rows, err := q.db.QueryContext(ctx, listVideos, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, listVideos,
+		arg.StartedAtFrom,
+		arg.StartedAtTo,
+		arg.Offset,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}

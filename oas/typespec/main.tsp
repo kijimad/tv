@@ -148,6 +148,10 @@ interface Videos {
     @query @minValue(1) page?: int32 = 1,
     /** 1ページあたりの最大取得件数 */
     @query @minValue(1) @maxValue(100) size?: int32 = 30,
+    /** 開始時刻の範囲指定（from）。この時刻以降に開始した動画を取得する */
+    @query startedAtFrom?: utcDateTime,
+    /** 開始時刻の範囲指定（to）。この時刻以前に開始した動画を取得する */
+    @query startedAtTo?: utcDateTime,
   ): VideoPage | Error;
 
   /** ビデオ詳細取得 */
@@ -205,7 +209,7 @@ interface StatisticsAPI {
     /** 期間 */
     @query period: "day" | "week" | "month",
     /** 取得件数 */
-    @query @minValue(1) @maxValue(100) limit?: int32 = 5,
+    @query @minValue(1) @maxValue(100) limit?: int32 = 10,
     /** 基準日（YYYY-MM-DD形式） */
     @query baseDate?: string,
     /** タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要 */

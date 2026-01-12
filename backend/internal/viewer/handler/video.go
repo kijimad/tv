@@ -43,7 +43,15 @@ func (h *VideoHandler) VideosList(ctx context.Context, request oapi.VideosListRe
 	offset := (page - 1) * size
 	limit := size
 
-	videos, totalCount, err := h.videoSvc.ListVideos(ctx, limit, offset)
+	var startedAtFrom, startedAtTo sql.NullTime
+	if request.Params.StartedAtFrom != nil {
+		startedAtFrom = sql.NullTime{Time: *request.Params.StartedAtFrom, Valid: true}
+	}
+	if request.Params.StartedAtTo != nil {
+		startedAtTo = sql.NullTime{Time: *request.Params.StartedAtTo, Valid: true}
+	}
+
+	videos, totalCount, err := h.videoSvc.ListVideos(ctx, limit, offset, startedAtFrom, startedAtTo)
 	if err != nil {
 		return nil, err
 	}
