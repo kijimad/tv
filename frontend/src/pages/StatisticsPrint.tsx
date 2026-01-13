@@ -6,13 +6,86 @@ import {
   Spinner,
   IconButton,
   Card,
+  Image,
 } from "@chakra-ui/react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useStatistics } from "../hooks/useStatistics";
 import { useVideos } from "../hooks/useVideos";
+import { useThumbnail } from "../hooks/useThumbnail";
 import { calculatePeriodRange } from "../utils/dateFormat";
 import StatisticsContent from "../components/statistics/StatisticsContent";
+
+function VideoThumbnail({ videoId }: { videoId: number }) {
+  const thumbnailUrl = useThumbnail(videoId);
+  const [resizedUrl, setResizedUrl] = useState<string>();
+
+  // 画像をリサイズする
+  useEffect(() => {
+    if (!thumbnailUrl) return;
+
+    let currentResizedUrl: string | undefined;
+
+    const img = document.createElement("img");
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const targetWidth = 200;
+      const targetHeight = 112;
+
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      // 高品質な画像スムージングを有効にする
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+
+      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            currentResizedUrl = url;
+            setResizedUrl(url);
+          }
+        },
+        "image/jpeg",
+        0.95,
+      );
+    };
+    img.src = thumbnailUrl;
+
+    return () => {
+      if (currentResizedUrl) {
+        URL.revokeObjectURL(currentResizedUrl);
+      }
+    };
+  }, [thumbnailUrl]);
+
+  return (
+    <Box
+      w="50px"
+      h="28px"
+      bg="gray.200"
+      borderRadius="sm"
+      overflow="hidden"
+      flexShrink={0}
+    >
+      {resizedUrl && (
+        <Image
+          src={resizedUrl}
+          alt={`Video ${videoId}`}
+          w="100%"
+          h="100%"
+          objectFit="cover"
+        />
+      )}
+    </Box>
+  );
+}
 
 function StatisticsPrint() {
   const [currentDate, setCurrentDate] = useState(() => {
@@ -256,6 +329,25 @@ function StatisticsPrint() {
                   ))}
                 </Box>
               </Stack>
+            </Card.Body>
+          </Card.Root>
+        )}
+
+        {/* サムネイル一覧 */}
+        {videosData?.data && videosData.data.length > 0 && (
+          <Card.Root>
+            <Card.Body>
+              <Heading size="md" mb={4}>
+                録画一覧
+              </Heading>
+              <Text fontSize="sm" color="gray.600" mb={4}>
+                {videosData.data.length}件の録画
+              </Text>
+              <Box display="flex" flexWrap="wrap" gap={1}>
+                {videosData.data.map((video) => (
+                  <VideoThumbnail key={video.id} videoId={video.id} />
+                ))}
+              </Box>
             </Card.Body>
           </Card.Root>
         )}
