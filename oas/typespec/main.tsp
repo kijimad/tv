@@ -98,7 +98,7 @@ model Pager {
 
   /** 1ページあたりの最大取得件数 */
   @minValue(0)
-  @maxValue(100)
+  @maxValue(1000)
   size: int32;
 
   /** ページに含まれているものも含まれていないものも合わせた対象の全数 */
@@ -147,7 +147,7 @@ interface Videos {
     /** ページ番号 */
     @query(#{ explode: true }) @minValue(1) page?: int32 = 1,
     /** 1ページあたりの最大取得件数 */
-    @query(#{ explode: true }) @minValue(1) @maxValue(100) size?: int32 = 30,
+    @query(#{ explode: true }) @minValue(1) @maxValue(1000) size?: int32 = 30,
     /** 開始時刻の範囲指定（from）。この時刻以降に開始した動画を取得する */
     @query(#{ explode: true }) startedAtFrom?: utcDateTime,
     /** 開始時刻の範囲指定（to）。この時刻以前に開始した動画を取得する */

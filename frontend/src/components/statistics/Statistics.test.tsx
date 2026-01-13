@@ -11,6 +11,12 @@ vi.mock("../../hooks/useStatistics", () => ({
     mockUseStatistics(startedAtFrom, startedAtTo, limit),
 }));
 
+// useNavigateをモックする
+const mockNavigate = vi.fn();
+vi.mock("react-router-dom", () => ({
+  useNavigate: () => mockNavigate,
+}));
+
 describe("Statistics", () => {
   beforeEach(() => {
     vi.clearAllMocks();

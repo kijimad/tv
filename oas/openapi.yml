@@ -68,7 +68,7 @@ paths:
             type: integer
             format: int32
             minimum: 1
-            maximum: 100
+            maximum: 1000
             default: 30
         - name: startedAtFrom
           in: query
@@ -280,7 +280,7 @@ components:
           type: integer
           format: int32
           minimum: 0
-          maximum: 100
+          maximum: 1000
           description: 1ページあたりの最大取得件数
         totalCount:
           type: integer
