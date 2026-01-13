@@ -7,8 +7,14 @@ import Statistics from "./Statistics";
 // useStatisticsをモックする
 const mockUseStatistics = vi.fn();
 vi.mock("../../hooks/useStatistics", () => ({
-  useStatistics: (period: string, baseDate?: string, limit?: number) =>
-    mockUseStatistics(period, baseDate, limit),
+  useStatistics: (startedAtFrom: Date, startedAtTo: Date, limit?: number) =>
+    mockUseStatistics(startedAtFrom, startedAtTo, limit),
+}));
+
+// useNavigateをモックする
+const mockNavigate = vi.fn();
+vi.mock("react-router-dom", () => ({
+  useNavigate: () => mockNavigate,
 }));
 
 describe("Statistics", () => {
@@ -77,54 +83,41 @@ describe("Statistics", () => {
   });
 
   test("統計データを正しく表示できる", () => {
-    mockUseStatistics.mockImplementation((period: string) => {
-      if (period === "day") {
-        return {
-          data: {
-            items: [
-              { title: "コーディング", duration: 3600, percentage: 60.0 },
-              { title: "ミーティング", duration: 2400, percentage: 40.0 },
-            ],
-            total: 6000,
-          },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return {
-        data: { items: [], total: 0 },
-        isLoading: false,
-        error: null,
-      };
+    mockUseStatistics.mockReturnValue({
+      data: {
+        items: [
+          { title: "コーディング", duration: 3600, percentage: 60.0 },
+          { title: "ミーティング", duration: 2400, percentage: 40.0 },
+        ],
+        total: 6000,
+      },
+      isLoading: false,
+      error: null,
     });
 
     render(<Statistics />);
 
-    expect(screen.getByText("コーディング")).toBeInTheDocument();
-    expect(screen.getByText("ミーティング")).toBeInTheDocument();
-    expect(screen.getByText("60.0%")).toBeInTheDocument();
-    expect(screen.getByText("40.0%")).toBeInTheDocument();
+    // 3つのパネルがあるので、getAllByTextを使う
+    const codingTexts = screen.getAllByText("コーディング");
+    expect(codingTexts.length).toBeGreaterThan(0);
+    const meetingTexts = screen.getAllByText("ミーティング");
+    expect(meetingTexts.length).toBeGreaterThan(0);
+    const percentage60 = screen.getAllByText("60.0%");
+    expect(percentage60.length).toBeGreaterThan(0);
+    const percentage40 = screen.getAllByText("40.0%");
+    expect(percentage40.length).toBeGreaterThan(0);
   });
 
   test("時間のフォーマットが正しい（時間と分）", () => {
-    mockUseStatistics.mockImplementation((period: string) => {
-      if (period === "day") {
-        return {
-          data: {
-            items: [
-              { title: "タスクA", duration: 3660, percentage: 100.0 }, // 1時間1分
-            ],
-            total: 3660,
-          },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return {
-        data: { items: [], total: 0 },
-        isLoading: false,
-        error: null,
-      };
+    mockUseStatistics.mockReturnValue({
+      data: {
+        items: [
+          { title: "タスクA", duration: 3660, percentage: 100.0 }, // 1時間1分
+        ],
+        total: 3660,
+      },
+      isLoading: false,
+      error: null,
     });
 
     render(<Statistics />);
@@ -135,22 +128,13 @@ describe("Statistics", () => {
   });
 
   test("時間のフォーマットが正しい（分のみ）", () => {
-    mockUseStatistics.mockImplementation((period: string) => {
-      if (period === "day") {
-        return {
-          data: {
-            items: [{ title: "タスクB", duration: 600, percentage: 100.0 }], // 10分
-            total: 600,
-          },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return {
-        data: { items: [], total: 0 },
-        isLoading: false,
-        error: null,
-      };
+    mockUseStatistics.mockReturnValue({
+      data: {
+        items: [{ title: "タスクB", duration: 600, percentage: 100.0 }], // 10分
+        total: 600,
+      },
+      isLoading: false,
+      error: null,
     });
 
     render(<Statistics />);
@@ -161,65 +145,50 @@ describe("Statistics", () => {
   });
 
   test("3つの期間のパネルを表示できる", () => {
-    const mockData = {
-      day: {
-        items: [{ title: "日のタスク", duration: 1800, percentage: 100.0 }],
+    mockUseStatistics.mockReturnValue({
+      data: {
+        items: [{ title: "テストタスク", duration: 1800, percentage: 100.0 }],
         total: 1800,
       },
-      week: {
-        items: [{ title: "週のタスク", duration: 3600, percentage: 100.0 }],
-        total: 3600,
-      },
-      month: {
-        items: [{ title: "月のタスク", duration: 7200, percentage: 100.0 }],
-        total: 7200,
-      },
-    };
-
-    mockUseStatistics.mockImplementation((period: string) => ({
-      data: mockData[period as keyof typeof mockData],
       isLoading: false,
       error: null,
-    }));
-
-    render(<Statistics />);
-
-    expect(screen.getByText("日のタスク")).toBeInTheDocument();
-    expect(screen.getByText("週のタスク")).toBeInTheDocument();
-    expect(screen.getByText("月のタスク")).toBeInTheDocument();
-  });
-
-  test("複数のアイテムを正しく表示できる", () => {
-    mockUseStatistics.mockImplementation((period: string) => {
-      if (period === "day") {
-        return {
-          data: {
-            items: [
-              { title: "タスク1", duration: 1800, percentage: 33.3 },
-              { title: "タスク2", duration: 1800, percentage: 33.3 },
-              { title: "タスク3", duration: 1800, percentage: 33.4 },
-            ],
-            total: 5400,
-          },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return {
-        data: { items: [], total: 0 },
-        isLoading: false,
-        error: null,
-      };
     });
 
     render(<Statistics />);
 
-    expect(screen.getByText("タスク1")).toBeInTheDocument();
-    expect(screen.getByText("タスク2")).toBeInTheDocument();
-    expect(screen.getByText("タスク3")).toBeInTheDocument();
-    // 33.3%が2つあるのでgetAllByTextを使う
+    // 3つのパネルがあるので、getAllByTextを使う
+    const taskTexts = screen.getAllByText("テストタスク");
+    expect(taskTexts.length).toBe(3);
+  });
+
+  test("複数のアイテムを正しく表示できる", () => {
+    mockUseStatistics.mockReturnValue({
+      data: {
+        items: [
+          { title: "タスク1", duration: 1800, percentage: 33.3 },
+          { title: "タスク2", duration: 1800, percentage: 33.3 },
+          { title: "タスク3", duration: 1800, percentage: 33.4 },
+        ],
+        total: 5400,
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    render(<Statistics />);
+
+    // 3つのパネルがあるので、getAllByTextを使う
+    const task1Texts = screen.getAllByText("タスク1");
+    expect(task1Texts.length).toBe(3);
+    const task2Texts = screen.getAllByText("タスク2");
+    expect(task2Texts.length).toBe(3);
+    const task3Texts = screen.getAllByText("タスク3");
+    expect(task3Texts.length).toBe(3);
+    // 33.3%が各パネルに2つずつあるので合計6つ
     const percentages33 = screen.getAllByText("33.3%");
-    expect(percentages33.length).toBe(2);
-    expect(screen.getByText("33.4%")).toBeInTheDocument();
+    expect(percentages33.length).toBe(6);
+    // 33.4%が各パネルに1つずつあるので合計3つ
+    const percentages34 = screen.getAllByText("33.4%");
+    expect(percentages34.length).toBe(3);
   });
 });

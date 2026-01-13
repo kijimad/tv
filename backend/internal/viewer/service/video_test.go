@@ -49,7 +49,7 @@ func TestVideoService_ListVideos(t *testing.T) {
 		require.NoError(t, err)
 
 		// 一覧を取得する
-		videos, totalCount, err := svc.ListVideos(ctx, 10, 0)
+		videos, totalCount, err := svc.ListVideos(ctx, 10, 0, sql.NullTime{}, sql.NullTime{})
 		require.NoError(t, err)
 
 		// 3件取得できることを確認する
@@ -70,22 +70,118 @@ func TestVideoService_ListVideos(t *testing.T) {
 		}
 
 		// limit=2, offset=0で取得する
-		videos, totalCount, err := svc.ListVideos(ctx, 2, 0)
+		videos, totalCount, err := svc.ListVideos(ctx, 2, 0, sql.NullTime{}, sql.NullTime{})
 		require.NoError(t, err)
 		assert.Len(t, videos, 2)
 		assert.Equal(t, int64(5), totalCount)
 
 		// limit=2, offset=2で取得する
-		videos, totalCount, err = svc.ListVideos(ctx, 2, 2)
+		videos, totalCount, err = svc.ListVideos(ctx, 2, 2, sql.NullTime{}, sql.NullTime{})
 		require.NoError(t, err)
 		assert.Len(t, videos, 2)
 		assert.Equal(t, int64(5), totalCount)
 
 		// limit=2, offset=4で取得する
-		videos, totalCount, err = svc.ListVideos(ctx, 2, 4)
+		videos, totalCount, err = svc.ListVideos(ctx, 2, 4, sql.NullTime{}, sql.NullTime{})
 		require.NoError(t, err)
 		assert.Len(t, videos, 1)
 		assert.Equal(t, int64(5), totalCount)
+	})
+
+	t.Run("startedAtFromでフィルタリングできる", func(t *testing.T) {
+		t.Parallel()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// 異なる日時のビデオを作成する
+		baseTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+		_, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.StartedAt = baseTime.Add(-2 * time.Hour)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+		_, err = factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.StartedAt = baseTime
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+		_, err = factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.StartedAt = baseTime.Add(2 * time.Hour)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// baseTime以降のビデオを取得する
+		videos, totalCount, err := svc.ListVideos(ctx, 10, 0, sql.NullTime{Time: baseTime, Valid: true}, sql.NullTime{})
+		require.NoError(t, err)
+
+		// 2件取得できることを確認する
+		assert.Len(t, videos, 2)
+		assert.Equal(t, int64(2), totalCount)
+	})
+
+	t.Run("startedAtToでフィルタリングできる", func(t *testing.T) {
+		t.Parallel()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// 異なる日時のビデオを作成する
+		baseTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+		_, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.StartedAt = baseTime.Add(-2 * time.Hour)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+		_, err = factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.StartedAt = baseTime
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+		_, err = factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.StartedAt = baseTime.Add(2 * time.Hour)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// baseTime以前のビデオを取得する
+		videos, totalCount, err := svc.ListVideos(ctx, 10, 0, sql.NullTime{}, sql.NullTime{Time: baseTime, Valid: true})
+		require.NoError(t, err)
+
+		// 2件取得できることを確認する
+		assert.Len(t, videos, 2)
+		assert.Equal(t, int64(2), totalCount)
+	})
+
+	t.Run("startedAtFromとstartedAtToの両方でフィルタリングできる", func(t *testing.T) {
+		t.Parallel()
+		svc, queries, cleanup := setupVideoService(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// 異なる日時のビデオを作成する
+		baseTime := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+		_, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.StartedAt = baseTime.Add(-3 * time.Hour)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+		_, err = factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.StartedAt = baseTime.Add(-1 * time.Hour)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+		_, err = factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.StartedAt = baseTime.Add(1 * time.Hour)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+		_, err = factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.StartedAt = baseTime.Add(3 * time.Hour)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// baseTime-2時間からbaseTime+2時間の範囲のビデオを取得する
+		from := sql.NullTime{Time: baseTime.Add(-2 * time.Hour), Valid: true}
+		to := sql.NullTime{Time: baseTime.Add(2 * time.Hour), Valid: true}
+		videos, totalCount, err := svc.ListVideos(ctx, 10, 0, from, to)
+		require.NoError(t, err)
+
+		// 2件取得できることを確認する
+		assert.Len(t, videos, 2)
+		assert.Equal(t, int64(2), totalCount)
 	})
 }
 

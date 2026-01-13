@@ -10,7 +10,7 @@ import (
 )
 
 type Querier interface {
-	CountVideos(ctx context.Context) (int64, error)
+	CountVideos(ctx context.Context, arg CountVideosParams) (int64, error)
 	CreateVideo(ctx context.Context, arg CreateVideoParams) (Video, error)
 	DeleteVideo(ctx context.Context, id int64) error
 	GetPeriodStatistics(ctx context.Context, arg GetPeriodStatisticsParams) ([]GetPeriodStatisticsRow, error)

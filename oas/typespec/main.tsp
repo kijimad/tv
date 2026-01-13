@@ -98,7 +98,7 @@ model Pager {
 
   /** 1ページあたりの最大取得件数 */
   @minValue(0)
-  @maxValue(100)
+  @maxValue(1000)
   size: int32;
 
   /** ページに含まれているものも含まれていないものも合わせた対象の全数 */
@@ -145,9 +145,13 @@ interface Videos {
   @get
   list(
     /** ページ番号 */
-    @query @minValue(1) page?: int32 = 1,
+    @query(#{ explode: true }) @minValue(1) page?: int32 = 1,
     /** 1ページあたりの最大取得件数 */
-    @query @minValue(1) @maxValue(100) size?: int32 = 30,
+    @query(#{ explode: true }) @minValue(1) @maxValue(1000) size?: int32 = 30,
+    /** 開始時刻の範囲指定（from）。この時刻以降に開始した動画を取得する */
+    @query(#{ explode: true }) startedAtFrom?: utcDateTime,
+    /** 開始時刻の範囲指定（to）。この時刻以前に開始した動画を取得する */
+    @query(#{ explode: true }) startedAtTo?: utcDateTime,
   ): VideoPage | Error;
 
   /** ビデオ詳細取得 */
@@ -202,13 +206,11 @@ interface StatisticsAPI {
   /** 統計取得 */
   @get
   get(
-    /** 期間 */
-    @query period: "day" | "week" | "month",
+    /** 開始時刻の範囲指定(from)。この時刻以降に開始した動画を集計する */
+    @query(#{ explode: true }) startedAtFrom?: utcDateTime,
+    /** 開始時刻の範囲指定(to)。この時刻以前に開始した動画を集計する */
+    @query(#{ explode: true }) startedAtTo?: utcDateTime,
     /** 取得件数 */
-    @query @minValue(1) @maxValue(100) limit?: int32 = 5,
-    /** 基準日（YYYY-MM-DD形式） */
-    @query baseDate?: string,
-    /** タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要 */
-    @query timezone?: string = "UTC",
+    @query(#{ explode: true }) @minValue(1) @maxValue(100) limit?: int32 = 10,
   ): PeriodStatistics | Error;
 }

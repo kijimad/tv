@@ -262,16 +262,13 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
     return {
         /**
          * 統計取得
-         * @param {StatisticsAPIGetPeriodEnum} period 期間
+         * @param {string} [startedAtFrom] 開始時刻の範囲指定(from)。この時刻以降に開始した動画を集計する
+         * @param {string} [startedAtTo] 開始時刻の範囲指定(to)。この時刻以前に開始した動画を集計する
          * @param {number} [limit] 取得件数
-         * @param {string} [baseDate] 基準日（YYYY-MM-DD形式）
-         * @param {string} [timezone] タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        statisticsAPIGet: async (period: StatisticsAPIGetPeriodEnum, limit?: number, baseDate?: string, timezone?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'period' is not null or undefined
-            assertParamExists('statisticsAPIGet', 'period', period)
+        statisticsAPIGet: async (startedAtFrom?: string, startedAtTo?: string, limit?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v1/statistics`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -284,20 +281,20 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             const localVarHeaderParameter = {} as any;
             const localVarQueryParameter = {} as any;
 
-            if (period !== undefined) {
-                localVarQueryParameter['period'] = period;
+            if (startedAtFrom !== undefined) {
+                localVarQueryParameter['startedAtFrom'] = (startedAtFrom as any instanceof Date) ?
+                    (startedAtFrom as any).toISOString() :
+                    startedAtFrom;
+            }
+
+            if (startedAtTo !== undefined) {
+                localVarQueryParameter['startedAtTo'] = (startedAtTo as any instanceof Date) ?
+                    (startedAtTo as any).toISOString() :
+                    startedAtTo;
             }
 
             if (limit !== undefined) {
                 localVarQueryParameter['limit'] = limit;
-            }
-
-            if (baseDate !== undefined) {
-                localVarQueryParameter['baseDate'] = baseDate;
-            }
-
-            if (timezone !== undefined) {
-                localVarQueryParameter['timezone'] = timezone;
             }
 
 
@@ -449,10 +446,12 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
          * ビデオ一覧取得
          * @param {number} [page] ページ番号
          * @param {number} [size] 1ページあたりの最大取得件数
+         * @param {string} [startedAtFrom] 開始時刻の範囲指定（from）。この時刻以降に開始した動画を取得する
+         * @param {string} [startedAtTo] 開始時刻の範囲指定（to）。この時刻以前に開始した動画を取得する
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        videosList: async (page?: number, size?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        videosList: async (page?: number, size?: number, startedAtFrom?: string, startedAtTo?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/api/v1/videos`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -471,6 +470,18 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
 
             if (size !== undefined) {
                 localVarQueryParameter['size'] = size;
+            }
+
+            if (startedAtFrom !== undefined) {
+                localVarQueryParameter['startedAtFrom'] = (startedAtFrom as any instanceof Date) ?
+                    (startedAtFrom as any).toISOString() :
+                    startedAtFrom;
+            }
+
+            if (startedAtTo !== undefined) {
+                localVarQueryParameter['startedAtTo'] = (startedAtTo as any instanceof Date) ?
+                    (startedAtTo as any).toISOString() :
+                    startedAtTo;
             }
 
 
@@ -568,15 +579,14 @@ export const DefaultApiFp = function(configuration?: Configuration) {
     return {
         /**
          * 統計取得
-         * @param {StatisticsAPIGetPeriodEnum} period 期間
+         * @param {string} [startedAtFrom] 開始時刻の範囲指定(from)。この時刻以降に開始した動画を集計する
+         * @param {string} [startedAtTo] 開始時刻の範囲指定(to)。この時刻以前に開始した動画を集計する
          * @param {number} [limit] 取得件数
-         * @param {string} [baseDate] 基準日（YYYY-MM-DD形式）
-         * @param {string} [timezone] タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async statisticsAPIGet(period: StatisticsAPIGetPeriodEnum, limit?: number, baseDate?: string, timezone?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PeriodStatistics>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.statisticsAPIGet(period, limit, baseDate, timezone, options);
+        async statisticsAPIGet(startedAtFrom?: string, startedAtTo?: string, limit?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PeriodStatistics>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.statisticsAPIGet(startedAtFrom, startedAtTo, limit, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.statisticsAPIGet']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -633,11 +643,13 @@ export const DefaultApiFp = function(configuration?: Configuration) {
          * ビデオ一覧取得
          * @param {number} [page] ページ番号
          * @param {number} [size] 1ページあたりの最大取得件数
+         * @param {string} [startedAtFrom] 開始時刻の範囲指定（from）。この時刻以降に開始した動画を取得する
+         * @param {string} [startedAtTo] 開始時刻の範囲指定（to）。この時刻以前に開始した動画を取得する
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async videosList(page?: number, size?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<VideoPage>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.videosList(page, size, options);
+        async videosList(page?: number, size?: number, startedAtFrom?: string, startedAtTo?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<VideoPage>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.videosList(page, size, startedAtFrom, startedAtTo, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DefaultApi.videosList']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -679,15 +691,14 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
     return {
         /**
          * 統計取得
-         * @param {StatisticsAPIGetPeriodEnum} period 期間
+         * @param {string} [startedAtFrom] 開始時刻の範囲指定(from)。この時刻以降に開始した動画を集計する
+         * @param {string} [startedAtTo] 開始時刻の範囲指定(to)。この時刻以前に開始した動画を集計する
          * @param {number} [limit] 取得件数
-         * @param {string} [baseDate] 基準日（YYYY-MM-DD形式）
-         * @param {string} [timezone] タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        statisticsAPIGet(period: StatisticsAPIGetPeriodEnum, limit?: number, baseDate?: string, timezone?: string, options?: RawAxiosRequestConfig): AxiosPromise<PeriodStatistics> {
-            return localVarFp.statisticsAPIGet(period, limit, baseDate, timezone, options).then((request) => request(axios, basePath));
+        statisticsAPIGet(startedAtFrom?: string, startedAtTo?: string, limit?: number, options?: RawAxiosRequestConfig): AxiosPromise<PeriodStatistics> {
+            return localVarFp.statisticsAPIGet(startedAtFrom, startedAtTo, limit, options).then((request) => request(axios, basePath));
         },
         /**
          * ビデオ作成
@@ -729,11 +740,13 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
          * ビデオ一覧取得
          * @param {number} [page] ページ番号
          * @param {number} [size] 1ページあたりの最大取得件数
+         * @param {string} [startedAtFrom] 開始時刻の範囲指定（from）。この時刻以降に開始した動画を取得する
+         * @param {string} [startedAtTo] 開始時刻の範囲指定（to）。この時刻以前に開始した動画を取得する
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        videosList(page?: number, size?: number, options?: RawAxiosRequestConfig): AxiosPromise<VideoPage> {
-            return localVarFp.videosList(page, size, options).then((request) => request(axios, basePath));
+        videosList(page?: number, size?: number, startedAtFrom?: string, startedAtTo?: string, options?: RawAxiosRequestConfig): AxiosPromise<VideoPage> {
+            return localVarFp.videosList(page, size, startedAtFrom, startedAtTo, options).then((request) => request(axios, basePath));
         },
         /**
          * サムネイル画像取得
@@ -766,16 +779,15 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
 export class DefaultApi extends BaseAPI {
     /**
      * 統計取得
-     * @param {StatisticsAPIGetPeriodEnum} period 期間
+     * @param {string} [startedAtFrom] 開始時刻の範囲指定(from)。この時刻以降に開始した動画を集計する
+     * @param {string} [startedAtTo] 開始時刻の範囲指定(to)。この時刻以前に開始した動画を集計する
      * @param {number} [limit] 取得件数
-     * @param {string} [baseDate] 基準日（YYYY-MM-DD形式）
-     * @param {string} [timezone] タイムゾーン（IANA timezone database形式、例：Asia/Tokyo）。期間の境界を計算するので必要
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof DefaultApi
      */
-    public statisticsAPIGet(period: StatisticsAPIGetPeriodEnum, limit?: number, baseDate?: string, timezone?: string, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).statisticsAPIGet(period, limit, baseDate, timezone, options).then((request) => request(this.axios, this.basePath));
+    public statisticsAPIGet(startedAtFrom?: string, startedAtTo?: string, limit?: number, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).statisticsAPIGet(startedAtFrom, startedAtTo, limit, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -826,12 +838,14 @@ export class DefaultApi extends BaseAPI {
      * ビデオ一覧取得
      * @param {number} [page] ページ番号
      * @param {number} [size] 1ページあたりの最大取得件数
+     * @param {string} [startedAtFrom] 開始時刻の範囲指定（from）。この時刻以降に開始した動画を取得する
+     * @param {string} [startedAtTo] 開始時刻の範囲指定（to）。この時刻以前に開始した動画を取得する
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      * @memberof DefaultApi
      */
-    public videosList(page?: number, size?: number, options?: RawAxiosRequestConfig) {
-        return DefaultApiFp(this.configuration).videosList(page, size, options).then((request) => request(this.axios, this.basePath));
+    public videosList(page?: number, size?: number, startedAtFrom?: string, startedAtTo?: string, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).videosList(page, size, startedAtFrom, startedAtTo, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -858,14 +872,5 @@ export class DefaultApi extends BaseAPI {
     }
 }
 
-/**
- * @export
- */
-export const StatisticsAPIGetPeriodEnum = {
-    Day: 'day',
-    Week: 'week',
-    Month: 'month'
-} as const;
-export type StatisticsAPIGetPeriodEnum = typeof StatisticsAPIGetPeriodEnum[keyof typeof StatisticsAPIGetPeriodEnum];
 
 

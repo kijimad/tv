@@ -23,7 +23,7 @@ var CmdCleaner = &cli.Command{
 		&cli.IntFlag{
 			Name:  "days",
 			Usage: "Delete files older than this many days",
-			Value: 14,
+			Value: 60,
 		},
 	},
 	Action: func(_ context.Context, cmd *cli.Command) error {

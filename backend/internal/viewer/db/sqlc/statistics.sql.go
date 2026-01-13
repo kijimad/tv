@@ -7,7 +7,7 @@ package sqlc
 
 import (
 	"context"
-	"time"
+	"database/sql"
 )
 
 const getPeriodStatistics = `-- name: GetPeriodStatistics :many
@@ -15,16 +15,18 @@ SELECT
   title,
   SUM(EXTRACT(EPOCH FROM (finished_at - started_at)))::bigint as duration
 FROM videos
-WHERE started_at >= $1 AND started_at < $2
+WHERE
+  ($1::timestamp IS NULL OR started_at >= $1::timestamp)
+  AND ($2::timestamp IS NULL OR started_at < $2::timestamp)
 GROUP BY title
 ORDER BY duration DESC
 LIMIT $3
 `
 
 type GetPeriodStatisticsParams struct {
-	PeriodStart time.Time `json:"period_start"`
-	PeriodEnd   time.Time `json:"period_end"`
-	LimitCount  int32     `json:"limit_count"`
+	PeriodStart sql.NullTime `json:"period_start"`
+	PeriodEnd   sql.NullTime `json:"period_end"`
+	LimitCount  int32        `json:"limit_count"`
 }
 
 type GetPeriodStatisticsRow struct {

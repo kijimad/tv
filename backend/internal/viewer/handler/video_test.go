@@ -122,6 +122,151 @@ func TestVideoHandler_VideosList(t *testing.T) {
 		assert.Len(t, listResp.Data, 0)
 		assert.Equal(t, int32(0), listResp.Pager.TotalCount)
 	})
+
+	t.Run("日付範囲でフィルタリングできる", func(t *testing.T) {
+		t.Parallel()
+		h, queries, cleanup := setupVideoHandler(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		// 異なる日付のビデオを作成する
+		baseTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+		// 2026-01-01のビデオ
+		_, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.Title = "1月1日のビデオ"
+			vf.StartedAt = baseTime
+			vf.FinishedAt = baseTime.Add(30 * time.Minute)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// 2026-01-02のビデオ
+		_, err = factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.Title = "1月2日のビデオ"
+			vf.StartedAt = baseTime.Add(24 * time.Hour)
+			vf.FinishedAt = baseTime.Add(24*time.Hour + 30*time.Minute)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// 2026-01-03のビデオ
+		_, err = factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.Title = "1月3日のビデオ"
+			vf.StartedAt = baseTime.Add(48 * time.Hour)
+			vf.FinishedAt = baseTime.Add(48*time.Hour + 30*time.Minute)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// 1月1日から1月2日の範囲で取得する（1月3日は除外）
+		page := int32(1)
+		size := int32(10)
+		from := baseTime
+		to := baseTime.Add(47 * time.Hour) // 1月1日 00:00から1月2日 23:00まで
+		req := oapi.VideosListRequestObject{
+			Params: oapi.VideosListParams{
+				Page:          &page,
+				Size:          &size,
+				StartedAtFrom: &from,
+				StartedAtTo:   &to,
+			},
+		}
+		resp, err := h.VideosList(ctx, req)
+		require.NoError(t, err)
+
+		// レスポンスを確認する（新しい順に返される）
+		listResp, ok := resp.(oapi.VideosList200JSONResponse)
+		require.True(t, ok)
+		assert.Len(t, listResp.Data, 2)
+		assert.Equal(t, int32(2), listResp.Pager.TotalCount)
+		// IDの降順（新しい順）で返される
+		assert.Equal(t, "1月2日のビデオ", listResp.Data[0].Title)
+		assert.Equal(t, "1月1日のビデオ", listResp.Data[1].Title)
+	})
+
+	t.Run("startedAtFromのみ指定できる", func(t *testing.T) {
+		t.Parallel()
+		h, queries, cleanup := setupVideoHandler(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		baseTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+		// 2件のビデオを作成する
+		_, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.Title = "古いビデオ"
+			vf.StartedAt = baseTime
+			vf.FinishedAt = baseTime.Add(30 * time.Minute)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		_, err = factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.Title = "新しいビデオ"
+			vf.StartedAt = baseTime.Add(24 * time.Hour)
+			vf.FinishedAt = baseTime.Add(24*time.Hour + 30*time.Minute)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// 1月2日以降のビデオを取得する
+		page := int32(1)
+		size := int32(10)
+		from := baseTime.Add(24 * time.Hour)
+		req := oapi.VideosListRequestObject{
+			Params: oapi.VideosListParams{
+				Page:          &page,
+				Size:          &size,
+				StartedAtFrom: &from,
+			},
+		}
+		resp, err := h.VideosList(ctx, req)
+		require.NoError(t, err)
+
+		listResp, ok := resp.(oapi.VideosList200JSONResponse)
+		require.True(t, ok)
+		assert.Len(t, listResp.Data, 1)
+		assert.Equal(t, "新しいビデオ", listResp.Data[0].Title)
+	})
+
+	t.Run("startedAtToのみ指定できる", func(t *testing.T) {
+		t.Parallel()
+		h, queries, cleanup := setupVideoHandler(t)
+		defer cleanup()
+		ctx := context.Background()
+
+		baseTime := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+
+		// 2件のビデオを作成する
+		_, err := factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.Title = "古いビデオ"
+			vf.StartedAt = baseTime
+			vf.FinishedAt = baseTime.Add(30 * time.Minute)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		_, err = factory.NewVideo(func(vf *factory.VideoFactory) {
+			vf.Title = "新しいビデオ"
+			vf.StartedAt = baseTime.Add(24 * time.Hour)
+			vf.FinishedAt = baseTime.Add(24*time.Hour + 30*time.Minute)
+		}).Create(ctx, queries)
+		require.NoError(t, err)
+
+		// 1月2日より前のビデオを取得する
+		page := int32(1)
+		size := int32(10)
+		to := baseTime.Add(23 * time.Hour) // 1月1日 23:00まで
+		req := oapi.VideosListRequestObject{
+			Params: oapi.VideosListParams{
+				Page:        &page,
+				Size:        &size,
+				StartedAtTo: &to,
+			},
+		}
+		resp, err := h.VideosList(ctx, req)
+		require.NoError(t, err)
+
+		listResp, ok := resp.(oapi.VideosList200JSONResponse)
+		require.True(t, ok)
+		assert.Len(t, listResp.Data, 1)
+		assert.Equal(t, "古いビデオ", listResp.Data[0].Title)
+	})
 }
 
 func TestVideoHandler_VideosGet(t *testing.T) {

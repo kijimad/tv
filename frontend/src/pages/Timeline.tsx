@@ -31,10 +31,22 @@ function VideoThumbnail({ videoId }: { videoId: number }) {
 }
 
 export default function Timeline() {
-  const { data, isLoading, error } = useVideos();
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
+
+  // 選択された日付の00:00:00から23:59:59までを取得する
+  const startedAtFrom = new Date(selectedDate);
+  startedAtFrom.setHours(0, 0, 0, 0);
+  const startedAtTo = new Date(selectedDate);
+  startedAtTo.setHours(23, 59, 59, 999);
+
+  const { data, isLoading, error } = useVideos(
+    1,
+    100,
+    startedAtFrom,
+    startedAtTo,
+  );
 
   // 現在時刻を1秒ごとに更新する
   useEffect(() => {
@@ -45,22 +57,8 @@ export default function Timeline() {
     return () => clearInterval(timer);
   }, []);
 
-  // 選択された日付の動画のみフィルタする
-  const getVideosForDate = (date: Date) => {
-    if (!data?.data) return [];
-
-    return data.data.filter((video: Video) => {
-      const videoDate = new Date(video.startedAt);
-      // 年月日のみを比較する
-      return (
-        videoDate.getFullYear() === date.getFullYear() &&
-        videoDate.getMonth() === date.getMonth() &&
-        videoDate.getDate() === date.getDate()
-      );
-    });
-  };
-
-  const displayVideos = getVideosForDate(selectedDate);
+  // バックエンドで日付フィルタリングされているので、そのまま使用する
+  const displayVideos = data?.data || [];
 
   // その日の最初の動画の開始時刻を取得する
   const getFirstVideoStartHour = () => {

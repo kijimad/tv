@@ -4,11 +4,17 @@ WHERE id = $1 LIMIT 1;
 
 -- name: ListVideos :many
 SELECT * FROM videos
+WHERE
+    (sqlc.narg('started_at_from')::timestamp IS NULL OR started_at >= sqlc.narg('started_at_from')::timestamp)
+    AND (sqlc.narg('started_at_to')::timestamp IS NULL OR started_at <= sqlc.narg('started_at_to')::timestamp)
 ORDER BY started_at DESC
-LIMIT $1 OFFSET $2;
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');
 
 -- name: CountVideos :one
-SELECT COUNT(*) FROM videos;
+SELECT COUNT(*) FROM videos
+WHERE
+    (sqlc.narg('started_at_from')::timestamp IS NULL OR started_at >= sqlc.narg('started_at_from')::timestamp)
+    AND (sqlc.narg('started_at_to')::timestamp IS NULL OR started_at <= sqlc.narg('started_at_to')::timestamp);
 
 -- name: CreateVideo :one
 INSERT INTO videos (
