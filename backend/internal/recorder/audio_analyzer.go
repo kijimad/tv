@@ -97,6 +97,10 @@ func (a *AudioAnalyzer) getRMSLevels(videoPath string) ([]float64, error) {
 	var rmsLevels []float64
 	for _, match := range matches {
 		if len(match) >= 2 {
+			// "-" は音声レベルが検出されなかった場合にffmpegが出力する値なのでスキップする
+			if match[1] == "-" {
+				continue
+			}
 			rms, err := strconv.ParseFloat(match[1], 64)
 			if err != nil {
 				log.Printf("Failed to parse RMS level: %v", err)
