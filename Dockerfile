@@ -64,7 +64,7 @@ ENTRYPOINT ["/bin/tv"]
 # frontend-dev #
 ################
 
-FROM node:22-slim AS frontend-dev
+FROM node:25-slim AS frontend-dev
 
 WORKDIR /app
 
